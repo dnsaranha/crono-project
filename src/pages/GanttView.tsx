@@ -127,6 +127,19 @@ const GanttView = () => {
       description: "Esta funcionalidade será implementada em breve.",
     });
   };
+  
+  const handleTaskUpdate = (updatedTask: TaskType) => {
+    const newTasks = tasks.map(task => 
+      task.id === updatedTask.id ? updatedTask : task
+    );
+    
+    setTasks(newTasks);
+    
+    toast({
+      title: "Tarefa atualizada",
+      description: `${updatedTask.name} foi atualizada com sucesso.`,
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -143,6 +156,7 @@ const GanttView = () => {
             tasks={tasks} 
             onTaskClick={handleTaskClick}
             onAddTask={handleAddTask}
+            onTaskUpdate={handleTaskUpdate}
           />
         </div>
       </main>

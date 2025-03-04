@@ -8,11 +8,15 @@ interface GanttChartProps {
   tasks: TaskType[];
   onTaskClick?: (task: TaskType) => void;
   onAddTask?: () => void;
+  onTaskUpdate?: (updatedTask: TaskType) => void;
 }
 
-const GanttChart = ({ tasks, onTaskClick, onAddTask }: GanttChartProps) => {
+const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<{ weekIndex: number, rowIndex: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const ganttGridRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   
   // Sample date range (for the chart header)
@@ -104,6 +108,83 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask }: GanttChartProps) => {
 
   const visibleTasks = tasks.filter(isTaskVisible);
   
+  // New functions for handling task dragging
+  const handleTaskDragStart = (e: React.DragEvent, task: TaskType) => {
+    setDraggingTask(task);
+  };
+  
+  const handleTaskDragEnd = (e: React.DragEvent, task: TaskType) => {
+    if (dragOverCell && onTaskUpdate) {
+      const { weekIndex } = dragOverCell;
+      
+      // Calculate new start date
+      const newStartDate = new Date(startDate);
+      newStartDate.setDate(newStartDate.getDate() + (weekIndex * 7)); // Each cell is a week
+      
+      // Format date as YYYY-MM-DD
+      const formattedDate = newStartDate.toISOString().split('T')[0];
+      
+      // Update the task with new date
+      const updatedTask = { ...task, startDate: formattedDate };
+      onTaskUpdate(updatedTask);
+    }
+    
+    // Reset states
+    setDraggingTask(null);
+    setDragOverCell(null);
+  };
+  
+  const handleCellDragOver = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
+    e.preventDefault();
+    setDragOverCell({ weekIndex, rowIndex });
+  };
+  
+  const handleCellDrop = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
+    e.preventDefault();
+    
+    // The actual update is handled in dragEnd
+    setDragOverCell(null);
+  };
+  
+  // Handler for resizing tasks
+  const handleTaskResize = (task: TaskType, newDuration: number) => {
+    if (onTaskUpdate) {
+      const updatedTask = { ...task, duration: newDuration };
+      onTaskUpdate(updatedTask);
+    }
+  };
+  
+  // Handler for managing dependencies
+  const handleDependencyDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("dependency-source", taskId);
+  };
+  
+  const handleDependencyDragOver = (e: React.DragEvent, taskId: string) => {
+    // Only allow dropping if this is a dependency drag operation
+    if (e.dataTransfer.types.includes("dependency-source")) {
+      e.preventDefault();
+    }
+  };
+  
+  const handleDependencyDrop = (e: React.DragEvent, targetTaskId: string) => {
+    const sourceTaskId = e.dataTransfer.getData("dependency-source");
+    if (sourceTaskId && onTaskUpdate && sourceTaskId !== targetTaskId) {
+      // Find the target task
+      const targetTask = tasks.find(t => t.id === targetTaskId);
+      if (targetTask) {
+        // Check if dependency already exists
+        const dependencies = targetTask.dependencies || [];
+        if (!dependencies.includes(sourceTaskId)) {
+          const updatedTask = {
+            ...targetTask,
+            dependencies: [...dependencies, sourceTaskId]
+          };
+          onTaskUpdate(updatedTask);
+        }
+      }
+    }
+  };
+  
   return (
     <div className="rounded-md border bg-gantt-lightGray overflow-hidden" ref={containerRef}>
       <div className="overflow-auto">
@@ -116,10 +197,12 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask }: GanttChartProps) => {
             
             {/* Task names */}
             <div>
-              {visibleTasks.map((task) => (
+              {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
                   className={`h-10 flex items-center px-4 border-b ${task.isGroup ? 'bg-gantt-gray' : 'bg-white'}`}
+                  onDragOver={(e) => handleDependencyDragOver(e, task.id)}
+                  onDrop={(e) => handleDependencyDrop(e, task.id)}
                 >
                   <div className="flex items-center w-full">
                     <div className="w-5 flex-shrink-0">
@@ -141,6 +224,8 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask }: GanttChartProps) => {
                     <div 
                       className={`ml-1 text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
                       style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
+                      draggable={!task.isGroup}
+                      onDragStart={(e) => handleDependencyDragStart(e, task.id)}
                     >
                       {task.name}
                     </div>
@@ -180,20 +265,42 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask }: GanttChartProps) => {
             
             {/* Tasks grid with lines */}
             <div 
+              ref={ganttGridRef}
               className="gantt-grid relative"
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
             >
               {/* Task bars */}
-              {visibleTasks.map((task, index) => (
+              {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
                   className="absolute h-10 w-full"
-                  style={{ top: `${index * 40}px` }}
+                  style={{ top: `${rowIndex * 40}px` }}
                 >
+                  {/* Drag cells to position tasks */}
+                  <div className="absolute inset-0 flex">
+                    {Array.from({ length: totalCells }).map((_, weekIndex) => (
+                      <div
+                        key={weekIndex}
+                        className={`h-full ${
+                          dragOverCell?.weekIndex === weekIndex && dragOverCell?.rowIndex === rowIndex
+                            ? 'bg-blue-100'
+                            : ''
+                        }`}
+                        style={{ width: `${cellWidth}px` }}
+                        onDragOver={(e) => handleCellDragOver(e, weekIndex, rowIndex)}
+                        onDrop={(e) => handleCellDrop(e, weekIndex, rowIndex)}
+                      />
+                    ))}
+                  </div>
+                  
                   <Task 
                     task={task}
                     style={getTaskStyle(task)}
                     onClick={onTaskClick}
+                    onDragStart={handleTaskDragStart}
+                    onDragEnd={handleTaskDragEnd}
+                    cellWidth={cellWidth}
+                    onResize={handleTaskResize}
                   />
                 </div>
               ))}

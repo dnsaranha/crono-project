@@ -99,6 +99,7 @@
 .gantt-task {
   transform-origin: left;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
 }
 
 .gantt-task:hover {
@@ -121,6 +122,7 @@
   fill: none;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
   transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .gantt-milestone {
@@ -177,3 +179,21 @@
   opacity: 0;
   transition: opacity 200ms ease-in-out;
 }
+
+/* Drag and drop styles */
+.drag-over {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.task-dragging {
+  opacity: 0.5;
+}
+
+.dependency-line {
+  cursor: crosshair;
+}
+
+.connection-handle {
+  cursor: pointer;
+}
+
