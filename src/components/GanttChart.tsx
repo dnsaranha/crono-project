@@ -9,15 +9,23 @@ interface GanttChartProps {
   onTaskClick?: (task: TaskType) => void;
   onAddTask?: () => void;
   onTaskUpdate?: (updatedTask: TaskType) => void;
+  onCreateDependency?: (sourceId: string, targetId: string) => void;
 }
 
-const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartProps) => {
+const GanttChart = ({ 
+  tasks, 
+  onTaskClick, 
+  onAddTask, 
+  onTaskUpdate,
+  onCreateDependency
+}: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ weekIndex: number, rowIndex: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const ganttGridRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [createDependencyMode, setCreateDependencyMode] = useState<{active: boolean, sourceId: string} | null>(null);
   
   // Sample date range (for the chart header)
   const startDate = new Date(2024, 0, 1); // Jan 1, 2024
@@ -110,7 +118,15 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
   
   // New functions for handling task dragging
   const handleTaskDragStart = (e: React.DragEvent, task: TaskType) => {
+    if (createDependencyMode) {
+      // In dependency creation mode, don't allow regular dragging
+      e.preventDefault();
+      return;
+    }
+    
     setDraggingTask(task);
+    e.dataTransfer.setData("task-id", task.id);
+    e.dataTransfer.effectAllowed = "move";
   };
   
   const handleTaskDragEnd = (e: React.DragEvent, task: TaskType) => {
@@ -154,34 +170,40 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
     }
   };
   
-  // Handler for managing dependencies
-  const handleDependencyDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData("dependency-source", taskId);
+  // Enhanced dependency creation
+  const handleDependencyStartClick = (taskId: string) => {
+    setCreateDependencyMode({
+      active: true,
+      sourceId: taskId
+    });
   };
   
-  const handleDependencyDragOver = (e: React.DragEvent, taskId: string) => {
-    // Only allow dropping if this is a dependency drag operation
-    if (e.dataTransfer.types.includes("dependency-source")) {
-      e.preventDefault();
+  const handleDependencyTargetClick = (taskId: string) => {
+    if (createDependencyMode && createDependencyMode.active) {
+      if (createDependencyMode.sourceId !== taskId) {
+        // Create dependency
+        if (onCreateDependency) {
+          onCreateDependency(createDependencyMode.sourceId, taskId);
+        }
+      }
+      
+      // Exit dependency creation mode
+      setCreateDependencyMode(null);
     }
   };
   
-  const handleDependencyDrop = (e: React.DragEvent, targetTaskId: string) => {
-    const sourceTaskId = e.dataTransfer.getData("dependency-source");
-    if (sourceTaskId && onTaskUpdate && sourceTaskId !== targetTaskId) {
-      // Find the target task
-      const targetTask = tasks.find(t => t.id === targetTaskId);
-      if (targetTask) {
-        // Check if dependency already exists
-        const dependencies = targetTask.dependencies || [];
-        if (!dependencies.includes(sourceTaskId)) {
-          const updatedTask = {
-            ...targetTask,
-            dependencies: [...dependencies, sourceTaskId]
-          };
-          onTaskUpdate(updatedTask);
-        }
-      }
+  const handleTaskClick = (task: TaskType) => {
+    if (createDependencyMode && createDependencyMode.active) {
+      handleDependencyTargetClick(task.id);
+    } else if (onTaskClick) {
+      onTaskClick(task);
+    }
+  };
+  
+  // Cancel dependency creation mode if clicking outside
+  const handleGridClick = (e: React.MouseEvent) => {
+    if (createDependencyMode && e.target === ganttGridRef.current) {
+      setCreateDependencyMode(null);
     }
   };
   
@@ -192,7 +214,7 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
           {/* Task names column */}
           <div className="min-w-64 w-64 border-r bg-white flex-shrink-0">
             <div className="h-24 px-4 flex items-end border-b bg-white">
-              <div className="text-sm font-medium text-gray-500 pb-2">Task name</div>
+              <div className="text-sm font-medium text-gray-500 pb-2">Nome da Tarefa</div>
             </div>
             
             {/* Task names */}
@@ -201,8 +223,6 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
                 <div 
                   key={task.id} 
                   className={`h-10 flex items-center px-4 border-b ${task.isGroup ? 'bg-gantt-gray' : 'bg-white'}`}
-                  onDragOver={(e) => handleDependencyDragOver(e, task.id)}
-                  onDrop={(e) => handleDependencyDrop(e, task.id)}
                 >
                   <div className="flex items-center w-full">
                     <div className="w-5 flex-shrink-0">
@@ -224,11 +244,22 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
                     <div 
                       className={`ml-1 text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
                       style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
-                      draggable={!task.isGroup}
-                      onDragStart={(e) => handleDependencyDragStart(e, task.id)}
                     >
                       {task.name}
                     </div>
+                    
+                    {/* Dependency links */}
+                    {!task.isGroup && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-6 w-6 p-0 rounded-full ${createDependencyMode?.sourceId === task.id ? 'bg-yellow-200' : ''}`}
+                        onClick={() => handleDependencyStartClick(task.id)}
+                        title="Criar dependência a partir desta tarefa"
+                      >
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -266,8 +297,9 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
             {/* Tasks grid with lines */}
             <div 
               ref={ganttGridRef}
-              className="gantt-grid relative"
+              className={`gantt-grid relative ${createDependencyMode?.active ? 'dependency-mode' : ''}`}
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
+              onClick={handleGridClick}
             >
               {/* Task bars */}
               {visibleTasks.map((task, rowIndex) => (
@@ -296,16 +328,20 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
                   <Task 
                     task={task}
                     style={getTaskStyle(task)}
-                    onClick={onTaskClick}
+                    onClick={handleTaskClick}
                     onDragStart={handleTaskDragStart}
                     onDragEnd={handleTaskDragEnd}
                     cellWidth={cellWidth}
                     onResize={handleTaskResize}
+                    className={createDependencyMode?.active ? 
+                      createDependencyMode.sourceId === task.id ? 
+                        'dependency-source' : 'dependency-target-candidate' 
+                      : ''}
                   />
                 </div>
               ))}
               
-              {/* Task connections (simplified) */}
+              {/* Task connections */}
               <svg className="absolute inset-0 h-full w-full pointer-events-none">
                 {visibleTasks.map(task => {
                   if (!task.dependencies?.length) return null;
@@ -339,29 +375,71 @@ const GanttChart = ({ tasks, onTaskClick, onAddTask, onTaskUpdate }: GanttChartP
                         key={`${depId}-${task.id}`}
                         className="gantt-connection"
                         d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                        markerEnd="url(#arrowhead)"
                       />
                     );
                   });
                 })}
+                
+                {/* SVG definitions for arrow markers */}
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#FFB236" />
+                  </marker>
+                </defs>
               </svg>
+              
+              {/* Active dependency line while creating */}
+              {createDependencyMode?.active && (
+                <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
+                  <div className="absolute text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded shadow-sm">
+                    Clique em uma tarefa para criar dependência
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
       
-      {onAddTask && (
-        <div className="p-2 bg-white border-t">
+      <div className="p-2 bg-white border-t flex justify-between items-center">
+        {createDependencyMode?.active ? (
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-yellow-600 border-yellow-300"
+            onClick={() => setCreateDependencyMode(null)}
+          >
+            Cancelar criação de dependência
+          </Button>
+        ) : (
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full mr-1"></div>
+              <span>Dependências</span>
+            </div>
+          </div>
+        )}
+        
+        {onAddTask && (
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full flex items-center justify-center text-primary"
+            className="text-primary"
             onClick={onAddTask}
           >
             <Plus className="h-4 w-4 mr-1" />
             <span>Adicionar Tarefa</span>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

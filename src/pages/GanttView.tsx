@@ -5,9 +5,13 @@ import GanttChart from "@/components/GanttChart";
 import NewTaskButton from "@/components/NewTaskButton";
 import { TaskType } from "@/components/Task";
 import { useToast } from "@/components/ui/use-toast";
+import TaskForm from "@/components/TaskForm";
 
 const GanttView = () => {
   const { toast } = useToast();
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+  const [isNewTask, setIsNewTask] = useState(false);
   
   // Sample tasks data
   const [tasks, setTasks] = useState<TaskType[]>([
@@ -115,17 +119,48 @@ const GanttView = () => {
   ]);
 
   const handleTaskClick = (task: TaskType) => {
-    toast({
-      title: "Tarefa selecionada",
-      description: `${task.name} - Duração: ${task.duration} dias`,
-    });
+    setSelectedTask(task);
+    setIsNewTask(false);
+    setIsTaskFormOpen(true);
   };
 
   const handleAddTask = () => {
-    toast({
-      title: "Adicionar nova tarefa",
-      description: "Esta funcionalidade será implementada em breve.",
-    });
+    setSelectedTask(null);
+    setIsNewTask(true);
+    setIsTaskFormOpen(true);
+  };
+  
+  const handleTaskFormSubmit = (taskData: Partial<TaskType>) => {
+    if (isNewTask) {
+      // Create new task with unique ID
+      const newTask: TaskType = {
+        id: `task-${Date.now()}`,
+        name: taskData.name || "Nova Tarefa",
+        startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+        duration: taskData.duration || 7,
+        progress: taskData.progress || 0,
+        dependencies: taskData.dependencies || []
+      };
+      
+      setTasks([...tasks, newTask]);
+      
+      toast({
+        title: "Tarefa adicionada",
+        description: `${newTask.name} foi adicionada com sucesso.`,
+      });
+    } else if (selectedTask) {
+      // Update existing task
+      const updatedTasks = tasks.map(task => 
+        task.id === selectedTask.id ? { ...task, ...taskData } : task
+      );
+      
+      setTasks(updatedTasks);
+      
+      toast({
+        title: "Tarefa atualizada",
+        description: `${taskData.name} foi atualizada com sucesso.`,
+      });
+    }
   };
   
   const handleTaskUpdate = (updatedTask: TaskType) => {
@@ -140,6 +175,63 @@ const GanttView = () => {
       description: `${updatedTask.name} foi atualizada com sucesso.`,
     });
   };
+  
+  const handleTaskDependencyCreated = (sourceId: string, targetId: string) => {
+    // Find the target task
+    const targetTask = tasks.find(t => t.id === targetId);
+    if (targetTask) {
+      // Check if dependency already exists
+      const dependencies = targetTask.dependencies || [];
+      if (!dependencies.includes(sourceId)) {
+        // Check for circular dependency
+        if (!wouldCreateCircularDependency(sourceId, targetId, tasks)) {
+          const updatedTask = {
+            ...targetTask,
+            dependencies: [...dependencies, sourceId]
+          };
+          
+          handleTaskUpdate(updatedTask);
+          
+          toast({
+            title: "Dependência criada",
+            description: `Dependência adicionada com sucesso.`,
+          });
+        } else {
+          toast({
+            title: "Erro",
+            description: "Não é possível criar uma dependência circular.",
+            variant: "destructive"
+          });
+        }
+      }
+    }
+  };
+  
+  // Function to check if adding a dependency would create a circular dependency
+  function wouldCreateCircularDependency(sourceId: string, targetId: string, allTasks: TaskType[], visited: Set<string> = new Set()): boolean {
+    // If we've already visited this task in this path, we have a cycle
+    if (visited.has(targetId)) return false;
+    
+    const target = allTasks.find(t => t.id === targetId);
+    if (!target) return false;
+
+    // Mark current task as visited in this path
+    visited.add(targetId);
+    
+    // If target depends on source directly, it would create a cycle
+    if (target.id === sourceId) return true;
+    
+    // Recursively check each dependency
+    if (target.dependencies) {
+      for (const depId of target.dependencies) {
+        if (wouldCreateCircularDependency(sourceId, depId, allTasks, new Set(visited))) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -157,9 +249,19 @@ const GanttView = () => {
             onTaskClick={handleTaskClick}
             onAddTask={handleAddTask}
             onTaskUpdate={handleTaskUpdate}
+            onCreateDependency={handleTaskDependencyCreated}
           />
         </div>
       </main>
+      
+      <TaskForm
+        open={isTaskFormOpen}
+        onOpenChange={setIsTaskFormOpen}
+        task={selectedTask}
+        onSubmit={handleTaskFormSubmit}
+        tasks={tasks}
+        isNew={isNewTask}
+      />
     </div>
   );
 };

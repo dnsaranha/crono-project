@@ -3,10 +3,12 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import TaskForm from "@/components/TaskForm";
+import { TaskType } from "@/components/Task";
 
 interface TaskItem {
   id: string;
@@ -14,6 +16,7 @@ interface TaskItem {
   description?: string;
   priority: 'low' | 'medium' | 'high';
   assignee?: string;
+  taskId?: string; // Reference to the actual task in the system
 }
 
 interface Column {
@@ -24,6 +27,54 @@ interface Column {
 
 const BoardView = () => {
   const { toast } = useToast();
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+  const [isNewTask, setIsNewTask] = useState(false);
+  
+  // Tasks would normally be shared across views - for demo purposes these are kept separate
+  const [tasks, setTasks] = useState<TaskType[]>([
+    {
+      id: "task-1",
+      name: "Planejamento",
+      startDate: "2024-01-01",
+      duration: 30,
+      isGroup: true,
+      progress: 100
+    },
+    {
+      id: "task-1-1",
+      name: "Definir Escopo",
+      startDate: "2024-01-01",
+      duration: 10,
+      parentId: "task-1",
+      progress: 100
+    },
+    {
+      id: "task-2-1",
+      name: "Frontend",
+      startDate: "2024-02-01",
+      duration: 30,
+      parentId: "task-2",
+      progress: 100
+    },
+    {
+      id: "task-2-2",
+      name: "Backend",
+      startDate: "2024-02-15",
+      duration: 30,
+      parentId: "task-2",
+      progress: 70,
+      dependencies: ["task-2-1"]
+    },
+    {
+      id: "task-3-1",
+      name: "Testes Unitários",
+      startDate: "2024-04-01",
+      duration: 10,
+      parentId: "task-3",
+      progress: 0
+    }
+  ]);
   
   const [columns, setColumns] = useState<Column[]>([
     {
@@ -31,18 +82,20 @@ const BoardView = () => {
       title: "A Fazer",
       tasks: [
         {
-          id: "task-1",
+          id: "item-1",
           title: "Definir Escopo",
           description: "Delimitar o escopo do projeto e definir objetivos",
           priority: "high",
-          assignee: "Ana Silva"
+          assignee: "Ana Silva",
+          taskId: "task-1-1"
         },
         {
-          id: "task-2",
-          title: "Análise de Requisitos",
-          description: "Identificar e analisar os requisitos do sistema",
+          id: "item-5",
+          title: "Testes Unitários",
+          description: "Implementar testes unitários",
           priority: "medium",
-          assignee: "João Santos"
+          assignee: "Mariana Oliveira",
+          taskId: "task-3-1"
         }
       ]
     },
@@ -51,48 +104,214 @@ const BoardView = () => {
       title: "Em Progresso",
       tasks: [
         {
-          id: "task-3",
+          id: "item-3",
           title: "Desenvolvimento Frontend",
           description: "Implementar interface do usuário",
           priority: "high",
-          assignee: "Rafael Costa"
+          assignee: "Rafael Costa",
+          taskId: "task-2-1"
         },
         {
-          id: "task-4",
+          id: "item-4",
           title: "Desenvolvimento Backend",
           description: "Desenvolver API e lógica do servidor",
           priority: "high",
-          assignee: "Carla Ferreira"
+          assignee: "Carla Ferreira",
+          taskId: "task-2-2"
         }
       ]
     },
     {
       id: "done",
       title: "Concluído",
-      tasks: [
-        {
-          id: "task-5",
-          title: "Planejamento",
-          description: "Planejar a estrutura e fases do projeto",
-          priority: "medium",
-          assignee: "Equipe"
-        }
-      ]
+      tasks: []
     }
   ]);
   
-  const handleAddTask = () => {
+  const handleAddColumn = () => {
+    const newColumnId = `column-${Date.now()}`;
+    setColumns([
+      ...columns, 
+      {
+        id: newColumnId,
+        title: "Nova Coluna",
+        tasks: []
+      }
+    ]);
+    
     toast({
-      title: "Adicionar tarefa",
-      description: "Esta funcionalidade será implementada em breve."
+      title: "Coluna adicionada",
+      description: "Nova coluna foi adicionada com sucesso."
     });
   };
+
+  const handleEditTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setIsNewTask(false);
+      setIsTaskFormOpen(true);
+    }
+  };
   
-  const handleAddColumn = () => {
-    toast({
-      title: "Adicionar coluna",
-      description: "Esta funcionalidade será implementada em breve."
-    });
+  const handleAddTask = () => {
+    setSelectedTask(null);
+    setIsNewTask(true);
+    setIsTaskFormOpen(true);
+  };
+  
+  const handleTaskFormSubmit = (taskData: Partial<TaskType>) => {
+    if (isNewTask) {
+      // Create new task with unique ID
+      const newTaskId = `task-${Date.now()}`;
+      const newTask: TaskType = {
+        id: newTaskId,
+        name: taskData.name || "Nova Tarefa",
+        startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+        duration: taskData.duration || 7,
+        progress: taskData.progress || 0,
+        dependencies: taskData.dependencies || []
+      };
+      
+      setTasks([...tasks, newTask]);
+      
+      // Also add to board in "Todo" column
+      const newBoardItem: TaskItem = {
+        id: `item-${Date.now()}`,
+        title: newTask.name,
+        description: `Duração: ${newTask.duration} dias`,
+        priority: "medium",
+        taskId: newTaskId
+      };
+      
+      const updatedColumns = columns.map(col => {
+        if (col.id === "todo") {
+          return {
+            ...col,
+            tasks: [...col.tasks, newBoardItem]
+          };
+        }
+        return col;
+      });
+      
+      setColumns(updatedColumns);
+      
+      toast({
+        title: "Tarefa adicionada",
+        description: `${newTask.name} foi adicionada com sucesso.`,
+      });
+    } else if (selectedTask) {
+      // Update existing task
+      const updatedTasks = tasks.map(task => 
+        task.id === selectedTask.id ? { ...task, ...taskData } : task
+      );
+      
+      setTasks(updatedTasks);
+      
+      // Update board item if it exists
+      const updatedColumns = columns.map(col => {
+        return {
+          ...col,
+          tasks: col.tasks.map(item => {
+            if (item.taskId === selectedTask.id) {
+              return {
+                ...item,
+                title: taskData.name || item.title,
+                description: item.description
+              };
+            }
+            return item;
+          })
+        };
+      });
+      
+      setColumns(updatedColumns);
+      
+      toast({
+        title: "Tarefa atualizada",
+        description: `${taskData.name} foi atualizada com sucesso.`,
+      });
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, itemId: string, columnId: string) => {
+    e.dataTransfer.setData("itemId", itemId);
+    e.dataTransfer.setData("sourceColumnId", columnId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    const dropZone = target.closest(".drop-zone");
+    
+    if (dropZone) {
+      dropZone.classList.add("drag-over");
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    const dropZone = target.closest(".drop-zone");
+    
+    if (dropZone) {
+      dropZone.classList.remove("drag-over");
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnId: string) => {
+    e.preventDefault();
+    
+    const itemId = e.dataTransfer.getData("itemId");
+    const sourceColumnId = e.dataTransfer.getData("sourceColumnId");
+    
+    if (sourceColumnId === targetColumnId) return;
+    
+    const sourceColIndex = columns.findIndex(col => col.id === sourceColumnId);
+    const targetColIndex = columns.findIndex(col => col.id === targetColumnId);
+    
+    if (sourceColIndex !== -1 && targetColIndex !== -1) {
+      const item = columns[sourceColIndex].tasks.find(t => t.id === itemId);
+      
+      if (item) {
+        // Remove from source
+        const sourceCol = {
+          ...columns[sourceColIndex],
+          tasks: columns[sourceColIndex].tasks.filter(t => t.id !== itemId)
+        };
+        
+        // Add to target
+        const targetCol = {
+          ...columns[targetColIndex],
+          tasks: [...columns[targetColIndex].tasks, item]
+        };
+        
+        // Update columns
+        const newColumns = [...columns];
+        newColumns[sourceColIndex] = sourceCol;
+        newColumns[targetColIndex] = targetCol;
+        
+        setColumns(newColumns);
+        
+        // Update task progress based on column
+        if (item.taskId) {
+          const progress = targetColumnId === "done" ? 100 : 
+                          targetColumnId === "in-progress" ? 50 : 0;
+          
+          const updatedTasks = tasks.map(task => {
+            if (task.id === item.taskId) {
+              return { ...task, progress };
+            }
+            return task;
+          });
+          
+          setTasks(updatedTasks);
+        }
+      }
+    }
+    
+    const dropZones = document.querySelectorAll(".drop-zone");
+    dropZones.forEach(zone => zone.classList.remove("drag-over"));
   };
   
   const getPriorityStyles = (priority: string) => {
@@ -138,16 +357,36 @@ const BoardView = () => {
         <div className="flex gap-6 h-[calc(100vh-160px)] pb-6 overflow-x-auto">
           {columns.map((column) => (
             <div key={column.id} className="flex-shrink-0 w-80">
-              <div className="bg-white rounded-lg shadow-sm h-full flex flex-col">
-                <div className="px-4 py-3 border-b">
+              <div 
+                className="bg-white rounded-lg shadow-sm h-full flex flex-col drop-zone"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, column.id)}
+              >
+                <div className="px-4 py-3 border-b flex justify-between items-center">
                   <h3 className="font-medium">{column.title} ({column.tasks.length})</h3>
                 </div>
                 
                 <div className="flex-1 p-3 overflow-y-auto space-y-3">
                   {column.tasks.map((task) => (
-                    <Card key={task.id} className="shadow-sm hover:shadow-md transition-shadow animate-task-appear">
-                      <CardHeader className="p-3 pb-2">
+                    <Card 
+                      key={task.id} 
+                      className="shadow-sm hover:shadow-md transition-shadow animate-task-appear"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, task.id, column.id)}
+                    >
+                      <CardHeader className="p-3 pb-2 flex flex-row items-start justify-between space-y-0">
                         <CardTitle className="text-base font-medium">{task.title}</CardTitle>
+                        {task.taskId && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0" 
+                            onClick={() => handleEditTask(task.taskId || '')}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </CardHeader>
                       <CardContent className="p-3 pt-0">
                         {task.description && (
@@ -200,6 +439,15 @@ const BoardView = () => {
           </div>
         </div>
       </main>
+      
+      <TaskForm
+        open={isTaskFormOpen}
+        onOpenChange={setIsTaskFormOpen}
+        task={selectedTask}
+        onSubmit={handleTaskFormSubmit}
+        tasks={tasks}
+        isNew={isNewTask}
+      />
     </div>
   );
 };

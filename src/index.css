@@ -197,3 +197,27 @@
   cursor: pointer;
 }
 
+/* Dependency creation mode styles */
+.dependency-mode {
+  cursor: crosshair;
+}
+
+.dependency-source {
+  outline: 2px solid #FFB236;
+  z-index: 5;
+}
+
+.dependency-target-candidate {
+  outline: 1px dashed #FFB236;
+  cursor: pointer;
+}
+
+.dependency-target-candidate:hover {
+  outline: 2px dashed #FFB236;
+}
+
+/* Card drag and drop */
+.drop-zone.drag-over {
+  background-color: rgba(59, 130, 246, 0.05);
+  border: 2px dashed #3b82f6;
+}
