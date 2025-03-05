@@ -7,6 +7,7 @@ import { ProjectForm } from "@/components/ProjectForm";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Plus } from "lucide-react";
+import LoadingState from "@/components/LoadingState";
 
 interface Project {
   id: string;
@@ -59,6 +60,8 @@ export function ProjectList() {
         return;
       }
       
+      console.log("User ID:", user.id);
+      
       // Busca projetos que o usuário é dono
       const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
@@ -69,6 +72,8 @@ export function ProjectList() {
         console.error("Erro ao carregar projetos próprios:", ownedError);
         throw ownedError;
       }
+      
+      console.log("Projetos que é dono:", ownedProjects);
       
       // Busca projetos que o usuário é membro
       const { data: memberProjects, error: memberError } = await supabase
@@ -83,6 +88,8 @@ export function ProjectList() {
         console.error("Erro ao carregar projetos como membro:", memberError);
         throw memberError;
       }
+      
+      console.log("Projetos como membro:", memberProjects);
       
       // Combina os resultados
       const memberProjectList = memberProjects
@@ -127,7 +134,7 @@ export function ProjectList() {
       </div>
       
       {loading ? (
-        <div className="text-center py-8">Carregando projetos...</div>
+        <LoadingState message="Carregando projetos..." />
       ) : projects.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">Você ainda não tem projetos</p>
