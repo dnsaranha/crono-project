@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
+import { useTasks } from "@/hooks/useTasks";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Pencil, Plus } from "lucide-react";
@@ -13,114 +13,7 @@ const GridView = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  
-  // Sample tasks data - in a real app, this would be shared with GanttView
-  const [tasks, setTasks] = useState<TaskType[]>([
-    {
-      id: "task-1",
-      name: "Planejamento",
-      startDate: "2024-01-01",
-      duration: 30,
-      isGroup: true,
-      progress: 100
-    },
-    {
-      id: "task-1-1",
-      name: "Definir Escopo",
-      startDate: "2024-01-01",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100
-    },
-    {
-      id: "task-1-2",
-      name: "Análise de Requisitos",
-      startDate: "2024-01-11",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100,
-      dependencies: ["task-1-1"]
-    },
-    {
-      id: "task-1-3",
-      name: "Cronograma Inicial",
-      startDate: "2024-01-21",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100,
-      dependencies: ["task-1-2"]
-    },
-    {
-      id: "task-2",
-      name: "Desenvolvimento",
-      startDate: "2024-02-01",
-      duration: 60,
-      isGroup: true,
-      progress: 60,
-      dependencies: ["task-1"]
-    },
-    {
-      id: "task-2-1",
-      name: "Frontend",
-      startDate: "2024-02-01",
-      duration: 30,
-      parentId: "task-2",
-      progress: 100
-    },
-    {
-      id: "task-2-2",
-      name: "Backend",
-      startDate: "2024-02-15",
-      duration: 30,
-      parentId: "task-2",
-      progress: 70,
-      dependencies: ["task-2-1"]
-    },
-    {
-      id: "task-2-3",
-      name: "Banco de Dados",
-      startDate: "2024-03-01",
-      duration: 20,
-      parentId: "task-2",
-      progress: 30,
-      dependencies: ["task-2-2"]
-    },
-    {
-      id: "task-3",
-      name: "Testes",
-      startDate: "2024-04-01",
-      duration: 30,
-      isGroup: true,
-      progress: 0,
-      dependencies: ["task-2"]
-    },
-    {
-      id: "task-3-1",
-      name: "Testes Unitários",
-      startDate: "2024-04-01",
-      duration: 10,
-      parentId: "task-3",
-      progress: 0
-    },
-    {
-      id: "task-3-2",
-      name: "Testes de Integração",
-      startDate: "2024-04-11",
-      duration: 10,
-      parentId: "task-3",
-      progress: 0,
-      dependencies: ["task-3-1"]
-    },
-    {
-      id: "task-3-3",
-      name: "Testes de Aceitação",
-      startDate: "2024-04-21",
-      duration: 10,
-      parentId: "task-3",
-      progress: 0,
-      dependencies: ["task-3-2"]
-    }
-  ]);
+  const { tasks, loading, updateTask, createTask } = useTasks();
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -147,36 +40,44 @@ const GridView = () => {
     setIsTaskFormOpen(true);
   };
   
-  const handleTaskFormSubmit = (taskData: Partial<TaskType>) => {
+  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
     if (isNewTask) {
-      // Create new task with unique ID
-      const newTask: TaskType = {
-        id: `task-${Date.now()}`,
+      // Criar nova tarefa
+      const newTaskDetails: Omit<TaskType, 'id'> = {
         name: taskData.name || "Nova Tarefa",
         startDate: taskData.startDate || new Date().toISOString().split('T')[0],
         duration: taskData.duration || 7,
         progress: taskData.progress || 0,
-        dependencies: taskData.dependencies || []
+        dependencies: taskData.dependencies || [],
+        isGroup: taskData.isGroup || false,
+        parentId: taskData.parentId
       };
       
-      setTasks([...tasks, newTask]);
+      const result = await createTask(newTaskDetails);
       
-      toast({
-        title: "Tarefa adicionada",
-        description: `${newTask.name} foi adicionada com sucesso.`,
-      });
+      if (result) {
+        toast({
+          title: "Tarefa adicionada",
+          description: `${newTaskDetails.name} foi adicionada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
+      }
     } else if (selectedTask) {
-      // Update existing task
-      const updatedTasks = tasks.map(task => 
-        task.id === selectedTask.id ? { ...task, ...taskData } : task
-      );
+      // Atualizar tarefa existente
+      const updatedTaskData: TaskType = {
+        ...selectedTask,
+        ...taskData
+      };
       
-      setTasks(updatedTasks);
+      const success = await updateTask(updatedTaskData);
       
-      toast({
-        title: "Tarefa atualizada",
-        description: `${taskData.name} foi atualizada com sucesso.`,
-      });
+      if (success) {
+        toast({
+          title: "Tarefa atualizada",
+          description: `${updatedTaskData.name} foi atualizada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
+      }
     }
   };
 
@@ -184,22 +85,35 @@ const GridView = () => {
   const displayedTasks = tasks.filter(task => !task.parentId || tasks.find(t => t.id === task.parentId)?.isGroup);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Navbar />
+    <div className="flex flex-col">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Grade de Tarefas</h1>
+        <Button 
+          size="sm"
+          className="bg-primary hover:bg-primary/90 text-white font-medium"
+          onClick={handleAddTask}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Nova Tarefa
+        </Button>
+      </div>
       
-      <main className="flex-1 overflow-auto p-6 animate-fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Grade de Tarefas</h1>
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          Carregando tarefas...
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="bg-white shadow-sm rounded-lg p-8 text-center">
+          <p className="text-gray-500 mb-4">Nenhuma tarefa encontrada para este projeto</p>
           <Button 
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-white font-medium"
             onClick={handleAddTask}
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             <Plus className="h-4 w-4 mr-1" />
-            Nova Tarefa
+            Adicionar primeira tarefa
           </Button>
         </div>
-        
+      ) : (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
@@ -273,7 +187,7 @@ const GridView = () => {
             </TableBody>
           </Table>
         </div>
-      </main>
+      )}
       
       <TaskForm
         open={isTaskFormOpen}

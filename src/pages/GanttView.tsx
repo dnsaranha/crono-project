@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
+import { useTasks } from "@/hooks/useTasks";
 import GanttChart from "@/components/GanttChart";
 import NewTaskButton from "@/components/NewTaskButton";
 import { TaskType } from "@/components/Task";
@@ -12,112 +12,8 @@ const GanttView = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
+  const { tasks, loading, updateTask, createTask, createDependency } = useTasks();
   
-  // Sample tasks data
-  const [tasks, setTasks] = useState<TaskType[]>([
-    {
-      id: "task-1",
-      name: "Planejamento",
-      startDate: "2024-01-01",
-      duration: 30,
-      isGroup: true,
-      progress: 100
-    },
-    {
-      id: "task-1-1",
-      name: "Definir Escopo",
-      startDate: "2024-01-01",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100
-    },
-    {
-      id: "task-1-2",
-      name: "Análise de Requisitos",
-      startDate: "2024-01-11",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100,
-      dependencies: ["task-1-1"]
-    },
-    {
-      id: "task-1-3",
-      name: "Cronograma Inicial",
-      startDate: "2024-01-21",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100,
-      dependencies: ["task-1-2"]
-    },
-    {
-      id: "task-2",
-      name: "Desenvolvimento",
-      startDate: "2024-02-01",
-      duration: 60,
-      isGroup: true,
-      progress: 60,
-      dependencies: ["task-1"]
-    },
-    {
-      id: "task-2-1",
-      name: "Frontend",
-      startDate: "2024-02-01",
-      duration: 30,
-      parentId: "task-2",
-      progress: 100
-    },
-    {
-      id: "task-2-2",
-      name: "Backend",
-      startDate: "2024-02-15",
-      duration: 30,
-      parentId: "task-2",
-      progress: 70,
-      dependencies: ["task-2-1"]
-    },
-    {
-      id: "task-2-3",
-      name: "Banco de Dados",
-      startDate: "2024-03-01",
-      duration: 20,
-      parentId: "task-2",
-      progress: 30,
-      dependencies: ["task-2-2"]
-    },
-    {
-      id: "task-3",
-      name: "Testes",
-      startDate: "2024-04-01",
-      duration: 30,
-      isGroup: true,
-      progress: 0,
-      dependencies: ["task-2"]
-    },
-    {
-      id: "task-3-1",
-      name: "Testes Unitários",
-      startDate: "2024-04-01",
-      duration: 10,
-      parentId: "task-3"
-    },
-    {
-      id: "task-3-2",
-      name: "Testes de Integração",
-      startDate: "2024-04-11",
-      duration: 10,
-      parentId: "task-3",
-      dependencies: ["task-3-1"]
-    },
-    {
-      id: "task-3-3",
-      name: "Testes de Aceitação",
-      startDate: "2024-04-21",
-      duration: 10,
-      parentId: "task-3",
-      dependencies: ["task-3-2"]
-    }
-  ]);
-
   const handleTaskClick = (task: TaskType) => {
     setSelectedTask(task);
     setIsNewTask(false);
@@ -130,98 +26,102 @@ const GanttView = () => {
     setIsTaskFormOpen(true);
   };
   
-  const handleTaskFormSubmit = (taskData: Partial<TaskType>) => {
+  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
     if (isNewTask) {
-      // Create new task with unique ID
-      const newTask: TaskType = {
-        id: `task-${Date.now()}`,
+      // Criar nova tarefa
+      const newTaskDetails: Omit<TaskType, 'id'> = {
         name: taskData.name || "Nova Tarefa",
         startDate: taskData.startDate || new Date().toISOString().split('T')[0],
         duration: taskData.duration || 7,
         progress: taskData.progress || 0,
-        dependencies: taskData.dependencies || []
+        dependencies: taskData.dependencies || [],
+        isGroup: taskData.isGroup || false,
+        parentId: taskData.parentId
       };
       
-      setTasks([...tasks, newTask]);
+      const result = await createTask(newTaskDetails);
       
-      toast({
-        title: "Tarefa adicionada",
-        description: `${newTask.name} foi adicionada com sucesso.`,
-      });
+      if (result) {
+        toast({
+          title: "Tarefa adicionada",
+          description: `${newTaskDetails.name} foi adicionada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
+      }
     } else if (selectedTask) {
-      // Update existing task
-      const updatedTasks = tasks.map(task => 
-        task.id === selectedTask.id ? { ...task, ...taskData } : task
-      );
+      // Atualizar tarefa existente
+      const updatedTaskData: TaskType = {
+        ...selectedTask,
+        ...taskData
+      };
       
-      setTasks(updatedTasks);
+      const success = await updateTask(updatedTaskData);
       
-      toast({
-        title: "Tarefa atualizada",
-        description: `${taskData.name} foi atualizada com sucesso.`,
-      });
-    }
-  };
-  
-  const handleTaskUpdate = (updatedTask: TaskType) => {
-    const newTasks = tasks.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    );
-    
-    setTasks(newTasks);
-    
-    toast({
-      title: "Tarefa atualizada",
-      description: `${updatedTask.name} foi atualizada com sucesso.`,
-    });
-  };
-  
-  const handleTaskDependencyCreated = (sourceId: string, targetId: string) => {
-    // Find the target task
-    const targetTask = tasks.find(t => t.id === targetId);
-    if (targetTask) {
-      // Check if dependency already exists
-      const dependencies = targetTask.dependencies || [];
-      if (!dependencies.includes(sourceId)) {
-        // Check for circular dependency
-        if (!wouldCreateCircularDependency(sourceId, targetId, tasks)) {
-          const updatedTask = {
-            ...targetTask,
-            dependencies: [...dependencies, sourceId]
-          };
-          
-          handleTaskUpdate(updatedTask);
-          
-          toast({
-            title: "Dependência criada",
-            description: `Dependência adicionada com sucesso.`,
-          });
-        } else {
-          toast({
-            title: "Erro",
-            description: "Não é possível criar uma dependência circular.",
-            variant: "destructive"
-          });
-        }
+      if (success) {
+        toast({
+          title: "Tarefa atualizada",
+          description: `${updatedTaskData.name} foi atualizada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
       }
     }
   };
   
-  // Function to check if adding a dependency would create a circular dependency
+  const handleTaskUpdate = async (updatedTask: TaskType) => {
+    const success = await updateTask(updatedTask);
+    
+    if (success) {
+      toast({
+        title: "Tarefa atualizada",
+        description: `${updatedTask.name} foi atualizada com sucesso.`,
+      });
+    }
+  };
+  
+  const handleTaskDependencyCreated = async (sourceId: string, targetId: string) => {
+    // Verificar que a tarefa alvo existe
+    const targetTask = tasks.find(t => t.id === targetId);
+    if (!targetTask) return;
+    
+    // Verificar se a dependência já existe
+    const dependencies = targetTask.dependencies || [];
+    if (dependencies.includes(sourceId)) return;
+    
+    // Verificar dependência circular
+    if (wouldCreateCircularDependency(sourceId, targetId, tasks)) {
+      toast({
+        title: "Erro",
+        description: "Não é possível criar uma dependência circular.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const success = await createDependency(sourceId, targetId);
+    
+    if (success) {
+      toast({
+        title: "Dependência criada",
+        description: "Dependência adicionada com sucesso.",
+      });
+    }
+  };
+  
+  // Função para verificar se adicionar uma dependência criaria uma dependência circular
   function wouldCreateCircularDependency(sourceId: string, targetId: string, allTasks: TaskType[], visited: Set<string> = new Set()): boolean {
-    // If we've already visited this task in this path, we have a cycle
+    // Se já visitamos esta tarefa neste caminho, não há ciclo
     if (visited.has(targetId)) return false;
     
     const target = allTasks.find(t => t.id === targetId);
     if (!target) return false;
 
-    // Mark current task as visited in this path
+    // Marcar tarefa atual como visitada neste caminho
     visited.add(targetId);
     
-    // If target depends on source directly, it would create a cycle
+    // Se o alvo depende da origem diretamente, criaria um ciclo
     if (target.id === sourceId) return true;
     
-    // Recursively check each dependency
+    // Verificar recursivamente cada dependência
     if (target.dependencies) {
       for (const depId of target.dependencies) {
         if (wouldCreateCircularDependency(sourceId, depId, allTasks, new Set(visited))) {
@@ -234,15 +134,22 @@ const GanttView = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Navbar />
+    <div className="flex flex-col">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Projeto</h1>
+        <NewTaskButton onClick={handleAddTask} />
+      </div>
       
-      <main className="flex-1 overflow-hidden p-6 animate-fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Projeto</h1>
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          Carregando tarefas...
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="bg-white shadow-sm rounded-lg p-8 text-center">
+          <p className="text-gray-500 mb-4">Nenhuma tarefa encontrada para este projeto</p>
           <NewTaskButton onClick={handleAddTask} />
         </div>
-        
+      ) : (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <GanttChart 
             tasks={tasks} 
@@ -252,7 +159,7 @@ const GanttView = () => {
             onCreateDependency={handleTaskDependencyCreated}
           />
         </div>
-      </main>
+      )}
       
       <TaskForm
         open={isTaskFormOpen}

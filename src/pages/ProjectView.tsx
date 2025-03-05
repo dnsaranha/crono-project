@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ProjectMembers } from "@/components/ProjectMembers";
@@ -10,7 +9,7 @@ import GanttView from "@/pages/GanttView";
 import GridView from "@/pages/GridView";
 import TimelineView from "@/pages/TimelineView";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, FileSpreadsheet, Users, UserCircle } from "lucide-react";
+import { ChevronLeft, Users, UserCircle } from "lucide-react";
 import { ExcelExportImport } from "@/components/ExcelExportImport";
 
 interface Project {
@@ -28,6 +27,7 @@ export default function ProjectView() {
   const [isOwner, setIsOwner] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const currentPath = window.location.pathname;
 
   useEffect(() => {
     if (projectId) {
@@ -149,43 +149,43 @@ export default function ProjectView() {
                 />
               )}
               
-              <Tabs defaultValue="gantt" className="w-auto">
-                <TabsList>
-                  <TabsTrigger 
-                    value="members" 
-                    onClick={() => navigate(`/project/${projectId}/members`)}
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Membros
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="profile" 
-                    onClick={() => navigate(`/project/${projectId}/profile`)}
-                  >
-                    <UserCircle className="h-4 w-4 mr-2" />
-                    Perfil
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate(`/project/${projectId}/members`)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Membros
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate(`/project/${projectId}/profile`)}
+                >
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Perfil
+                </Button>
+              </div>
             </div>
           </div>
           
           <div className="flex mt-6 border-b">
             <Link 
               to={`/project/${projectId}/gantt`} 
-              className={`nav-item px-4 py-2 ${window.location.pathname.endsWith('/gantt') ? 'active' : ''}`}
+              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/gantt') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
             >
               Gantt
             </Link>
             <Link 
               to={`/project/${projectId}/grid`} 
-              className={`nav-item px-4 py-2 ${window.location.pathname.endsWith('/grid') ? 'active' : ''}`}
+              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/grid') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
             >
               Grade
             </Link>
             <Link 
               to={`/project/${projectId}/timeline`}
-              className={`nav-item px-4 py-2 ${window.location.pathname.endsWith('/timeline') ? 'active' : ''}`}
+              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/timeline') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
             >
               Linha do Tempo
             </Link>
