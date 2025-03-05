@@ -138,7 +138,7 @@ export function AuthForm() {
         </CardContent>
         
         <CardFooter>
-          <Tabs.Content value="login" className="w-full">
+          <TabsContent value="login" className="w-full">
             <Button 
               className="w-full" 
               onClick={handleSignIn}
@@ -146,9 +146,9 @@ export function AuthForm() {
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
-          </Tabs.Content>
+          </TabsContent>
           
-          <Tabs.Content value="register" className="w-full">
+          <TabsContent value="register" className="w-full">
             <Button 
               className="w-full" 
               onClick={handleSignUp}
@@ -156,7 +156,7 @@ export function AuthForm() {
             >
               {loading ? "Cadastrando..." : "Cadastrar"}
             </Button>
-          </Tabs.Content>
+          </TabsContent>
         </CardFooter>
       </Tabs>
     </Card>

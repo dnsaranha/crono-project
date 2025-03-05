@@ -7,11 +7,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { InviteForm } from "@/components/InviteForm";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, UserX } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database["public"]["Enums"]["user_role"];
 
 interface Member {
   id: string;
   user_id: string;
-  role: string;
+  role: UserRole;
   email: string;
   full_name: string | null;
 }
@@ -54,7 +57,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
       const formattedMembers = data.map(member => ({
         id: member.id,
         user_id: member.user_id,
-        role: member.role,
+        role: member.role as UserRole,
         email: member.profiles.email,
         full_name: member.profiles.full_name,
       }));
@@ -72,7 +75,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
     }
   }
 
-  async function handleRoleChange(memberId: string, newRole: string) {
+  async function handleRoleChange(memberId: string, newRole: UserRole) {
     try {
       const { error } = await supabase
         .from('project_members')
@@ -170,7 +173,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
                       <>
                         <Select 
                           value={member.role} 
-                          onValueChange={(value) => handleRoleChange(member.id, value)}
+                          onValueChange={(value: UserRole) => handleRoleChange(member.id, value)}
                         >
                           <SelectTrigger className="w-[130px]">
                             <SelectValue />

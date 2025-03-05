@@ -144,8 +144,8 @@ export default function ProjectView() {
               {projectId && (
                 <ExcelExportImport 
                   projectId={projectId} 
-                  tasks={[]} // This will be populated in the GanttView and GridView components
-                  onTasksImported={() => {}} // This will be implemented in the GanttView and GridView components
+                  tasks={[]} 
+                  onTasksImported={() => {}} 
                 />
               )}
               
@@ -196,10 +196,10 @@ export default function ProjectView() {
       <main className="flex-1 overflow-auto bg-gray-50">
         <div className="container mx-auto py-6 px-6">
           <Routes>
-            <Route path="/gantt" element={<GanttView projectId={projectId} canEdit={canEdit} />} />
-            <Route path="/grid" element={<GridView projectId={projectId} canEdit={canEdit} />} />
-            <Route path="/timeline" element={<TimelineView projectId={projectId} canEdit={canEdit} />} />
-            <Route path="/members" element={<ProjectMembers projectId={projectId} isOwnerOrAdmin={isOwnerOrAdmin} />} />
+            <Route path="/gantt" element={<GanttView />} />
+            <Route path="/grid" element={<GridView />} />
+            <Route path="/timeline" element={<TimelineView />} />
+            <Route path="/members" element={<ProjectMembers projectId={projectId || ''} isOwnerOrAdmin={isOwnerOrAdmin} />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/" element={<Navigate to={`/project/${projectId}/gantt`} replace />} />
           </Routes>
