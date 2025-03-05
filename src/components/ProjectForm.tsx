@@ -21,6 +21,15 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated }: ProjectFor
   const { toast } = useToast();
 
   async function handleCreateProject() {
+    if (!name.trim()) {
+      toast({
+        title: "Erro",
+        description: "O nome do projeto é obrigatório.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setLoading(true);
       
@@ -35,6 +44,8 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated }: ProjectFor
         return;
       }
       
+      console.log("Criando projeto:", { name, description, owner_id: user.id });
+      
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -45,7 +56,12 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated }: ProjectFor
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao criar projeto:", error);
+        throw error;
+      }
+      
+      console.log("Projeto criado com sucesso:", data);
       
       toast({
         title: "Projeto criado",
@@ -61,9 +77,10 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated }: ProjectFor
       setDescription("");
       onOpenChange(false);
     } catch (error: any) {
+      console.error("Erro detalhado:", error);
       toast({
         title: "Erro ao criar projeto",
-        description: error.message,
+        description: error.message || "Ocorreu um erro ao criar o projeto.",
         variant: "destructive",
       });
     } finally {

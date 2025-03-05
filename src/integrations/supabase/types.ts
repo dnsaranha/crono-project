@@ -265,11 +265,39 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_update_project: {
+        Args: {
+          project_uuid: string
+          user_uuid: string
+        }
+        Returns: boolean
+      }
+      can_view_project: {
+        Args: {
+          project_uuid: string
+          user_uuid: string
+        }
+        Returns: boolean
+      }
+      get_project_member_role: {
+        Args: {
+          project_uuid: string
+          user_uuid: string
+        }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       is_project_member: {
         Args: {
           project_uuid: string
           user_uuid: string
           required_role?: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
+      is_project_owner: {
+        Args: {
+          project_uuid: string
+          user_uuid: string
         }
         Returns: boolean
       }

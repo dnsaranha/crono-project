@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Plus, Users } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 
 interface Project {
   id: string;
@@ -50,14 +50,54 @@ export function ProjectList() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      console.log("Carregando projetos...");
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("Usuário não autenticado");
+        setProjects([]);
+        return;
+      }
+      
+      // Busca projetos que o usuário é dono
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('owner_id', user.id);
         
-      if (error) throw error;
+      if (ownedError) {
+        console.error("Erro ao carregar projetos próprios:", ownedError);
+        throw ownedError;
+      }
       
-      setProjects(data || []);
+      // Busca projetos que o usuário é membro
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_members')
+        .select(`
+          project_id,
+          projects:project_id (*)
+        `)
+        .eq('user_id', user.id);
+        
+      if (memberError) {
+        console.error("Erro ao carregar projetos como membro:", memberError);
+        throw memberError;
+      }
+      
+      // Combina os resultados
+      const memberProjectList = memberProjects
+        .map(item => item.projects)
+        .filter(Boolean) as Project[];
+      
+      const allProjects = [...(ownedProjects || []), ...memberProjectList];
+      
+      // Remove duplicatas baseado no ID
+      const uniqueProjects = Array.from(
+        new Map(allProjects.map(item => [item.id, item])).values()
+      );
+      
+      console.log("Projetos carregados:", uniqueProjects);
+      setProjects(uniqueProjects);
     } catch (error: any) {
       console.error('Erro ao carregar projetos:', error.message);
       toast({
