@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
@@ -29,9 +28,53 @@ const GanttChart = ({
   const [cellWidth, setCellWidth] = useState(100); // Base cell width
   const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   
-  // Expanded date range (for the chart header)
-  const startDate = new Date(2024, 0, 1); // Jan 1, 2024
-  const monthsToShow = 12; // Expandido para 12 meses
+  const calculateDateRange = () => {
+    if (!tasks || tasks.length === 0) {
+      const today = new Date();
+      const oneMonthLater = new Date(today);
+      oneMonthLater.setMonth(today.getMonth() + 1);
+      
+      return {
+        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
+        endDate: new Date(oneMonthLater.getFullYear(), oneMonthLater.getMonth() + 2, 0)
+      };
+    }
+    
+    let earliestStart = new Date();
+    let latestEnd = new Date();
+    
+    tasks.forEach(task => {
+      const taskStart = new Date(task.startDate);
+      
+      const taskEnd = new Date(taskStart);
+      taskEnd.setDate(taskStart.getDate() + (task.duration || 0));
+      
+      if (taskStart < earliestStart || earliestStart.toString() === new Date().toString()) {
+        earliestStart = new Date(taskStart);
+      }
+      
+      if (taskEnd > latestEnd) {
+        latestEnd = new Date(taskEnd);
+      }
+    });
+    
+    earliestStart.setDate(1);
+    latestEnd.setMonth(latestEnd.getMonth() + 1);
+    latestEnd = new Date(latestEnd.getFullYear(), latestEnd.getMonth() + 1, 0);
+    
+    return { startDate: earliestStart, endDate: latestEnd };
+  };
+  
+  const dateRange = calculateDateRange();
+  const startDate = dateRange.startDate;
+  const endDate = dateRange.endDate;
+  
+  const getMonthDifference = (start: Date, end: Date) => {
+    return (end.getFullYear() - start.getFullYear()) * 12 + 
+           (end.getMonth() - start.getMonth()) + 1;
+  };
+  
+  const monthsToShow = getMonthDifference(startDate, endDate);
   const weeksPerMonth = 4;
   const totalCells = monthsToShow * weeksPerMonth;
   
@@ -45,7 +88,6 @@ const GanttChart = ({
     updateWidth();
     window.addEventListener('resize', updateWidth);
     
-    // Initialize all parent tasks as expanded
     const initialExpanded: Record<string, boolean> = {};
     tasks.filter(t => t.isGroup).forEach(task => {
       initialExpanded[task.id] = true;
@@ -62,7 +104,6 @@ const GanttChart = ({
     }));
   };
   
-  // Generate months for the header
   const months = [];
   for (let i = 0; i < monthsToShow; i++) {
     const month = new Date(startDate);
@@ -73,26 +114,23 @@ const GanttChart = ({
     });
   }
   
-  // Generate week numbers for sub-header
   const weeks = [];
   for (let i = 0; i < totalCells; i++) {
-    weeks.push(`Semana #${i+1}`);
+    const weekDate = new Date(startDate);
+    weekDate.setDate(weekDate.getDate() + (i * 7));
+    weeks.push(`Semana ${weekDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'numeric' })}`);
   }
   
-  // Calculate table width based on cell width and zoom
   const actualCellWidth = cellWidth * zoomLevel;
   const tableWidth = actualCellWidth * totalCells;
   
-  // Function to calculate task position and width
   const getTaskStyle = (task: TaskType) => {
-    // Convert start date to days from project start
     const taskStart = new Date(task.startDate);
     const diffTime = Math.abs(taskStart.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    // Calculate position and width in pixels
-    const position = (diffDays / 7) * actualCellWidth; // Convert to weeks
-    const width = (task.duration / 7) * actualCellWidth; // Assuming duration is in days, convert to weeks
+    const position = (diffDays / 7) * actualCellWidth;
+    const width = (task.duration / 7) * actualCellWidth;
     
     return {
       marginLeft: `${position}px`,
@@ -103,12 +141,10 @@ const GanttChart = ({
   const isTaskVisible = (task: TaskType) => {
     if (!task.parentId) return true;
     
-    // Check if any parent in the hierarchy is collapsed
     let currentParentId = task.parentId;
     while (currentParentId) {
       if (!expandedGroups[currentParentId]) return false;
       
-      // Find the parent task to check if it has a parent too
       const parentTask = tasks.find(t => t.id === currentParentId);
       currentParentId = parentTask?.parentId;
     }
@@ -118,19 +154,16 @@ const GanttChart = ({
 
   const visibleTasks = tasks.filter(isTaskVisible);
   
-  // Zoom functions
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 2)); // Max zoom 2x
+    setZoomLevel(prev => Math.min(prev + 0.2, 2));
   };
   
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Min zoom 0.5x
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
   };
   
-  // New functions for handling task dragging
   const handleTaskDragStart = (e: React.DragEvent, task: TaskType) => {
     if (createDependencyMode) {
-      // In dependency creation mode, don't allow regular dragging
       e.preventDefault();
       return;
     }
@@ -144,19 +177,15 @@ const GanttChart = ({
     if (dragOverCell && onTaskUpdate) {
       const { weekIndex } = dragOverCell;
       
-      // Calculate new start date
       const newStartDate = new Date(startDate);
-      newStartDate.setDate(newStartDate.getDate() + (weekIndex * 7)); // Each cell is a week
+      newStartDate.setDate(newStartDate.getDate() + (weekIndex * 7));
       
-      // Format date as YYYY-MM-DD
       const formattedDate = newStartDate.toISOString().split('T')[0];
       
-      // Update the task with new date
       const updatedTask = { ...task, startDate: formattedDate };
       onTaskUpdate(updatedTask);
     }
     
-    // Reset states
     setDraggingTask(null);
     setDragOverCell(null);
   };
@@ -168,12 +197,9 @@ const GanttChart = ({
   
   const handleCellDrop = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
     e.preventDefault();
-    
-    // The actual update is handled in dragEnd
     setDragOverCell(null);
   };
   
-  // Handler for resizing tasks
   const handleTaskResize = (task: TaskType, newDuration: number) => {
     if (onTaskUpdate) {
       const updatedTask = { ...task, duration: newDuration };
@@ -181,7 +207,6 @@ const GanttChart = ({
     }
   };
   
-  // Enhanced dependency creation
   const handleDependencyStartClick = (taskId: string) => {
     setCreateDependencyMode({
       active: true,
@@ -192,13 +217,11 @@ const GanttChart = ({
   const handleDependencyTargetClick = (taskId: string) => {
     if (createDependencyMode && createDependencyMode.active) {
       if (createDependencyMode.sourceId !== taskId) {
-        // Create dependency
         if (onCreateDependency) {
           onCreateDependency(createDependencyMode.sourceId, taskId);
         }
       }
       
-      // Exit dependency creation mode
       setCreateDependencyMode(null);
     }
   };
@@ -211,7 +234,6 @@ const GanttChart = ({
     }
   };
   
-  // Cancel dependency creation mode if clicking outside
   const handleGridClick = (e: React.MouseEvent) => {
     if (createDependencyMode && e.target === ganttGridRef.current) {
       setCreateDependencyMode(null);
@@ -222,13 +244,11 @@ const GanttChart = ({
     <div className="rounded-md border bg-gantt-lightGray overflow-hidden" ref={containerRef}>
       <div className="overflow-auto">
         <div className="flex">
-          {/* Task names column */}
           <div className="min-w-64 w-64 border-r bg-white flex-shrink-0">
             <div className="h-24 px-4 flex items-end border-b bg-white">
               <div className="text-sm font-medium text-gray-500 pb-2">Nome da Tarefa</div>
             </div>
             
-            {/* Task names */}
             <div>
               {visibleTasks.map((task, rowIndex) => (
                 <div 
@@ -259,7 +279,6 @@ const GanttChart = ({
                       {task.name}
                     </div>
                     
-                    {/* Dependency links */}
                     {!task.isGroup && (
                       <Button
                         variant="ghost"
@@ -277,9 +296,7 @@ const GanttChart = ({
             </div>
           </div>
           
-          {/* Gantt chart area */}
           <div className="overflow-auto flex-grow" style={{ minWidth: `${tableWidth}px` }}>
-            {/* Months header */}
             <div className="flex h-12 border-b">
               {months.map((month, idx) => (
                 <div 
@@ -292,7 +309,6 @@ const GanttChart = ({
               ))}
             </div>
             
-            {/* Weeks header */}
             <div className="flex h-12 border-b">
               {weeks.map((week, idx) => (
                 <div 
@@ -305,21 +321,18 @@ const GanttChart = ({
               ))}
             </div>
             
-            {/* Tasks grid with lines */}
             <div 
               ref={ganttGridRef}
               className={`gantt-grid relative ${createDependencyMode?.active ? 'dependency-mode' : ''}`}
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
-              {/* Task bars */}
               {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
                   className="absolute h-10 w-full"
                   style={{ top: `${rowIndex * 40}px` }}
                 >
-                  {/* Drag cells to position tasks */}
                   <div className="absolute inset-0 flex">
                     {Array.from({ length: totalCells }).map((_, weekIndex) => (
                       <div
@@ -352,7 +365,6 @@ const GanttChart = ({
                 </div>
               ))}
               
-              {/* Task connections */}
               <svg className="absolute inset-0 h-full w-full pointer-events-none">
                 {visibleTasks.map(task => {
                   if (!task.dependencies?.length) return null;
@@ -364,21 +376,17 @@ const GanttChart = ({
                     const fromIndex = visibleTasks.findIndex(t => t.id === depId);
                     const toIndex = visibleTasks.findIndex(t => t.id === task.id);
                     
-                    // Skip if tasks are not visible
                     if (fromIndex === -1 || toIndex === -1) return null;
                     
                     const fromStyle = getTaskStyle(dependencyTask);
                     const toStyle = getTaskStyle(task);
                     
-                    // Calculate end point of from task
                     const fromX = parseInt(fromStyle.marginLeft) + parseInt(fromStyle.width);
                     const fromY = fromIndex * 40 + 20;
                     
-                    // Calculate start point of to task
                     const toX = parseInt(toStyle.marginLeft);
                     const toY = toIndex * 40 + 20;
                     
-                    // Create a path with bezier curves
                     const midX = (fromX + toX) / 2;
                     
                     return (
@@ -392,7 +400,6 @@ const GanttChart = ({
                   });
                 })}
                 
-                {/* SVG definitions for arrow markers */}
                 <defs>
                   <marker
                     id="arrowhead"
@@ -407,7 +414,6 @@ const GanttChart = ({
                 </defs>
               </svg>
               
-              {/* Active dependency line while creating */}
               {createDependencyMode?.active && (
                 <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
                   <div className="absolute text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded shadow-sm">
@@ -429,7 +435,6 @@ const GanttChart = ({
             </div>
           </div>
           
-          {/* Zoom controls */}
           <div className="flex items-center space-x-1">
             <Button
               variant="outline"
