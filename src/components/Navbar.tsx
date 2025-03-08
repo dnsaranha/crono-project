@@ -1,8 +1,9 @@
-
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar, Layout, BarChart, Trello } from "lucide-react";
+import { CronoLogo } from "@/components/CronoLogo";
+import { Link } from "react-router-dom";
 
 interface NavItem {
   name: string;
@@ -23,43 +24,49 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="flex items-center px-6 py-2 border-b bg-white shadow-sm">
-      <div className="flex space-x-1">
-        {navItems.map((item) => (
+    <div className="border-b">
+      <div className="flex h-16 items-center px-4 container mx-auto">
+        <Link to="/" className="flex items-center">
+          <CronoLogo />
+        </Link>
+        
+        <div className="flex space-x-1">
+          {navItems.map((item) => (
+            <Button
+              key={item.path}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "nav-item flex items-center px-3 py-2 text-sm font-medium",
+                currentPath === item.path && "text-primary font-semibold active"
+              )}
+              onClick={() => navigate(item.path)}
+            >
+              {item.icon}
+              {item.name}
+            </Button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex space-x-2">
           <Button
-            key={item.path}
             variant="ghost"
             size="sm"
-            className={cn(
-              "nav-item flex items-center px-3 py-2 text-sm font-medium",
-              currentPath === item.path && "text-primary font-semibold active"
-            )}
-            onClick={() => navigate(item.path)}
+            className="text-muted-foreground hover:text-foreground"
           >
-            {item.icon}
-            {item.name}
+            <span className="sr-only">More options</span>
+            <span className="font-medium text-sm">Mais</span>
           </Button>
-        ))}
+          
+          <Button
+            size="sm"
+            className="bg-primary hover:bg-primary/90 text-white font-medium flex items-center"
+          >
+            <span className="mr-1">+</span> Nova Tarefa
+          </Button>
+        </div>
       </div>
-
-      <div className="ml-auto flex space-x-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <span className="sr-only">More options</span>
-          <span className="font-medium text-sm">Mais</span>
-        </Button>
-        
-        <Button
-          size="sm"
-          className="bg-primary hover:bg-primary/90 text-white font-medium flex items-center"
-        >
-          <span className="mr-1">+</span> Nova Tarefa
-        </Button>
-      </div>
-    </nav>
+    </div>
   );
 };
 

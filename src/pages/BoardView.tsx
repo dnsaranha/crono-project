@@ -1,14 +1,19 @@
 
-import { useState } from "react";
-import Navbar from "@/components/Navbar";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
+import { useTasks } from "@/hooks/useTasks";
+import { useParams } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import LoadingState from "@/components/LoadingState";
 
 interface TaskItem {
   id: string;
@@ -16,7 +21,8 @@ interface TaskItem {
   description?: string;
   priority: 'low' | 'medium' | 'high';
   assignee?: string;
-  taskId?: string; // Reference to the actual task in the system
+  assigneeId?: string;
+  taskId: string;
 }
 
 interface Column {
@@ -27,121 +33,145 @@ interface Column {
 
 const BoardView = () => {
   const { toast } = useToast();
+  const { projectId } = useParams<{ projectId: string }>();
+  const { tasks, loading, updateTask, createTask, getProjectMembers } = useTasks();
+  
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [columnDialog, setColumnDialog] = useState(false);
+  const [editingColumn, setEditingColumn] = useState<Column | null>(null);
+  const [columnTitle, setColumnTitle] = useState("");
+  const [columnDescription, setColumnDescription] = useState("");
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
   
-  // Tasks would normally be shared across views - for demo purposes these are kept separate
-  const [tasks, setTasks] = useState<TaskType[]>([
-    {
-      id: "task-1",
-      name: "Planejamento",
-      startDate: "2024-01-01",
-      duration: 30,
-      isGroup: true,
-      progress: 100
-    },
-    {
-      id: "task-1-1",
-      name: "Definir Escopo",
-      startDate: "2024-01-01",
-      duration: 10,
-      parentId: "task-1",
-      progress: 100
-    },
-    {
-      id: "task-2-1",
-      name: "Frontend",
-      startDate: "2024-02-01",
-      duration: 30,
-      parentId: "task-2",
-      progress: 100
-    },
-    {
-      id: "task-2-2",
-      name: "Backend",
-      startDate: "2024-02-15",
-      duration: 30,
-      parentId: "task-2",
-      progress: 70,
-      dependencies: ["task-2-1"]
-    },
-    {
-      id: "task-3-1",
-      name: "Testes Unitários",
-      startDate: "2024-04-01",
-      duration: 10,
-      parentId: "task-3",
-      progress: 0
+  // Load project members
+  useEffect(() => {
+    async function loadMembers() {
+      const members = await getProjectMembers();
+      setProjectMembers(members || []);
     }
-  ]);
+    loadMembers();
+  }, []);
   
-  const [columns, setColumns] = useState<Column[]>([
-    {
-      id: "todo",
-      title: "A Fazer",
-      tasks: [
-        {
-          id: "item-1",
-          title: "Definir Escopo",
-          description: "Delimitar o escopo do projeto e definir objetivos",
-          priority: "high",
-          assignee: "Ana Silva",
-          taskId: "task-1-1"
-        },
-        {
-          id: "item-5",
-          title: "Testes Unitários",
-          description: "Implementar testes unitários",
-          priority: "medium",
-          assignee: "Mariana Oliveira",
-          taskId: "task-3-1"
+  // Initialize columns and map tasks to them
+  useEffect(() => {
+    if (!loading && tasks.length > 0) {
+      // Default columns if none exist
+      const defaultColumns = [
+        { id: "todo", title: "A Fazer", tasks: [] },
+        { id: "in-progress", title: "Em Progresso", tasks: [] },
+        { id: "done", title: "Concluído", tasks: [] }
+      ];
+      
+      // Map existing columns from localStorage or use defaults
+      let existingColumns: Column[] = [];
+      try {
+        const savedColumns = localStorage.getItem(`board-columns-${projectId}`);
+        if (savedColumns) {
+          existingColumns = JSON.parse(savedColumns);
+        } else {
+          existingColumns = defaultColumns;
         }
-      ]
-    },
-    {
-      id: "in-progress",
-      title: "Em Progresso",
-      tasks: [
-        {
-          id: "item-3",
-          title: "Desenvolvimento Frontend",
-          description: "Implementar interface do usuário",
-          priority: "high",
-          assignee: "Rafael Costa",
-          taskId: "task-2-1"
-        },
-        {
-          id: "item-4",
-          title: "Desenvolvimento Backend",
-          description: "Desenvolver API e lógica do servidor",
-          priority: "high",
-          assignee: "Carla Ferreira",
-          taskId: "task-2-2"
+      } catch (error) {
+        console.error("Error loading columns:", error);
+        existingColumns = defaultColumns;
+      }
+      
+      // Map tasks to columns based on progress
+      const mappedColumns = existingColumns.map(column => {
+        return {
+          ...column,
+          tasks: []
+        };
+      });
+      
+      // Map tasks to columns
+      tasks.forEach(task => {
+        if (task.isGroup) return; // Skip group tasks in Kanban
+        
+        // Find assignee names for this task
+        const assigneeNames = task.assignees?.map(assigneeId => {
+          const member = projectMembers.find(m => m.id === assigneeId);
+          return member ? member.name : "Não atribuído";
+        }).join(", ");
+        
+        const taskItem: TaskItem = {
+          id: `item-${task.id}`,
+          title: task.name,
+          description: task.description || `Duração: ${task.duration} dias`,
+          priority: task.isMilestone ? 'high' : task.duration < 3 ? 'low' : 'medium',
+          assignee: assigneeNames,
+          assigneeId: task.assignees?.[0],
+          taskId: task.id
+        };
+        
+        // Determine column based on progress
+        if (task.progress >= 100) {
+          const doneColumn = mappedColumns.find(col => col.id === "done");
+          if (doneColumn) doneColumn.tasks.push(taskItem);
+        } else if (task.progress > 0) {
+          const progressColumn = mappedColumns.find(col => col.id === "in-progress");
+          if (progressColumn) progressColumn.tasks.push(taskItem);
+        } else {
+          const todoColumn = mappedColumns.find(col => col.id === "todo");
+          if (todoColumn) todoColumn.tasks.push(taskItem);
         }
-      ]
-    },
-    {
-      id: "done",
-      title: "Concluído",
-      tasks: []
+      });
+      
+      setColumns(mappedColumns);
     }
-  ]);
+  }, [tasks, loading, projectMembers]);
+  
+  // Save columns to localStorage when they change
+  useEffect(() => {
+    if (columns.length > 0 && projectId) {
+      localStorage.setItem(`board-columns-${projectId}`, JSON.stringify(columns));
+    }
+  }, [columns, projectId]);
   
   const handleAddColumn = () => {
-    const newColumnId = `column-${Date.now()}`;
-    setColumns([
-      ...columns, 
-      {
-        id: newColumnId,
-        title: "Nova Coluna",
-        tasks: []
-      }
-    ]);
+    setEditingColumn(null);
+    setColumnTitle("Nova Coluna");
+    setColumnDescription("");
+    setColumnDialog(true);
+  };
+  
+  const handleEditColumn = (column: Column) => {
+    setEditingColumn(column);
+    setColumnTitle(column.title);
+    setColumnDescription("");
+    setColumnDialog(true);
+  };
+  
+  const handleSaveColumn = () => {
+    if (editingColumn) {
+      // Update existing column
+      setColumns(prev => prev.map(col => 
+        col.id === editingColumn.id 
+          ? {...col, title: columnTitle}
+          : col
+      ));
+    } else {
+      // Add new column
+      const newColumnId = `column-${Date.now()}`;
+      setColumns([
+        ...columns, 
+        {
+          id: newColumnId,
+          title: columnTitle,
+          tasks: []
+        }
+      ]);
+    }
     
+    setColumnDialog(false);
     toast({
-      title: "Coluna adicionada",
-      description: "Nova coluna foi adicionada com sucesso."
+      title: editingColumn ? "Coluna atualizada" : "Coluna adicionada",
+      description: editingColumn 
+        ? `A coluna "${columnTitle}" foi atualizada.` 
+        : `A coluna "${columnTitle}" foi adicionada.`
     });
   };
 
@@ -160,76 +190,74 @@ const BoardView = () => {
     setIsTaskFormOpen(true);
   };
   
-  const handleTaskFormSubmit = (taskData: Partial<TaskType>) => {
-    if (isNewTask) {
-      // Create new task with unique ID
-      const newTaskId = `task-${Date.now()}`;
-      const newTask: TaskType = {
-        id: newTaskId,
-        name: taskData.name || "Nova Tarefa",
-        startDate: taskData.startDate || new Date().toISOString().split('T')[0],
-        duration: taskData.duration || 7,
-        progress: taskData.progress || 0,
-        dependencies: taskData.dependencies || []
-      };
-      
-      setTasks([...tasks, newTask]);
-      
-      // Also add to board in "Todo" column
-      const newBoardItem: TaskItem = {
-        id: `item-${Date.now()}`,
-        title: newTask.name,
-        description: `Duração: ${newTask.duration} dias`,
-        priority: "medium",
-        taskId: newTaskId
-      };
-      
-      const updatedColumns = columns.map(col => {
-        if (col.id === "todo") {
-          return {
-            ...col,
-            tasks: [...col.tasks, newBoardItem]
+  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
+    try {
+      if (isNewTask) {
+        // Create new task
+        const newTask = await createTask({
+          name: taskData.name || "Nova Tarefa",
+          startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+          duration: taskData.duration || 7,
+          progress: taskData.progress || 0,
+          dependencies: taskData.dependencies || [],
+          assignees: taskData.assignees || [],
+          description: taskData.description,
+          isMilestone: taskData.isMilestone || false
+        });
+        
+        if (newTask) {
+          // Add to board in "Todo" column
+          const newBoardItem: TaskItem = {
+            id: `item-${newTask.id}`,
+            title: newTask.name,
+            description: newTask.description || `Duração: ${newTask.duration} dias`,
+            priority: newTask.isMilestone ? 'high' : 'medium',
+            taskId: newTask.id,
+            assignee: newTask.assignees?.map(id => {
+              const member = projectMembers.find(m => m.id === id);
+              return member ? member.name : "";
+            }).join(", ")
           };
-        }
-        return col;
-      });
-      
-      setColumns(updatedColumns);
-      
-      toast({
-        title: "Tarefa adicionada",
-        description: `${newTask.name} foi adicionada com sucesso.`,
-      });
-    } else if (selectedTask) {
-      // Update existing task
-      const updatedTasks = tasks.map(task => 
-        task.id === selectedTask.id ? { ...task, ...taskData } : task
-      );
-      
-      setTasks(updatedTasks);
-      
-      // Update board item if it exists
-      const updatedColumns = columns.map(col => {
-        return {
-          ...col,
-          tasks: col.tasks.map(item => {
-            if (item.taskId === selectedTask.id) {
+          
+          const updatedColumns = columns.map(col => {
+            if (col.id === "todo") {
               return {
-                ...item,
-                title: taskData.name || item.title,
-                description: item.description
+                ...col,
+                tasks: [...col.tasks, newBoardItem]
               };
             }
-            return item;
-          })
-        };
-      });
+            return col;
+          });
+          
+          setColumns(updatedColumns);
+          
+          toast({
+            title: "Tarefa adicionada",
+            description: `${newTask.name} foi adicionada com sucesso.`,
+          });
+        }
+      } else if (selectedTask) {
+        // Update existing task
+        const success = await updateTask({
+          ...selectedTask,
+          ...taskData
+        });
+        
+        if (success) {
+          toast({
+            title: "Tarefa atualizada",
+            description: `${taskData.name} foi atualizada com sucesso.`,
+          });
+        }
+      }
       
-      setColumns(updatedColumns);
-      
+      setIsTaskFormOpen(false);
+    } catch (error) {
+      console.error("Error handling task submission:", error);
       toast({
-        title: "Tarefa atualizada",
-        description: `${taskData.name} foi atualizada com sucesso.`,
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar a tarefa.",
+        variant: "destructive"
       });
     }
   };
@@ -259,7 +287,7 @@ const BoardView = () => {
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetColumnId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
     e.preventDefault();
     
     const itemId = e.dataTransfer.getData("itemId");
@@ -295,17 +323,17 @@ const BoardView = () => {
         
         // Update task progress based on column
         if (item.taskId) {
-          const progress = targetColumnId === "done" ? 100 : 
-                          targetColumnId === "in-progress" ? 50 : 0;
+          const taskToUpdate = tasks.find(t => t.id === item.taskId);
           
-          const updatedTasks = tasks.map(task => {
-            if (task.id === item.taskId) {
-              return { ...task, progress };
-            }
-            return task;
-          });
-          
-          setTasks(updatedTasks);
+          if (taskToUpdate) {
+            const progress = targetColumnId === "done" ? 100 : 
+                            targetColumnId === "in-progress" ? 50 : 0;
+            
+            await updateTask({
+              ...taskToUpdate,
+              progress
+            });
+          }
         }
       }
     }
@@ -327,118 +355,126 @@ const BoardView = () => {
     }
   };
 
+  if (loading) {
+    return <LoadingState />;
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="flex-1 overflow-auto p-6 animate-fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Quadro de Tarefas</h1>
-          <div className="space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleAddColumn}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Nova Coluna
-            </Button>
-            <Button 
-              size="sm"
-              className="bg-primary hover:bg-primary/90 text-white font-medium"
-              onClick={handleAddTask}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Nova Tarefa
-            </Button>
-          </div>
+    <div className="flex-1 overflow-auto p-6 animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Quadro de Tarefas</h1>
+        <div className="space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleAddColumn}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Coluna
+          </Button>
+          <Button 
+            size="sm"
+            className="bg-primary hover:bg-primary/90 text-white font-medium"
+            onClick={handleAddTask}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Tarefa
+          </Button>
         </div>
-        
-        <div className="flex gap-6 h-[calc(100vh-160px)] pb-6 overflow-x-auto">
-          {columns.map((column) => (
-            <div key={column.id} className="flex-shrink-0 w-80">
-              <div 
-                className="bg-white rounded-lg shadow-sm h-full flex flex-col drop-zone"
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, column.id)}
-              >
-                <div className="px-4 py-3 border-b flex justify-between items-center">
-                  <h3 className="font-medium">{column.title} ({column.tasks.length})</h3>
-                </div>
-                
-                <div className="flex-1 p-3 overflow-y-auto space-y-3">
-                  {column.tasks.map((task) => (
-                    <Card 
-                      key={task.id} 
-                      className="shadow-sm hover:shadow-md transition-shadow animate-task-appear"
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task.id, column.id)}
-                    >
-                      <CardHeader className="p-3 pb-2 flex flex-row items-start justify-between space-y-0">
-                        <CardTitle className="text-base font-medium">{task.title}</CardTitle>
-                        {task.taskId && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 w-6 p-0" 
-                            onClick={() => handleEditTask(task.taskId || '')}
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        {task.description && (
-                          <p className="text-sm text-gray-500 mb-3">{task.description}</p>
-                        )}
-                        <div className="flex justify-between items-center">
-                          {task.assignee && (
-                            <div className="text-xs text-gray-600">
-                              {task.assignee}
-                            </div>
-                          )}
-                          <div className={cn(
-                            "ml-auto px-2 py-0.5 rounded text-xs font-medium",
-                            getPriorityStyles(task.priority)
-                          )}>
-                            {task.priority === 'high' ? 'Alta' : 
-                             task.priority === 'medium' ? 'Média' : 'Baixa'}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                
-                <Separator />
-                <div className="p-3">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start text-gray-500 hover:text-gray-900"
-                    onClick={handleAddTask}
+      </div>
+      
+      <div className="flex gap-6 h-[calc(100vh-160px)] pb-6 overflow-x-auto">
+        {columns.map((column) => (
+          <div key={column.id} className="flex-shrink-0 w-80">
+            <div 
+              className="bg-white rounded-lg shadow-sm h-full flex flex-col drop-zone"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, column.id)}
+            >
+              <div className="px-4 py-3 border-b flex justify-between items-center">
+                <h3 className="font-medium">{column.title} ({column.tasks.length})</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => handleEditColumn(column)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              
+              <div className="flex-1 p-3 overflow-y-auto space-y-3">
+                {column.tasks.map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className="shadow-sm hover:shadow-md transition-shadow animate-task-appear"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task.id, column.id)}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Adicionar tarefa
-                  </Button>
-                </div>
+                    <CardHeader className="p-3 pb-2 flex flex-row items-start justify-between space-y-0">
+                      <CardTitle className="text-base font-medium">{task.title}</CardTitle>
+                      {task.taskId && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0" 
+                          onClick={() => handleEditTask(task.taskId)}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      {task.description && (
+                        <p className="text-sm text-gray-500 mb-3">{task.description}</p>
+                      )}
+                      <div className="flex justify-between items-center">
+                        {task.assignee && (
+                          <div className="text-xs text-gray-600">
+                            {task.assignee}
+                          </div>
+                        )}
+                        <div className={cn(
+                          "ml-auto px-2 py-0.5 rounded text-xs font-medium",
+                          getPriorityStyles(task.priority)
+                        )}>
+                          {task.priority === 'high' ? 'Alta' : 
+                           task.priority === 'medium' ? 'Média' : 'Baixa'}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <Separator />
+              <div className="p-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-gray-500 hover:text-gray-900"
+                  onClick={handleAddTask}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar tarefa
+                </Button>
               </div>
             </div>
-          ))}
-          
-          <div className="flex-shrink-0 w-80 bg-gray-100 bg-opacity-60 rounded-lg border border-dashed border-gray-300 flex items-center justify-center">
-            <Button 
-              variant="ghost" 
-              className="text-gray-500"
-              onClick={handleAddColumn}
-            >
-              <Plus className="h-5 w-5 mr-1" />
-              Adicionar Coluna
-            </Button>
           </div>
+        ))}
+        
+        <div className="flex-shrink-0 w-80 bg-gray-100 bg-opacity-60 rounded-lg border border-dashed border-gray-300 flex items-center justify-center">
+          <Button 
+            variant="ghost" 
+            className="text-gray-500"
+            onClick={handleAddColumn}
+          >
+            <Plus className="h-5 w-5 mr-1" />
+            Adicionar Coluna
+          </Button>
         </div>
-      </main>
+      </div>
       
       <TaskForm
         open={isTaskFormOpen}
@@ -448,6 +484,46 @@ const BoardView = () => {
         tasks={tasks}
         isNew={isNewTask}
       />
+      
+      <Dialog open={columnDialog} onOpenChange={setColumnDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingColumn ? "Editar Coluna" : "Nova Coluna"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="name" className="text-sm font-medium">
+                Título
+              </label>
+              <Input
+                id="name"
+                value={columnTitle}
+                onChange={(e) => setColumnTitle(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="description" className="text-sm font-medium">
+                Descrição (opcional)
+              </label>
+              <Textarea
+                id="description"
+                value={columnDescription}
+                onChange={(e) => setColumnDescription(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setColumnDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveColumn} disabled={!columnTitle.trim()}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

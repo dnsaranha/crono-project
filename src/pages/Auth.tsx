@@ -1,51 +1,28 @@
 
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { AuthForm } from "@/components/AuthForm";
-import { supabase } from "@/integrations/supabase/client";
+import { CronoLogo } from "@/components/CronoLogo";
 
-const Auth = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if user is already logged in and redirect if they are
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/");
-      }
-    };
-
-    checkSession();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session) {
-          navigate("/");
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
-
+export default function Auth() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 p-4">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-primary mb-2">Gerenciador de Projetos</h1>
-        <p className="text-gray-600">Gerencie seus projetos com facilidade</p>
-      </div>
-      
-      <AuthForm />
-      
-      <div className="mt-8 text-sm text-gray-500">
-        Acesse ou crie sua conta para começar a gerenciar seus projetos.
+    <div className="flex flex-col min-h-[100dvh]">
+      <div className="flex flex-col items-center justify-center flex-1 px-4 sm:px-8 py-8">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <CronoLogo size="lg" />
+            </div>
+            
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Bem-vindo de volta
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Entre com seu email e senha para acessar sua conta
+            </p>
+          </div>
+          
+          <AuthForm />
+        </div>
       </div>
     </div>
   );
-};
-
-export default Auth;
+}
