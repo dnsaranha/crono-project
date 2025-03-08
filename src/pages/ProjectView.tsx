@@ -126,19 +126,19 @@ export default function ProjectView() {
       <Tabs defaultValue="gantt" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="gantt" asChild>
-            <Link to={`/projeto/${projectId}/gantt`}>Gantt</Link>
+            <Link to={`/project/${projectId}/gantt`}>Gantt</Link>
           </TabsTrigger>
           <TabsTrigger value="grid" asChild>
-            <Link to={`/projeto/${projectId}/grid`}>Grade</Link>
+            <Link to={`/project/${projectId}/grid`}>Grade</Link>
           </TabsTrigger>
           <TabsTrigger value="board" asChild>
-            <Link to={`/projeto/${projectId}/board`}>Quadro</Link>
+            <Link to={`/project/${projectId}/board`}>Quadro</Link>
           </TabsTrigger>
           <TabsTrigger value="timeline" asChild>
-            <Link to={`/projeto/${projectId}/timeline`}>Linha do Tempo</Link>
+            <Link to={`/project/${projectId}/timeline`}>Linha do Tempo</Link>
           </TabsTrigger>
           <TabsTrigger value="team" asChild>
-            <Link to={`/projeto/${projectId}/team`}>Equipe</Link>
+            <Link to={`/project/${projectId}/team`}>Equipe</Link>
           </TabsTrigger>
         </TabsList>
         
