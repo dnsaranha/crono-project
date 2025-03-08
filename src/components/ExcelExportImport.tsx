@@ -23,6 +23,17 @@ export function ExcelExportImport({ projectId, tasks, onTasksImported }: ExcelEx
   // Function to export tasks to Excel
   function handleExport() {
     try {
+      if (tasks.length === 0) {
+        toast({
+          title: "Nenhuma tarefa para exportar",
+          description: "Adicione algumas tarefas antes de exportar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Exportando tarefas:", tasks);
+      
       // Prepare data for export
       const exportData = tasks.map(task => ({
         ID: task.id,
@@ -63,6 +74,7 @@ export function ExcelExportImport({ projectId, tasks, onTasksImported }: ExcelEx
         description: "Os dados foram exportados com sucesso.",
       });
     } catch (error: any) {
+      console.error("Erro ao exportar:", error);
       toast({
         title: "Erro na exportação",
         description: error.message,

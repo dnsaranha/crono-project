@@ -11,6 +11,7 @@ import TimelineView from "@/pages/TimelineView";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, Users, UserCircle } from "lucide-react";
 import { ExcelExportImport } from "@/components/ExcelExportImport";
+import { useTasks } from "@/hooks/useTasks";
 
 interface Project {
   id: string;
@@ -28,6 +29,7 @@ export default function ProjectView() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const currentPath = window.location.pathname;
+  const { tasks, createTask } = useTasks();
 
   useEffect(() => {
     if (projectId) {
@@ -113,6 +115,25 @@ export default function ProjectView() {
     }
   }
 
+  const handleTasksImported = async (importedTasks: any[]) => {
+    try {
+      for (const task of importedTasks) {
+        await createTask(task);
+      }
+      
+      toast({
+        title: "Tarefas importadas",
+        description: `${importedTasks.length} tarefas foram importadas com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao importar tarefas",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex-1 flex items-center justify-center">Carregando projeto...</div>;
   }
@@ -144,8 +165,8 @@ export default function ProjectView() {
               {projectId && (
                 <ExcelExportImport 
                   projectId={projectId} 
-                  tasks={[]} 
-                  onTasksImported={() => {}} 
+                  tasks={tasks} 
+                  onTasksImported={handleTasksImported} 
                 />
               )}
               

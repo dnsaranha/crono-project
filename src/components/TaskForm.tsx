@@ -3,8 +3,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskType } from "@/components/Task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -129,6 +127,7 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    id="startDate"
                     variant="outline"
                     className={cn("w-full justify-start text-left font-normal", !formData.startDate && "text-muted-foreground")}
                   >
@@ -136,12 +135,13 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
                     {formData.startDate ? format(new Date(formData.startDate), "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.startDate ? new Date(formData.startDate) : undefined}
-                    onSelect={(date) => handleChange('startDate', date?.toISOString().split('T')[0])}
+                    onSelect={(date) => date && handleChange('startDate', date.toISOString().split('T')[0])}
                     initialFocus
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>

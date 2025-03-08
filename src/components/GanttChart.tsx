@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, ZoomIn, ZoomOut } from "lucide-react";
 
 interface GanttChartProps {
   tasks: TaskType[];
@@ -26,10 +26,12 @@ const GanttChart = ({
   const ganttGridRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [createDependencyMode, setCreateDependencyMode] = useState<{active: boolean, sourceId: string} | null>(null);
+  const [cellWidth, setCellWidth] = useState(100); // Base cell width
+  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
   
-  // Sample date range (for the chart header)
+  // Expanded date range (for the chart header)
   const startDate = new Date(2024, 0, 1); // Jan 1, 2024
-  const monthsToShow = 4; // Jan, Feb, Mar, Apr
+  const monthsToShow = 12; // Expandido para 12 meses
   const weeksPerMonth = 4;
   const totalCells = monthsToShow * weeksPerMonth;
   
@@ -77,9 +79,9 @@ const GanttChart = ({
     weeks.push(`Semana #${i+1}`);
   }
   
-  // Calculate cell width based on container width
-  const cellWidth = 100;
-  const tableWidth = cellWidth * totalCells;
+  // Calculate table width based on cell width and zoom
+  const actualCellWidth = cellWidth * zoomLevel;
+  const tableWidth = actualCellWidth * totalCells;
   
   // Function to calculate task position and width
   const getTaskStyle = (task: TaskType) => {
@@ -89,8 +91,8 @@ const GanttChart = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     // Calculate position and width in pixels
-    const position = (diffDays / 7) * cellWidth; // Convert to weeks
-    const width = (task.duration / 7) * cellWidth; // Assuming duration is in days, convert to weeks
+    const position = (diffDays / 7) * actualCellWidth; // Convert to weeks
+    const width = (task.duration / 7) * actualCellWidth; // Assuming duration is in days, convert to weeks
     
     return {
       marginLeft: `${position}px`,
@@ -115,6 +117,15 @@ const GanttChart = ({
   };
 
   const visibleTasks = tasks.filter(isTaskVisible);
+  
+  // Zoom functions
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.2, 2)); // Max zoom 2x
+  };
+  
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Min zoom 0.5x
+  };
   
   // New functions for handling task dragging
   const handleTaskDragStart = (e: React.DragEvent, task: TaskType) => {
@@ -274,7 +285,7 @@ const GanttChart = ({
                 <div 
                   key={idx} 
                   className="border-r flex items-center justify-center"
-                  style={{ width: `${month.weeks * cellWidth}px` }}
+                  style={{ width: `${month.weeks * actualCellWidth}px` }}
                 >
                   <div className="text-sm font-medium text-gray-700">{month.name}</div>
                 </div>
@@ -287,7 +298,7 @@ const GanttChart = ({
                 <div 
                   key={idx} 
                   className="border-r flex items-center justify-center"
-                  style={{ width: `${cellWidth}px` }}
+                  style={{ width: `${actualCellWidth}px` }}
                 >
                   <div className="text-xs text-gray-500">{week}</div>
                 </div>
@@ -318,7 +329,7 @@ const GanttChart = ({
                             ? 'bg-blue-100'
                             : ''
                         }`}
-                        style={{ width: `${cellWidth}px` }}
+                        style={{ width: `${actualCellWidth}px` }}
                         onDragOver={(e) => handleCellDragOver(e, weekIndex, rowIndex)}
                         onDrop={(e) => handleCellDrop(e, weekIndex, rowIndex)}
                       />
@@ -331,7 +342,7 @@ const GanttChart = ({
                     onClick={handleTaskClick}
                     onDragStart={handleTaskDragStart}
                     onDragEnd={handleTaskDragEnd}
-                    cellWidth={cellWidth}
+                    cellWidth={actualCellWidth}
                     onResize={handleTaskResize}
                     className={createDependencyMode?.active ? 
                       createDependencyMode.sourceId === task.id ? 
@@ -410,25 +421,41 @@ const GanttChart = ({
       </div>
       
       <div className="p-2 bg-white border-t flex justify-between items-center">
-        {createDependencyMode?.active ? (
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-yellow-600 border-yellow-300"
-            onClick={() => setCreateDependencyMode(null)}
-          >
-            Cancelar criação de dependência
-          </Button>
-        ) : (
+        <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-yellow-400 rounded-full mr-1"></div>
               <span>Dependências</span>
             </div>
           </div>
-        )}
+          
+          {/* Zoom controls */}
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleZoomOut}
+              title="Diminuir Zoom"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-xs text-gray-500 min-w-10 text-center">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleZoomIn}
+              title="Aumentar Zoom"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         
-        {onAddTask && (
+        {!createDependencyMode?.active && onAddTask && (
           <Button 
             variant="outline" 
             size="sm" 
@@ -437,6 +464,17 @@ const GanttChart = ({
           >
             <Plus className="h-4 w-4 mr-1" />
             <span>Adicionar Tarefa</span>
+          </Button>
+        )}
+        
+        {createDependencyMode?.active && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-yellow-600 border-yellow-300"
+            onClick={() => setCreateDependencyMode(null)}
+          >
+            Cancelar criação de dependência
           </Button>
         )}
       </div>
