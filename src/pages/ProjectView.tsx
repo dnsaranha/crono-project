@@ -1,22 +1,18 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { ProjectMembers } from "@/components/ProjectMembers";
-import { UserProfile } from "@/components/UserProfile";
-import GanttView from "@/pages/GanttView";
-import GridView from "@/pages/GridView";
-import TimelineView from "@/pages/TimelineView";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Users, UserCircle } from "lucide-react";
-import { ExcelExportImport } from "@/components/ExcelExportImport";
+import { useParams, Outlet, Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProjectMembers } from "@/components/ProjectMembers";
+import LoadingState from "@/components/LoadingState";
+import ExcelExportImport from "@/components/ExcelExportImport";
 import { useTasks } from "@/hooks/useTasks";
+import { TaskType } from "@/components/Task";
 
 interface Project {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   owner_id: string;
 }
 
@@ -24,25 +20,21 @@ export default function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const currentPath = window.location.pathname;
-  const { tasks, createTask } = useTasks();
-
+  const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
+  const { tasks, batchUpdateTasks } = useTasks();
+  
   useEffect(() => {
     if (projectId) {
       loadProject();
-      checkUserRole();
+      checkPermissions();
     }
   }, [projectId]);
 
   async function loadProject() {
     try {
-      setLoading(true);
+      if (!projectId) return;
       
-      const { data, error } = await supabase
+      const { data: projectData, error } = await supabase
         .from('projects')
         .select('*')
         .eq('id', projectId)
@@ -50,182 +42,126 @@ export default function ProjectView() {
         
       if (error) throw error;
       
-      setProject(data);
-      
-      // Check if user is the owner
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && data.owner_id === user.id) {
-        setIsOwner(true);
-      }
-    } catch (error: any) {
-      console.error('Erro ao carregar projeto:', error.message);
-      toast({
-        title: "Erro ao carregar projeto",
-        description: error.message,
-        variant: "destructive",
-      });
-      navigate('/');
+      setProject(projectData);
+    } catch (error) {
+      console.error('Erro ao carregar projeto:', error);
     } finally {
       setLoading(false);
     }
   }
-
-  async function checkUserRole() {
+  
+  async function checkPermissions() {
     try {
+      if (!projectId) return;
+      
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
+      if (!user) return;
       
-      // Check if user is the owner
-      const { data: projectData } = await supabase
+      // Check if user is owner
+      const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('owner_id')
         .eq('id', projectId)
         .single();
         
-      if (projectData && projectData.owner_id === user.id) {
-        setUserRole('owner');
+      if (projectError) throw projectError;
+      
+      if (projectData.owner_id === user.id) {
+        setIsOwnerOrAdmin(true);
         return;
       }
       
-      // Check project membership role
-      const { data: memberData } = await supabase
+      // Check if user is admin
+      const { data: memberData, error: memberError } = await supabase
         .from('project_members')
         .select('role')
         .eq('project_id', projectId)
         .eq('user_id', user.id)
         .single();
         
-      if (memberData) {
-        setUserRole(memberData.role);
-      } else {
-        // User is not a member of this project
-        toast({
-          title: "Acesso negado",
-          description: "Você não tem acesso a este projeto.",
-          variant: "destructive",
-        });
-        navigate('/');
-      }
-    } catch (error: any) {
-      console.error('Erro ao verificar papel do usuário:', error.message);
+      if (memberError && memberError.code !== 'PGRST116') throw memberError;
+      
+      setIsOwnerOrAdmin(memberData?.role === 'admin');
+    } catch (error) {
+      console.error('Erro ao verificar permissões:', error);
     }
   }
-
-  const handleTasksImported = async (importedTasks: any[]) => {
-    try {
-      for (const task of importedTasks) {
-        await createTask(task);
-      }
-      
-      toast({
-        title: "Tarefas importadas",
-        description: `${importedTasks.length} tarefas foram importadas com sucesso.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao importar tarefas",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  
+  // Handle the import of Excel data
+  const handleExcelImport = async (
+    tasksToUpdate: TaskType[], 
+    tasksToCreate: Omit<TaskType, 'id'>[]
+  ) => {
+    return await batchUpdateTasks(tasksToUpdate, tasksToCreate);
   };
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center">Carregando projeto...</div>;
+    return <LoadingState />;
   }
 
   if (!project) {
-    return <Navigate to="/" />;
+    return <div>Projeto não encontrado</div>;
   }
 
-  const isOwnerOrAdmin = isOwner || userRole === 'admin';
-  const canEdit = isOwnerOrAdmin || userRole === 'editor';
-
   return (
-    <div className="flex flex-col h-screen">
-      <header className="bg-white border-b py-4 px-6">
-        <div className="container mx-auto">
-          <div className="flex justify-between items-center">
-            <div>
-              <Link to="/" className="flex items-center text-gray-500 hover:text-gray-700">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Voltar
-              </Link>
-              <h1 className="text-2xl font-bold mt-2">{project.name}</h1>
-              {project.description && (
-                <p className="text-gray-600 mt-1">{project.description}</p>
-              )}
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {projectId && (
-                <ExcelExportImport 
-                  projectId={projectId} 
-                  tasks={tasks} 
-                  onTasksImported={handleTasksImported} 
-                />
-              )}
-              
-              <div className="flex space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate(`/project/${projectId}/members`)}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Membros
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate(`/project/${projectId}/profile`)}
-                >
-                  <UserCircle className="h-4 w-4 mr-2" />
-                  Perfil
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex mt-6 border-b">
-            <Link 
-              to={`/project/${projectId}/gantt`} 
-              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/gantt') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
-            >
-              Gantt
-            </Link>
-            <Link 
-              to={`/project/${projectId}/grid`} 
-              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/grid') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
-            >
-              Grade
-            </Link>
-            <Link 
-              to={`/project/${projectId}/timeline`}
-              className={`px-4 py-2 border-b-2 ${currentPath.endsWith('/timeline') ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-600 hover:text-gray-800'}`}
-            >
-              Linha do Tempo
-            </Link>
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+          {project.description && (
+            <p className="text-gray-500 mt-1">{project.description}</p>
+          )}
         </div>
-      </header>
+        
+        <div className="flex space-x-4 items-center">
+          <ExcelExportImport 
+            tasks={tasks} 
+            projectId={projectId || ''} 
+            onImport={handleExcelImport}
+          />
+        </div>
+      </div>
       
-      <main className="flex-1 overflow-auto bg-gray-50">
-        <div className="container mx-auto py-6 px-6">
-          <Routes>
-            <Route path="/gantt" element={<GanttView />} />
-            <Route path="/grid" element={<GridView />} />
-            <Route path="/timeline" element={<TimelineView />} />
-            <Route path="/members" element={<ProjectMembers projectId={projectId || ''} isOwnerOrAdmin={isOwnerOrAdmin} />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/" element={<Navigate to={`/project/${projectId}/gantt`} replace />} />
-          </Routes>
-        </div>
-      </main>
+      <Tabs defaultValue="gantt" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="gantt" asChild>
+            <Link to={`/projeto/${projectId}/gantt`}>Gantt</Link>
+          </TabsTrigger>
+          <TabsTrigger value="grid" asChild>
+            <Link to={`/projeto/${projectId}/grid`}>Grade</Link>
+          </TabsTrigger>
+          <TabsTrigger value="board" asChild>
+            <Link to={`/projeto/${projectId}/board`}>Quadro</Link>
+          </TabsTrigger>
+          <TabsTrigger value="timeline" asChild>
+            <Link to={`/projeto/${projectId}/timeline`}>Linha do Tempo</Link>
+          </TabsTrigger>
+          <TabsTrigger value="team" asChild>
+            <Link to={`/projeto/${projectId}/team`}>Equipe</Link>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="team" className="border-none p-0">
+          <ProjectMembers projectId={projectId || ''} isOwnerOrAdmin={isOwnerOrAdmin} />
+        </TabsContent>
+        
+        <TabsContent value="gantt" className="border-none p-0">
+          <Outlet />
+        </TabsContent>
+        
+        <TabsContent value="grid" className="border-none p-0">
+          <Outlet />
+        </TabsContent>
+        
+        <TabsContent value="board" className="border-none p-0">
+          <Outlet />
+        </TabsContent>
+        
+        <TabsContent value="timeline" className="border-none p-0">
+          <Outlet />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -193,6 +193,7 @@ export type Database = {
           duration: number
           id: string
           is_group: boolean
+          is_milestone: boolean
           name: string
           parent_id: string | null
           progress: number
@@ -207,6 +208,7 @@ export type Database = {
           duration: number
           id?: string
           is_group?: boolean
+          is_milestone?: boolean
           name: string
           parent_id?: string | null
           progress?: number
@@ -221,6 +223,7 @@ export type Database = {
           duration?: number
           id?: string
           is_group?: boolean
+          is_milestone?: boolean
           name?: string
           parent_id?: string | null
           progress?: number

@@ -5,13 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TaskType } from "@/components/Task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Flag, Users } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 interface TaskFormProps {
   open: boolean;
@@ -20,15 +23,27 @@ interface TaskFormProps {
   onSubmit: (task: Partial<TaskType>) => void;
   tasks: TaskType[];
   isNew?: boolean;
+  projectMembers?: Array<{ id: string; name: string; email: string }>;
 }
 
-const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: TaskFormProps) => {
+const TaskForm = ({ 
+  open, 
+  onOpenChange, 
+  task, 
+  onSubmit, 
+  tasks, 
+  isNew = false,
+  projectMembers = [] 
+}: TaskFormProps) => {
   const [formData, setFormData] = useState<Partial<TaskType>>({
     name: "",
     startDate: new Date().toISOString().split("T")[0],
     duration: 7,
     progress: 0,
-    dependencies: []
+    dependencies: [],
+    assignees: [],
+    isGroup: false,
+    isMilestone: false
   });
 
   // When task changes, update form data
@@ -44,22 +59,54 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
         startDate: new Date().toISOString().split("T")[0],
         duration: 7,
         progress: 0,
-        dependencies: []
+        dependencies: [],
+        assignees: [],
+        isGroup: false,
+        isMilestone: false
       });
     }
   }, [task, isNew]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    // Guarantee the required fields are present
+    const finalFormData = {
+      ...formData,
+      name: formData.name || "Nova Tarefa",
+      startDate: formData.startDate || new Date().toISOString().split("T")[0]
+    };
+
+    // Set appropriate duration for milestones
+    if (formData.isMilestone) {
+      finalFormData.duration = 0;
+    }
+
+    onSubmit(finalFormData);
     onOpenChange(false);
   };
 
   const handleChange = (field: string, value: any) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    });
+    // Special handling for milestone toggle
+    if (field === 'isMilestone' && value === true) {
+      setFormData({
+        ...formData,
+        isMilestone: true,
+        isGroup: false, // Can't be both
+        duration: 0 // Milestones have no duration
+      });
+    } else if (field === 'isGroup' && value === true) {
+      setFormData({
+        ...formData,
+        isGroup: true,
+        isMilestone: false // Can't be both
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [field]: value
+      });
+    }
   };
 
   // Filter tasks that could be dependencies (no circular dependencies)
@@ -103,6 +150,20 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
     }
   };
 
+  const toggleAssignee = (userId: string) => {
+    const currentAssignees = formData.assignees || [];
+    if (currentAssignees.includes(userId)) {
+      handleChange('assignees', currentAssignees.filter(id => id !== userId));
+    } else {
+      handleChange('assignees', [...currentAssignees, userId]);
+    }
+  };
+  
+  // To get parent task options
+  const parentTaskOptions = tasks.filter(t => 
+    t.isGroup && t.id !== formData.id
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -120,6 +181,48 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
               required
             />
           </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isGroup"
+                checked={formData.isGroup || false}
+                onCheckedChange={(checked) => handleChange('isGroup', checked)}
+                disabled={formData.isMilestone}
+              />
+              <Label htmlFor="isGroup">Grupo de Tarefas</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isMilestone"
+                checked={formData.isMilestone || false}
+                onCheckedChange={(checked) => handleChange('isMilestone', checked)}
+                disabled={formData.isGroup}
+              />
+              <Label htmlFor="isMilestone" className="flex items-center">
+                <Flag className="h-4 w-4 mr-1" />
+                Marco
+              </Label>
+            </div>
+          </div>
+          
+          {parentTaskOptions.length > 0 && !formData.isGroup && (
+            <div className="space-y-2">
+              <Label htmlFor="parentId">Grupo/Pai</Label>
+              <select
+                id="parentId"
+                value={formData.parentId || ''}
+                onChange={(e) => handleChange('parentId', e.target.value || undefined)}
+                className="w-full px-3 py-2 border rounded-md"
+              >
+                <option value="">-- Nenhum --</option>
+                {parentTaskOptions.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -147,42 +250,81 @@ const TaskForm = ({ open, onOpenChange, task, onSubmit, tasks, isNew = false }: 
               </Popover>
             </div>
             
+            {!formData.isMilestone && (
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duração (dias)</Label>
+                <Input 
+                  id="duration" 
+                  type="number" 
+                  min="1"
+                  value={formData.duration || 7} 
+                  onChange={(e) => handleChange('duration', parseInt(e.target.value))}
+                />
+              </div>
+            )}
+          </div>
+          
+          {!formData.isMilestone && (
             <div className="space-y-2">
-              <Label htmlFor="duration">Duração (dias)</Label>
-              <Input 
-                id="duration" 
-                type="number" 
-                min="1"
-                value={formData.duration || 7} 
-                onChange={(e) => handleChange('duration', parseInt(e.target.value))}
+              <Label>Progresso ({formData.progress || 0}%)</Label>
+              <Slider
+                min={0}
+                max={100}
+                step={5}
+                value={[formData.progress || 0]}
+                onValueChange={(value) => handleChange('progress', value[0])}
               />
             </div>
-          </div>
+          )}
           
-          <div className="space-y-2">
-            <Label>Progresso ({formData.progress || 0}%)</Label>
-            <Slider
-              min={0}
-              max={100}
-              step={5}
-              value={[formData.progress || 0]}
-              onValueChange={(value) => handleChange('progress', value[0])}
-            />
-          </div>
+          {/* Assignees section */}
+          {projectMembers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center">
+                <Users className="h-4 w-4 mr-1" />
+                Responsáveis
+              </Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
+                {projectMembers.map(member => (
+                  <div key={member.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`assign-${member.id}`} 
+                      checked={formData.assignees?.includes(member.id) || false}
+                      onCheckedChange={() => toggleAssignee(member.id)}
+                    />
+                    <label htmlFor={`assign-${member.id}`} className="text-sm truncate">
+                      {member.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              {formData.assignees && formData.assignees.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {formData.assignees.map(userId => {
+                    const member = projectMembers.find(m => m.id === userId);
+                    return member && (
+                      <Badge key={userId} variant="outline" className="flex items-center gap-1">
+                        {member.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           
-          {formData.id && !formData.isGroup && (
+          {formData.id && !formData.isGroup && !formData.isMilestone && (
             <div className="space-y-2">
               <Label>Dependências</Label>
               <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
                 {availableDependencies.length > 0 ? (
                   availableDependencies.map(depTask => (
                     <div key={depTask.id} className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
+                      <Checkbox 
                         id={`dep-${depTask.id}`} 
                         checked={formData.dependencies?.includes(depTask.id) || false}
-                        onChange={() => toggleDependency(depTask.id)}
-                        className="rounded border-gray-300 text-primary"
+                        onCheckedChange={() => toggleDependency(depTask.id)}
                       />
                       <label htmlFor={`dep-${depTask.id}`} className="text-sm">
                         {depTask.name}

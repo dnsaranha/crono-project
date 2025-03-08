@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import GanttChart from "@/components/GanttChart";
 import NewTaskButton from "@/components/NewTaskButton";
@@ -12,7 +12,17 @@ const GanttView = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  const { tasks, loading, updateTask, createTask, createDependency } = useTasks();
+  const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
+  
+  useEffect(() => {
+    loadProjectMembers();
+  }, []);
+
+  const loadProjectMembers = async () => {
+    const members = await getProjectMembers();
+    setProjectMembers(members);
+  };
   
   const handleTaskClick = (task: TaskType) => {
     setSelectedTask(task);
@@ -35,7 +45,9 @@ const GanttView = () => {
         duration: taskData.duration || 7,
         progress: taskData.progress || 0,
         dependencies: taskData.dependencies || [],
+        assignees: taskData.assignees || [],
         isGroup: taskData.isGroup || false,
+        isMilestone: taskData.isMilestone || false,
         parentId: taskData.parentId
       };
       
@@ -168,6 +180,7 @@ const GanttView = () => {
         onSubmit={handleTaskFormSubmit}
         tasks={tasks}
         isNew={isNewTask}
+        projectMembers={projectMembers}
       />
     </div>
   );

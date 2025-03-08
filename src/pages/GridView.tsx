@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/components/ui/use-toast";
 import TaskForm from "@/components/TaskForm";
@@ -8,13 +8,42 @@ import TaskTable from "@/components/TaskTable";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import LoadingState from "@/components/LoadingState";
 import ViewHeader from "@/components/ViewHeader";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 
 const GridView = () => {
   const { toast } = useToast();
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  const { tasks, loading, updateTask, createTask } = useTasks();
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  
+  const { 
+    tasks, 
+    loading, 
+    updateTask, 
+    createTask, 
+    getProjectMembers,
+    deleteTask
+  } = useTasks();
+
+  useEffect(() => {
+    loadProjectMembers();
+  }, []);
+
+  const loadProjectMembers = async () => {
+    const members = await getProjectMembers();
+    setProjectMembers(members);
+  };
 
   const handleEditTask = (task: TaskType) => {
     setSelectedTask(task);
@@ -28,6 +57,25 @@ const GridView = () => {
     setIsTaskFormOpen(true);
   };
   
+  const handleDeleteTask = (taskId: string) => {
+    setTaskToDelete(taskId);
+  };
+  
+  const confirmDeleteTask = async () => {
+    if (taskToDelete) {
+      const success = await deleteTask(taskToDelete);
+      
+      if (success) {
+        toast({
+          title: "Tarefa excluída",
+          description: "A tarefa foi excluída com sucesso.",
+        });
+      }
+      
+      setTaskToDelete(null);
+    }
+  };
+  
   const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
     if (isNewTask) {
       // Criar nova tarefa
@@ -37,7 +85,9 @@ const GridView = () => {
         duration: taskData.duration || 7,
         progress: taskData.progress || 0,
         dependencies: taskData.dependencies || [],
+        assignees: taskData.assignees || [],
         isGroup: taskData.isGroup || false,
+        isMilestone: taskData.isMilestone || false,
         parentId: taskData.parentId
       };
       
@@ -81,7 +131,9 @@ const GridView = () => {
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           <TaskTable 
             tasks={tasks} 
-            onEditTask={handleEditTask} 
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
+            projectMembers={projectMembers}
           />
         </div>
       )}
@@ -93,7 +145,25 @@ const GridView = () => {
         onSubmit={handleTaskFormSubmit}
         tasks={tasks}
         isNew={isNewTask}
+        projectMembers={projectMembers}
       />
+      
+      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Tarefa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTask} className="bg-red-500 hover:bg-red-600">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

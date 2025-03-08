@@ -1,195 +1,231 @@
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
+import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DownloadCloud, UploadCloud } from "lucide-react";
-import * as XLSX from 'xlsx';
 import { TaskType } from "@/components/Task";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ExcelExportImportProps {
-  projectId: string;
   tasks: TaskType[];
-  onTasksImported: (tasks: TaskType[]) => void;
+  projectId: string;
+  onImport?: (tasksToUpdate: TaskType[], tasksToCreate: Omit<TaskType, 'id'>[]) => Promise<boolean>;
 }
 
-export function ExcelExportImport({ projectId, tasks, onTasksImported }: ExcelExportImportProps) {
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+const ExcelExportImport = ({ tasks, projectId, onImport }: ExcelExportImportProps) => {
+  const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
 
-  // Function to export tasks to Excel
-  function handleExport() {
+  // Export tasks to Excel
+  const handleExport = () => {
+    console.log("Starting export of tasks:", tasks);
+    if (!tasks || tasks.length === 0) {
+      toast({
+        title: "Nenhuma tarefa para exportar",
+        description: "Adicione tarefas ao projeto antes de exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      if (tasks.length === 0) {
-        toast({
-          title: "Nenhuma tarefa para exportar",
-          description: "Adicione algumas tarefas antes de exportar.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      console.log("Exportando tarefas:", tasks);
-      
-      // Prepare data for export
-      const exportData = tasks.map(task => ({
+      // Map tasks to a format suitable for Excel
+      const excelData = tasks.map((task) => ({
         ID: task.id,
         Nome: task.name,
-        "Data de Início": task.startDate,
-        "Duração (dias)": task.duration,
-        "Progresso (%)": task.progress,
-        "ID do Pai": task.parentId || "",
-        "É Grupo": task.isGroup ? "Sim" : "Não",
-        "Dependências": task.dependencies?.join(", ") || ""
+        'Data de Início': task.startDate,
+        'Duração (dias)': task.duration,
+        'Progresso (%)': task.progress || 0,
+        'É Grupo': task.isGroup ? 'Sim' : 'Não',
+        'É Marco': task.isMilestone ? 'Sim' : 'Não',
+        'ID do Pai': task.parentId || '',
+        'Dependências': task.dependencies ? task.dependencies.join(', ') : '',
+        'Responsáveis': task.assignees ? task.assignees.join(', ') : ''
       }));
 
-      // Create workbook and add worksheet
+      console.log("Formatted data for export:", excelData);
+
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Create workbook and add the worksheet
       const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      
-      // Set column widths
-      const columnWidths = [
-        { wch: 10 }, // ID
-        { wch: 30 }, // Nome
-        { wch: 15 }, // Data de Início
-        { wch: 15 }, // Duração
-        { wch: 15 }, // Progresso
-        { wch: 15 }, // ID do Pai
-        { wch: 10 }, // É Grupo
-        { wch: 30 }, // Dependências
-      ];
-      worksheet["!cols"] = columnWidths;
-      
-      // Add the worksheet to the workbook
       XLSX.utils.book_append_sheet(workbook, worksheet, "Tarefas");
       
-      // Generate file and trigger download
-      XLSX.writeFile(workbook, `Projeto_${projectId}_Tarefas.xlsx`);
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      
+      // Create blob from buffer
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Create download link and trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `projeto_${projectId}_tarefas.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
       toast({
         title: "Exportação concluída",
-        description: "Os dados foram exportados com sucesso.",
+        description: "O arquivo Excel foi gerado com sucesso.",
       });
-    } catch (error: any) {
-      console.error("Erro ao exportar:", error);
+    } catch (error) {
+      console.error("Erro na exportação:", error);
       toast({
         title: "Erro na exportação",
-        description: error.message,
+        description: "Não foi possível gerar o arquivo Excel.",
         variant: "destructive",
       });
     }
-  }
+  };
 
-  // Function to handle file selection for import
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const binaryString = evt.target?.result;
-        const workbook = XLSX.read(binaryString, { type: 'binary' });
-        
-        // Get first sheet
-        const worksheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[worksheetName];
-        
-        // Convert to JSON
-        const data = XLSX.utils.sheet_to_json(worksheet);
-        
-        // Map imported data to task format
-        const importedTasks: TaskType[] = data.map((row: any) => ({
-          id: row.ID || `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: row.Nome || "Nova Tarefa",
-          startDate: row["Data de Início"] || new Date().toISOString().split('T')[0],
-          duration: row["Duração (dias)"] || 7,
-          progress: row["Progresso (%)"] || 0,
-          parentId: row["ID do Pai"] || undefined,
-          isGroup: row["É Grupo"] === "Sim",
-          dependencies: row["Dependências"] ? row["Dependências"].split(", ").filter(Boolean) : []
-        }));
-        
-        // Update the tasks
-        onTasksImported(importedTasks);
-        
-        toast({
-          title: "Importação concluída",
-          description: `${importedTasks.length} tarefas foram importadas com sucesso.`,
-        });
-        
-        setIsImportDialogOpen(false);
-      } catch (error: any) {
-        toast({
-          title: "Erro na importação",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    };
+  // Import tasks from Excel
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
     
-    reader.readAsBinaryString(file);
-  }
+    setIsImporting(true);
+    const file = event.target.files[0];
+    
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) throw new Error("Falha ao ler arquivo");
+          
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          console.log("Imported data:", jsonData);
+          
+          if (jsonData.length === 0) {
+            throw new Error("O arquivo não contém dados de tarefas");
+          }
+          
+          // Process imported data
+          const existingTasksToUpdate: TaskType[] = [];
+          const newTasksToCreate: Omit<TaskType, 'id'>[] = [];
+          
+          jsonData.forEach((row: any) => {
+            // Create task object from row
+            const taskData = {
+              name: row['Nome'] || 'Tarefa Importada',
+              startDate: row['Data de Início'] || new Date().toISOString().split('T')[0],
+              duration: parseInt(row['Duração (dias)'] || '7'),
+              progress: parseInt(row['Progresso (%)'] || '0'),
+              isGroup: row['É Grupo'] === 'Sim',
+              isMilestone: row['É Marco'] === 'Sim',
+              parentId: row['ID do Pai'] || undefined,
+              dependencies: row['Dependências'] ? 
+                row['Dependências'].split(',').map((id: string) => id.trim()) : [],
+              assignees: row['Responsáveis'] ? 
+                row['Responsáveis'].split(',').map((id: string) => id.trim()) : []
+            };
+            
+            // Check if task has ID and exists in current tasks
+            if (row['ID'] && tasks.some(t => t.id === row['ID'])) {
+              existingTasksToUpdate.push({
+                ...taskData,
+                id: row['ID']
+              } as TaskType);
+            } else {
+              // Task is new or ID doesn't match existing tasks
+              newTasksToCreate.push(taskData);
+            }
+          });
+          
+          console.log("Tasks to update:", existingTasksToUpdate);
+          console.log("Tasks to create:", newTasksToCreate);
+          
+          // Call the onImport callback if provided
+          if (onImport) {
+            const success = await onImport(existingTasksToUpdate, newTasksToCreate);
+            
+            if (success) {
+              toast({
+                title: "Importação concluída",
+                description: `${existingTasksToUpdate.length} tarefas atualizadas, ${newTasksToCreate.length} tarefas criadas.`,
+              });
+            }
+          } else {
+            toast({
+              title: "Importação não suportada",
+              description: "A função de importação não está disponível.",
+              variant: "destructive",
+            });
+          }
+        } catch (error: any) {
+          console.error("Erro ao processar arquivo:", error);
+          toast({
+            title: "Erro na importação",
+            description: error.message || "Falha ao processar o arquivo Excel.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsImporting(false);
+          // Clear input
+          event.target.value = '';
+        }
+      };
+      
+      reader.readAsArrayBuffer(file);
+    } catch (error: any) {
+      console.error("Erro ao ler arquivo:", error);
+      toast({
+        title: "Erro na importação",
+        description: error.message || "Falha ao ler o arquivo.",
+        variant: "destructive",
+      });
+      setIsImporting(false);
+      // Clear input
+      event.target.value = '';
+    }
+  };
 
   return (
     <div className="flex space-x-2">
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         size="sm"
+        className="text-xs"
         onClick={handleExport}
-        className="flex items-center"
       >
-        <DownloadCloud className="h-4 w-4 mr-2" />
-        Exportar para Excel
+        <Download className="h-3.5 w-3.5 mr-1" />
+        Exportar Excel
       </Button>
       
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="flex items-center"
-          >
-            <UploadCloud className="h-4 w-4 mr-2" />
-            Importar do Excel
-          </Button>
-        </DialogTrigger>
-        
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Importar Tarefas do Excel</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="excel-file">Selecione o arquivo Excel</Label>
-              <Input 
-                id="excel-file" 
-                type="file" 
-                accept=".xlsx, .xls" 
-                onChange={handleFileUpload}
-              />
-            </div>
-            
-            <div className="text-sm text-gray-500">
-              <p>O arquivo Excel deve conter colunas com os seguintes cabeçalhos:</p>
-              <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>ID</li>
-                <li>Nome</li>
-                <li>Data de Início</li>
-                <li>Duração (dias)</li>
-                <li>Progresso (%)</li>
-                <li>ID do Pai</li>
-                <li>É Grupo</li>
-                <li>Dependências</li>
-              </ul>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="relative">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          disabled={isImporting}
+          onClick={() => document.getElementById('excel-import')?.click()}
+        >
+          <Upload className="h-3.5 w-3.5 mr-1" />
+          {isImporting ? "Importando..." : "Importar Excel"}
+        </Button>
+        <input
+          id="excel-import"
+          type="file"
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          accept=".xlsx, .xls"
+          onChange={handleImport}
+          disabled={isImporting}
+        />
+      </div>
     </div>
   );
-}
+};
+
+export default ExcelExportImport;

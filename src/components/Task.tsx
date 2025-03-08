@@ -9,9 +9,11 @@ export interface TaskType {
   duration: number;
   color?: string;
   isGroup?: boolean;
+  isMilestone?: boolean;
   parentId?: string;
   progress?: number;
   dependencies?: string[];
+  assignees?: string[];
 }
 
 interface TaskProps {
@@ -37,7 +39,13 @@ const Task = ({
   cellWidth,
   onResize
 }: TaskProps) => {
-  const defaultColor = task.isGroup ? "bg-gantt-teal" : "bg-gantt-blue";
+  let defaultColor = "bg-gantt-blue";
+  if (task.isGroup) {
+    defaultColor = "bg-gantt-teal";
+  } else if (task.isMilestone) {
+    defaultColor = "bg-purple-600";
+  }
+  
   const taskColor = task.color ? `bg-${task.color}` : defaultColor;
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const taskRef = useRef<HTMLDivElement>(null);
@@ -76,7 +84,7 @@ const Task = ({
   };
 
   // For group tasks or tasks with dependencies, we might want to restrict some operations
-  const isDraggable = !task.isGroup;
+  const isDraggable = !task.isGroup && !task.isMilestone;
   
   // Setup resize functionality
   const handleResizeMouseDown = (e: React.MouseEvent) => {
@@ -104,6 +112,41 @@ const Task = ({
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   };
+
+  // Different rendering for milestones
+  if (task.isMilestone) {
+    return (
+      <div
+        ref={taskRef}
+        className={cn(
+          "gantt-milestone w-0 h-0 relative animate-task-appear cursor-pointer",
+          className
+        )}
+        style={{
+          ...style,
+          width: 0,
+          height: 0,
+          marginTop: '12px'
+        }}
+        onClick={handleMouseDown}
+      >
+        <div 
+          className={cn(
+            "absolute w-4 h-4 transform rotate-45 bg-purple-600", 
+            "left-0 top-0 -ml-2 -mt-2"
+          )}
+        />
+        <div className="absolute left-6 top-0 whitespace-nowrap text-sm font-medium">
+          {task.name}
+          {task.assignees && task.assignees.length > 0 && (
+            <span className="ml-2 px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+              {task.assignees.length} assignee(s)
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div
@@ -138,8 +181,16 @@ const Task = ({
         )}
       </div>
       
+      {/* Assignees indicator */}
+      {task.assignees && task.assignees.length > 0 && (
+        <div className="absolute -top-3 right-2 flex items-center space-x-1">
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <span className="text-xs text-blue-700">{task.assignees.length}</span>
+        </div>
+      )}
+      
       {/* Resize handle */}
-      {!task.isGroup && (
+      {!task.isGroup && !task.isMilestone && (
         <div
           ref={resizeHandleRef}
           className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white hover:bg-opacity-30"
