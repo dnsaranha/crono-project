@@ -59,7 +59,7 @@ export default function Dashboard() {
       ) : (
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold">Bem Vindo ao Cronograma de Projetos!</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">Bem Vindo ao seu Gerenciador de Projetos e Cronogramas!</h2>
             <Button 
               variant="outline" 
               onClick={() => setShowProfile(true)}
