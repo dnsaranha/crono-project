@@ -58,11 +58,11 @@ const Task = ({
   // Base task classes based on task type
   const getTaskClasses = () => {
     if (task.isMilestone) {
-      return "absolute w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[16px] border-b-purple-500 dark:border-b-gantt-milestoneColor cursor-pointer transform translate-x-[-8px]";
+      return "absolute w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[16px] border-b-purple-500 dark:border-b-purple-400 cursor-pointer transform translate-x-[-8px] milestone-node";
     } else if (task.isGroup) {
       return cn(
         "absolute h-6 rounded cursor-pointer border-l-4 border-teal-700 dark:border-teal-400 flex items-center px-2 task-group",
-        "bg-gantt-teal dark:bg-gantt-groupBackground dark:text-white",
+        "bg-gantt-teal dark:bg-sidebar-primary dark:text-white",
         "animate-task-appear overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white font-medium"
       );
     } else {

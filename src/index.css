@@ -118,6 +118,7 @@
 
 .dark .gantt-grid {
   --border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
 }
 
 .gantt-connection {
@@ -234,4 +235,37 @@
 .dark .task-group {
   background-color: rgba(255, 255, 255, 0.15);
   color: white;
+}
+
+/* Fix for dark mode board view */
+.dark .board-column {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .board-card {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+/* Fix for dark mode milestone in EAP view */
+.dark .milestone-node {
+  color: hsl(var(--purple-foreground, white));
+  background-color: hsl(var(--sidebar-primary));
+}
+
+/* Make grid visible in dark mode */
+.dark .grid-view-container {
+  background-color: hsl(var(--background));
+}
+
+.dark .grid-view-table {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .grid-view-table th,
+.dark .grid-view-table td {
+  border-color: hsl(var(--border));
 }

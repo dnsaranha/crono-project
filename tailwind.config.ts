@@ -71,7 +71,11 @@ export default {
 					border: 'hsl(var(--border))',
 					groupBackground: 'hsl(var(--accent))',
 					milestoneColor: 'hsl(270 60% 52%)' // Brighter purple for milestone visibility
-				}
+				},
+                purple: {
+                    DEFAULT: 'hsl(270 60% 52%)',
+                    foreground: 'hsl(0 0% 100%)'
+                }
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
