@@ -109,11 +109,15 @@
 
 .gantt-grid {
   background-image: 
-    linear-gradient(to right, transparent 99%, #e0e0e0 1%),
-    linear-gradient(to bottom, transparent 99%, #e0e0e0 1%);
+    linear-gradient(to right, transparent 99%, var(--border-color, hsl(var(--border))) 1%),
+    linear-gradient(to bottom, transparent 99%, var(--border-color, hsl(var(--border))) 1%);
   background-size: 
     calc(100% / 16) 100%,
     100% 41px;
+}
+
+.dark .gantt-grid {
+  --border-color: hsl(var(--border));
 }
 
 .gantt-connection {
@@ -220,4 +224,14 @@
 .drop-zone.drag-over {
   background-color: rgba(59, 130, 246, 0.05);
   border: 2px dashed #3b82f6;
+}
+
+/* Dark mode specific adjustments */
+.dark .gantt-task {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .task-group {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
 }

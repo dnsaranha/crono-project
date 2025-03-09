@@ -22,6 +22,8 @@ const GanttChart = ({
 }: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
+  const [dragOverTask, setDragOverTask] = useState<TaskType | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ weekIndex: number, rowIndex: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const ganttGridRef = useRef<HTMLDivElement>(null);
@@ -154,15 +156,26 @@ const GanttChart = ({
     return true;
   };
 
-  const processedTasks = [...tasks].sort((a, b) => {
-    if (b.parentId === a.id) return -1;
-    if (a.parentId === b.id) return 1;
-    if (a.parentId === b.parentId) return 0;
-    if (a.parentId && !b.parentId) return 1;
-    if (!a.parentId && b.parentId) return -1;
-    return 0;
-  });
+  const sortTasksHierarchically = (taskList: TaskType[]): TaskType[] => {
+    const topLevelTasks = taskList.filter(t => !t.parentId);
+    
+    const getTaskWithChildren = (parentTask: TaskType): TaskType[] => {
+      const children = taskList.filter(t => t.parentId === parentTask.id);
+      
+      if (children.length === 0) {
+        return [parentTask];
+      }
+      
+      return [
+        parentTask,
+        ...children.flatMap(child => getTaskWithChildren(child))
+      ];
+    };
+    
+    return topLevelTasks.flatMap(task => getTaskWithChildren(task));
+  };
 
+  const processedTasks = sortTasksHierarchically(tasks);
   const visibleTasks = processedTasks.filter(isTaskVisible);
   
   const handleZoomIn = () => {
@@ -179,13 +192,43 @@ const GanttChart = ({
       return;
     }
     
-    setDraggingTask(task);
+    e.dataTransfer.setData("application/x-task-reorder", task.id);
     e.dataTransfer.setData("task-id", task.id);
     e.dataTransfer.effectAllowed = "move";
+    
+    setDraggingTask(task);
   };
   
   const handleTaskDragEnd = (e: React.DragEvent, task: TaskType) => {
-    if (dragOverCell && onTaskUpdate) {
+    if (dragOverTask && dragOverPosition && onTaskUpdate) {
+      const siblingTasks = tasks.filter(t => 
+        t.parentId === (task.parentId || null) && t.id !== task.id
+      );
+      
+      const targetIndex = processedTasks.findIndex(t => t.id === dragOverTask.id);
+      
+      let newParentId = task.parentId;
+      
+      if (dragOverTask.id !== task.id) {
+        if (dragOverTask.isGroup) {
+          newParentId = dragOverTask.id;
+          setExpandedGroups(prev => ({
+            ...prev,
+            [dragOverTask.id]: true
+          }));
+        } 
+        else {
+          newParentId = dragOverTask.parentId;
+        }
+        
+        if (task.parentId !== newParentId) {
+          const updatedTask = { ...task, parentId: newParentId };
+          onTaskUpdate(updatedTask);
+        }
+      }
+    }
+    
+    else if (dragOverCell && onTaskUpdate) {
       const { weekIndex } = dragOverCell;
       
       const newStartDate = new Date(startDate);
@@ -198,7 +241,29 @@ const GanttChart = ({
     }
     
     setDraggingTask(null);
+    setDragOverTask(null);
+    setDragOverPosition(null);
     setDragOverCell(null);
+  };
+  
+  const handleTaskDragOver = (e: React.DragEvent, task: TaskType) => {
+    e.preventDefault();
+    
+    if (draggingTask && draggingTask.id !== task.id) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mouseY = e.clientY;
+      const threshold = rect.top + (rect.height / 2);
+      
+      const position = mouseY < threshold ? 'above' : 'below';
+      
+      setDragOverTask(task);
+      setDragOverPosition(position);
+    }
+  };
+  
+  const handleTaskDragLeave = () => {
+    setDragOverTask(null);
+    setDragOverPosition(null);
   };
   
   const handleCellDragOver = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
@@ -260,7 +325,7 @@ const GanttChart = ({
   ];
   
   return (
-    <div className="rounded-md border bg-gantt-lightGray overflow-hidden" ref={containerRef}>
+    <div className="rounded-md border overflow-hidden" ref={containerRef}>
       <div className="overflow-auto">
         <div className="flex">
           {sidebarVisible && (
@@ -273,7 +338,17 @@ const GanttChart = ({
                 {visibleTasks.map((task, rowIndex) => (
                   <div 
                     key={task.id} 
-                    className={`h-10 flex items-center px-4 border-b ${task.isGroup ? 'bg-gantt-gray' : 'bg-card'}`}
+                    className={`h-10 flex items-center px-4 border-b ${
+                      task.isGroup ? 'bg-gantt-gray' : 'bg-card'
+                    } ${
+                      dragOverTask?.id === task.id && dragOverPosition === 'above' 
+                        ? 'border-t-2 border-t-primary' 
+                        : dragOverTask?.id === task.id && dragOverPosition === 'below'
+                        ? 'border-b-2 border-b-primary'
+                        : ''
+                    }`}
+                    onDragOver={(e) => handleTaskDragOver(e, task)}
+                    onDragLeave={handleTaskDragLeave}
                   >
                     <div className="flex items-center w-full">
                       <div className="w-5 flex-shrink-0">
@@ -351,8 +426,16 @@ const GanttChart = ({
               {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
-                  className="absolute h-10 w-full"
+                  className={`absolute h-10 w-full ${
+                    dragOverTask?.id === task.id && dragOverPosition === 'above' 
+                      ? 'border-t-2 border-t-primary' 
+                      : dragOverTask?.id === task.id && dragOverPosition === 'below'
+                      ? 'border-b-2 border-b-primary'
+                      : ''
+                  }`}
                   style={{ top: `${rowIndex * 40}px` }}
+                  onDragOver={(e) => handleTaskDragOver(e, task)}
+                  onDragLeave={handleTaskDragLeave}
                 >
                   <div className="absolute inset-0 flex">
                     {Array.from({ length: totalCells }).map((_, weekIndex) => (
@@ -360,7 +443,7 @@ const GanttChart = ({
                         key={weekIndex}
                         className={`h-full ${
                           dragOverCell?.weekIndex === weekIndex && dragOverCell?.rowIndex === rowIndex
-                            ? 'bg-blue-100'
+                            ? 'bg-blue-100 dark:bg-blue-900/20'
                             : ''
                         }`}
                         style={{ width: `${actualCellWidth}px` }}

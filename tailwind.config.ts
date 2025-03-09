@@ -66,9 +66,11 @@ export default {
 				gantt: {
 					blue: '#26A2C9',
 					teal: '#29B7B7',
-					gray: '#f5f5f7',
-					lightGray: '#f9f9f9',
-					border: '#ebebeb'
+					gray: 'hsl(var(--muted))',
+					lightGray: 'hsl(var(--background))',
+					border: 'hsl(var(--border))',
+					groupBackground: 'hsl(var(--accent))',
+					milestoneColor: 'hsl(270 60% 52%)' // Brighter purple for milestone visibility
 				}
 			},
 			borderRadius: {
