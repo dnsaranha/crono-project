@@ -125,7 +125,7 @@ export function ProjectList() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Seus Projetos2</h2>
+        <h2 className="text-2xl font-bold">Seus Projetos</h2>
         
         <Button onClick={() => setIsFormOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
