@@ -33,8 +33,12 @@ export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
         
       if (profileError) {
         if (profileError.code === 'PGRST116') {
-          // User not found - send email invitation
-          await sendEmailInvitation();
+          // User not found
+          toast({
+            title: "Usuário não encontrado",
+            description: "Este email não está cadastrado no sistema. O usuário precisa criar uma conta primeiro.",
+            variant: "destructive",
+          });
           return;
         } else {
           throw profileError;
@@ -86,75 +90,6 @@ export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
       });
     } finally {
       setLoading(false);
-    }
-  }
-  
-  async function sendEmailInvitation() {
-    try {
-      // Get project details
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('name, owner_id')
-        .eq('id', projectId)
-        .single();
-        
-      if (projectError) throw projectError;
-      
-      // Get current user info
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error("Usuário não autenticado");
-      
-      // Get inviter name
-      const { data: inviterData, error: inviterError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-        
-      if (inviterError) throw inviterError;
-      
-      // Call edge function to send email invitation
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://uukooogzeldwmudkazxj.supabase.co'}/functions/v1/send-invitation`;
-      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1a29vb2d6ZWxkd211ZGthenhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzEyNjcsImV4cCI6MjA1NjcwNzI2N30.ipN-qLeY_vJtWlpfILQ2UwVz3xMrDjAYEeWXXyCTPCc';
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          email,
-          projectId,
-          projectName: projectData.name,
-          inviterName: inviterData.full_name || user.email,
-          role
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || "Erro ao enviar convite por email");
-      }
-      
-      toast({
-        title: "Convite enviado por email",
-        description: `Um convite foi enviado para ${email} com instruções para acessar o projeto.`,
-      });
-      
-      // Reset form
-      setEmail("");
-      setRole("viewer");
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error sending invitation email:", error);
-      toast({
-        title: "Erro ao enviar convite por email",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   }
 

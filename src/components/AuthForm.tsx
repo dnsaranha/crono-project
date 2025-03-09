@@ -36,6 +36,7 @@ export function AuthForm() {
         description: "Você será redirecionado para a página principal.",
       });
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast({
         title: "Erro ao criar conta",
         description: error.message,
@@ -50,13 +51,18 @@ export function AuthForm() {
     try {
       setLoading(true);
       
+      console.log("Attempting to sign in with:", { email, password });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      console.log("Sign in successful:", data);
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Erro ao fazer login",
         description: error.message,

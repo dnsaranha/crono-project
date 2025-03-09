@@ -6,6 +6,7 @@ import { UserProfile } from "@/components/UserProfile";
 import { ProjectList } from "@/components/ProjectList";
 import { supabase } from "@/integrations/supabase/client";
 import { LogOut } from "lucide-react";
+import { CronoLogo } from "@/components/CronoLogo";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -52,14 +53,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">Gerenciador de Projetos</h1>
+            <CronoLogo size="md" />
             
             <div className="flex items-center space-x-4">
               <Button 
                 variant="ghost" 
                 onClick={() => setShowProfile(!showProfile)}
+                className="text-sm md:text-base"
               >
                 {user.email}
               </Button>
@@ -76,7 +78,7 @@ export default function Dashboard() {
         </div>
       </header>
       
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 py-6">
         {showProfile ? (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
