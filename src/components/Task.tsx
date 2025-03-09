@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { CheckCircle2, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +14,7 @@ export interface TaskType {
   isMilestone?: boolean;
   parentId?: string;
   priority?: number;
+  description?: string; // Added description field
 }
 
 interface TaskProps {
