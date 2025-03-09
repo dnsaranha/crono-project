@@ -4,9 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { AuthForm } from "@/components/AuthForm";
 import { CronoLogo } from "@/components/CronoLogo";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Moon, Sun, MonitorSmartphone } from "lucide-react";
+import { useTheme } from "@/providers/ThemeProvider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   
   useEffect(() => {
     // Check if user is already signed in
@@ -34,10 +44,34 @@ export default function Auth() {
   }, [navigate]);
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
-      <header className="bg-white px-4 py-3 shadow-sm">
-        <div className="container mx-auto">
+    <div className="flex flex-col min-h-[100dvh] bg-background">
+      <header className="bg-background px-4 py-3 border-b">
+        <div className="container mx-auto flex justify-between items-center">
           <CronoLogo size="md" />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                {theme === 'light' && <Sun className="h-5 w-5" />}
+                {theme === 'dark' && <Moon className="h-5 w-5" />}
+                {theme === 'system' && <MonitorSmartphone className="h-5 w-5" />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme('light')}>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>Modo Claro</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('dark')}>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>Modo Escuro</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('system')}>
+                <MonitorSmartphone className="mr-2 h-4 w-4" />
+                <span>Sistema</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
       

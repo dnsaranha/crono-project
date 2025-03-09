@@ -5,16 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TaskType } from "@/components/Task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, Flag, Users } from "lucide-react";
+import { Calendar as CalendarIcon, Flag, Users, AlertTriangle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 interface TaskFormProps {
   open: boolean;
@@ -38,12 +45,13 @@ const TaskForm = ({
   const [formData, setFormData] = useState<Partial<TaskType>>({
     name: "",
     startDate: new Date().toISOString().split("T")[0],
-    duration: 7,
+    duration: 1,
     progress: 0,
     dependencies: [],
     assignees: [],
     isGroup: false,
-    isMilestone: false
+    isMilestone: false,
+    priority: 3
   });
 
   // When task changes, update form data
@@ -57,12 +65,13 @@ const TaskForm = ({
       setFormData({
         name: "",
         startDate: new Date().toISOString().split("T")[0],
-        duration: 7,
+        duration: 1,
         progress: 0,
         dependencies: [],
         assignees: [],
         isGroup: false,
-        isMilestone: false
+        isMilestone: false,
+        priority: 3
       });
     }
   }, [task, isNew]);
@@ -74,7 +83,8 @@ const TaskForm = ({
     const finalFormData = {
       ...formData,
       name: formData.name || "Nova Tarefa",
-      startDate: formData.startDate || new Date().toISOString().split("T")[0]
+      startDate: formData.startDate || new Date().toISOString().split("T")[0],
+      priority: formData.priority || 3
     };
 
     // Set appropriate duration for milestones
@@ -163,6 +173,27 @@ const TaskForm = ({
   const parentTaskOptions = tasks.filter(t => 
     t.isGroup && t.id !== formData.id
   );
+  
+  // For date selection to select the next day
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      handleChange('startDate', date.toISOString().split('T')[0]);
+    }
+  };
+
+  // Priority options
+  const priorityOptions = [
+    { value: 1, label: "Muito Baixa", color: "bg-gray-400" },
+    { value: 2, label: "Baixa", color: "bg-blue-400" },
+    { value: 3, label: "Média", color: "bg-green-400" },
+    { value: 4, label: "Alta", color: "bg-yellow-400" },
+    { value: 5, label: "Muito Alta", color: "bg-red-400" }
+  ];
+  
+  // Get priority color
+  const getPriorityColor = (priority: number = 3) => {
+    return priorityOptions.find(p => p.value === priority)?.color || "bg-green-400";
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,7 +245,7 @@ const TaskForm = ({
                 id="parentId"
                 value={formData.parentId || ''}
                 onChange={(e) => handleChange('parentId', e.target.value || undefined)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md bg-background"
               >
                 <option value="">-- Nenhum --</option>
                 {parentTaskOptions.map(t => (
@@ -223,6 +254,31 @@ const TaskForm = ({
               </select>
             </div>
           )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="priority" className="flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              Prioridade
+            </Label>
+            <Select
+              value={String(formData.priority || 3)}
+              onValueChange={(value) => handleChange('priority', Number(value))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione a prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                {priorityOptions.map(option => (
+                  <SelectItem key={option.value} value={String(option.value)}>
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full ${option.color} mr-2`}></div>
+                      {option.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -242,7 +298,7 @@ const TaskForm = ({
                   <Calendar
                     mode="single"
                     selected={formData.startDate ? new Date(formData.startDate) : undefined}
-                    onSelect={(date) => date && handleChange('startDate', date.toISOString().split('T')[0])}
+                    onSelect={handleDateSelect}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
@@ -257,8 +313,8 @@ const TaskForm = ({
                   id="duration" 
                   type="number" 
                   min="1"
-                  value={formData.duration || 7} 
-                  onChange={(e) => handleChange('duration', parseInt(e.target.value))}
+                  value={formData.duration || 1} 
+                  onChange={(e) => handleChange('duration', parseInt(e.target.value) || 1)}
                 />
               </div>
             )}

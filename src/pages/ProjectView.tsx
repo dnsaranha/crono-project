@@ -105,12 +105,12 @@ export default function ProjectView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold">{project.name}</h1>
           {project.description && (
-            <p className="text-gray-500 mt-1">{project.description}</p>
+            <p className="text-muted-foreground mt-1">{project.description}</p>
           )}
         </div>
         
@@ -124,7 +124,7 @@ export default function ProjectView() {
       </div>
       
       <Tabs defaultValue="gantt" className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex overflow-x-auto touch-pan-x pb-1 scrollbar-none">
           <TabsTrigger value="gantt" asChild>
             <Link to={`/project/${projectId}/gantt`}>Gantt</Link>
           </TabsTrigger>
@@ -136,6 +136,9 @@ export default function ProjectView() {
           </TabsTrigger>
           <TabsTrigger value="timeline" asChild>
             <Link to={`/project/${projectId}/timeline`}>Linha do Tempo</Link>
+          </TabsTrigger>
+          <TabsTrigger value="wbs" asChild>
+            <Link to={`/project/${projectId}/wbs`}>EAP</Link>
           </TabsTrigger>
           <TabsTrigger value="team" asChild>
             <Link to={`/project/${projectId}/team`}>Equipe</Link>
@@ -159,6 +162,10 @@ export default function ProjectView() {
         </TabsContent>
         
         <TabsContent value="timeline" className="border-none p-0">
+          <Outlet />
+        </TabsContent>
+        
+        <TabsContent value="wbs" className="border-none p-0">
           <Outlet />
         </TabsContent>
       </Tabs>

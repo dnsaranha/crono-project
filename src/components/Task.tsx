@@ -1,201 +1,161 @@
+
+import { useState } from "react";
+import { CheckCircle2, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
 
 export interface TaskType {
   id: string;
   name: string;
   startDate: string;
   duration: number;
-  color?: string;
+  progress: number;
+  dependencies?: string[];
+  assignees?: string[];
   isGroup?: boolean;
   isMilestone?: boolean;
   parentId?: string;
-  progress?: number;
-  dependencies?: string[];
-  assignees?: string[];
-  description?: string; // Add the description property
+  priority?: number;
 }
 
 interface TaskProps {
   task: TaskType;
   style?: React.CSSProperties;
   onClick?: (task: TaskType) => void;
-  className?: string;
   onDragStart?: (e: React.DragEvent, task: TaskType) => void;
   onDragEnd?: (e: React.DragEvent, task: TaskType) => void;
-  onDrag?: (e: React.DragEvent, task: TaskType) => void;
-  cellWidth: number;
+  cellWidth?: number;
   onResize?: (task: TaskType, newDuration: number) => void;
+  className?: string;
 }
 
-const Task = ({
-  task,
-  style,
-  onClick,
-  className,
-  onDragStart,
-  onDragEnd,
-  onDrag,
-  cellWidth,
-  onResize
+const Task = ({ 
+  task, 
+  style, 
+  onClick, 
+  onDragStart, 
+  onDragEnd, 
+  cellWidth = 100,
+  onResize,
+  className = ""
 }: TaskProps) => {
-  let defaultColor = "bg-gantt-blue";
-  if (task.isGroup) {
-    defaultColor = "bg-gantt-teal";
-  } else if (task.isMilestone) {
-    defaultColor = "bg-purple-600";
-  }
+  const [isResizing, setIsResizing] = useState(false);
+  const [initialX, setInitialX] = useState(0);
+  const [initialWidth, setInitialWidth] = useState(0);
   
-  const taskColor = task.color ? `bg-${task.color}` : defaultColor;
-  const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const taskRef = useRef<HTMLDivElement>(null);
-  
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // If clicking on resize handle, don't trigger task selection
-    if (e.target === resizeHandleRef.current) {
-      e.stopPropagation();
-    } else if (onClick) {
-      onClick(task);
+  // Get task color based on priority
+  const getPriorityColor = (priority: number = 3) => {
+    switch(priority) {
+      case 1: return "bg-gray-400 border-gray-500";
+      case 2: return "bg-blue-400 border-blue-500";
+      case 3: return "bg-green-400 border-green-500";
+      case 4: return "bg-yellow-400 border-yellow-500";
+      case 5: return "bg-red-400 border-red-500";
+      default: return "bg-green-400 border-green-500";
     }
   };
-
-  const handleDragStart = (e: React.DragEvent) => {
-    // Set data for drag operation
-    e.dataTransfer.setData("text/plain", task.id);
-    e.dataTransfer.effectAllowed = "move";
-    
-    // Add visual cue for dragging
-    if (taskRef.current) {
-      setTimeout(() => {
-        if (taskRef.current) taskRef.current.style.opacity = "0.5";
-      }, 0);
+  
+  // Base task classes based on task type
+  const getTaskClasses = () => {
+    if (task.isMilestone) {
+      return "absolute w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[16px] border-b-purple-500 cursor-pointer transform translate-x-[-8px]";
+    } else if (task.isGroup) {
+      return cn(
+        "absolute h-6 rounded cursor-pointer bg-gantt-teal border-l-4 border-teal-700 flex items-center px-2",
+        "animate-task-appear overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white font-medium"
+      );
+    } else {
+      return cn(
+        "absolute h-6 rounded cursor-pointer border-l-4 flex items-center px-2",
+        getPriorityColor(task.priority),
+        "animate-task-appear overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white font-medium"
+      );
     }
-    
-    if (onDragStart) onDragStart(e, task);
   };
   
-  const handleDragEnd = (e: React.DragEvent) => {
-    // Reset styles
-    if (taskRef.current) {
-      taskRef.current.style.opacity = "1";
-    }
+  // Handle resize start
+  const handleResizeStart = (e: React.MouseEvent) => {
+    if (task.isMilestone || !onResize) return;
     
-    if (onDragEnd) onDragEnd(e, task);
-  };
-
-  // For group tasks or tasks with dependencies, we might want to restrict some operations
-  const isDraggable = !task.isGroup && !task.isMilestone;
-  
-  // Setup resize functionality
-  const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault();
+    setIsResizing(true);
+    setInitialX(e.clientX);
+    setInitialWidth(e.currentTarget.parentElement?.offsetWidth || 0);
     
-    const startX = e.clientX;
-    const startWidth = parseInt(style?.width?.toString() || "0", 10);
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!onResize) return;
-      
-      const dx = moveEvent.clientX - startX;
-      const newWidth = Math.max(cellWidth, startWidth + dx);
-      const newDuration = Math.round((newWidth / cellWidth) * 7); // Convert width to days
-      
-      onResize(task, newDuration);
-    };
-    
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-    
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
   };
-
-  // Different rendering for milestones
-  if (task.isMilestone) {
-    return (
-      <div
-        ref={taskRef}
-        className={cn(
-          "gantt-milestone w-0 h-0 relative animate-task-appear cursor-pointer",
-          className
-        )}
-        style={{
-          ...style,
-          width: 0,
-          height: 0,
-          marginTop: '12px'
-        }}
-        onClick={handleMouseDown}
-      >
-        <div 
-          className={cn(
-            "absolute w-4 h-4 transform rotate-45 bg-purple-600", 
-            "left-0 top-0 -ml-2 -mt-2"
-          )}
-        />
-        <div className="absolute left-6 top-0 whitespace-nowrap text-sm font-medium">
-          {task.name}
-          {task.assignees && task.assignees.length > 0 && (
-            <span className="ml-2 px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
-              {task.assignees.length} assignee(s)
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
+  
+  // Handle resize move
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const deltaX = e.clientX - initialX;
+    const newWidth = Math.max(initialWidth + deltaX, cellWidth / 2);
+    
+    if (style && onResize) {
+      const resizeHandleEl = document.getElementById(`resize-handle-${task.id}`);
+      const taskEl = resizeHandleEl?.parentElement;
+      
+      if (taskEl) {
+        taskEl.style.width = `${newWidth}px`;
+      }
+    }
+  };
+  
+  // Handle resize end
+  const handleResizeEnd = (e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    setIsResizing(false);
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    
+    if (style && onResize) {
+      const resizeHandleEl = document.getElementById(`resize-handle-${task.id}`);
+      const taskEl = resizeHandleEl?.parentElement;
+      
+      if (taskEl) {
+        const newWidth = taskEl.offsetWidth;
+        const newDuration = Math.max(Math.round((newWidth / cellWidth) * 7), 1);
+        onResize(task, newDuration);
+      }
+    }
+  };
   
   return (
     <div
-      ref={taskRef}
-      className={cn(
-        "gantt-task rounded-sm h-8 relative animate-task-appear cursor-grab",
-        taskColor,
-        className,
-        isDraggable ? "cursor-grab active:cursor-grabbing" : ""
-      )}
+      className={cn(getTaskClasses(), className)}
       style={style}
-      onClick={handleMouseDown}
-      draggable={isDraggable}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDrag={onDrag ? (e) => onDrag(e, task) : undefined}
+      onClick={() => onClick && onClick(task)}
+      draggable={!task.isMilestone}
+      onDragStart={(e) => onDragStart && onDragStart(e, task)}
+      onDragEnd={(e) => onDragEnd && onDragEnd(e, task)}
     >
-      <div className="absolute inset-0 flex items-center px-2 text-white text-sm font-medium truncate">
-        {task.name}
-      </div>
-      
-      {task.progress !== undefined && task.progress > 0 && (
-        <div 
-          className="absolute top-0 left-0 bottom-0 bg-white bg-opacity-20 rounded-l-sm transition-all duration-500 ease-out"
-          style={{ width: `${task.progress}%` }}
-        />
+      {!task.isMilestone && (
+        <>
+          <span className="truncate">
+            {task.name}
+          </span>
+          
+          {task.progress === 100 && (
+            <CheckCircle2 className="ml-1 h-3 w-3 text-white" />
+          )}
+          
+          {onResize && !task.isMilestone && (
+            <div 
+              id={`resize-handle-${task.id}`}
+              className="absolute right-0 top-0 h-full w-1 cursor-ew-resize bg-opacity-50 hover:bg-opacity-100"
+              onMouseDown={handleResizeStart}
+              onClick={(e) => e.stopPropagation()}
+            ></div>
+          )}
+        </>
       )}
       
-      <div className="absolute -bottom-3 left-0 w-full h-3 flex justify-center items-center pointer-events-none">
-        {task.dependencies?.length > 0 && (
-          <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-        )}
-      </div>
-      
-      {/* Assignees indicator */}
-      {task.assignees && task.assignees.length > 0 && (
-        <div className="absolute -top-3 right-2 flex items-center space-x-1">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <span className="text-xs text-blue-700">{task.assignees.length}</span>
+      {task.isMilestone && (
+        <div className="absolute top-4 flex justify-center w-0">
+          <Flag className="h-3 w-3 text-purple-600" />
         </div>
-      )}
-      
-      {/* Resize handle */}
-      {!task.isGroup && !task.isMilestone && (
-        <div
-          ref={resizeHandleRef}
-          className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white hover:bg-opacity-30"
-          onMouseDown={handleResizeMouseDown}
-        />
       )}
     </div>
   );

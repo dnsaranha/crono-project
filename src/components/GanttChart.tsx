@@ -9,6 +9,7 @@ interface GanttChartProps {
   onAddTask?: () => void;
   onTaskUpdate?: (updatedTask: TaskType) => void;
   onCreateDependency?: (sourceId: string, targetId: string) => void;
+  sidebarVisible?: boolean;
 }
 
 const GanttChart = ({ 
@@ -16,7 +17,8 @@ const GanttChart = ({
   onTaskClick, 
   onAddTask, 
   onTaskUpdate,
-  onCreateDependency
+  onCreateDependency,
+  sidebarVisible = true
 }: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
@@ -152,7 +154,16 @@ const GanttChart = ({
     return true;
   };
 
-  const visibleTasks = tasks.filter(isTaskVisible);
+  const processedTasks = [...tasks].sort((a, b) => {
+    if (b.parentId === a.id) return -1;
+    if (a.parentId === b.id) return 1;
+    if (a.parentId === b.parentId) return 0;
+    if (a.parentId && !b.parentId) return 1;
+    if (!a.parentId && b.parentId) return -1;
+    return 0;
+  });
+
+  const visibleTasks = processedTasks.filter(isTaskVisible);
   
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.2, 2));
@@ -240,61 +251,71 @@ const GanttChart = ({
     }
   };
   
+  const priorityLegend = [
+    { level: 1, label: "Muito Baixa", color: "bg-gray-400" },
+    { level: 2, label: "Baixa", color: "bg-blue-400" },
+    { level: 3, label: "Média", color: "bg-green-400" },
+    { level: 4, label: "Alta", color: "bg-yellow-400" },
+    { level: 5, label: "Muito Alta", color: "bg-red-400" }
+  ];
+  
   return (
     <div className="rounded-md border bg-gantt-lightGray overflow-hidden" ref={containerRef}>
       <div className="overflow-auto">
         <div className="flex">
-          <div className="min-w-64 w-64 border-r bg-white flex-shrink-0">
-            <div className="h-24 px-4 flex items-end border-b bg-white">
-              <div className="text-sm font-medium text-gray-500 pb-2">Nome da Tarefa</div>
-            </div>
-            
-            <div>
-              {visibleTasks.map((task, rowIndex) => (
-                <div 
-                  key={task.id} 
-                  className={`h-10 flex items-center px-4 border-b ${task.isGroup ? 'bg-gantt-gray' : 'bg-white'}`}
-                >
-                  <div className="flex items-center w-full">
-                    <div className="w-5 flex-shrink-0">
-                      {task.isGroup && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-5 w-5 p-0"
-                          onClick={() => toggleGroup(task.id)}
+          {sidebarVisible && (
+            <div className="min-w-64 w-64 border-r bg-card flex-shrink-0">
+              <div className="h-24 px-4 flex items-end border-b">
+                <div className="text-sm font-medium text-muted-foreground pb-2">Nome da Tarefa</div>
+              </div>
+              
+              <div>
+                {visibleTasks.map((task, rowIndex) => (
+                  <div 
+                    key={task.id} 
+                    className={`h-10 flex items-center px-4 border-b ${task.isGroup ? 'bg-gantt-gray' : 'bg-card'}`}
+                  >
+                    <div className="flex items-center w-full">
+                      <div className="w-5 flex-shrink-0">
+                        {task.isGroup && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-5 w-5 p-0"
+                            onClick={() => toggleGroup(task.id)}
+                          >
+                            {expandedGroups[task.id] ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <div 
+                        className={`ml-1 text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
+                        style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
+                      >
+                        {task.name}
+                      </div>
+                      
+                      {!task.isGroup && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 w-6 p-0 rounded-full ${createDependencyMode?.sourceId === task.id ? 'bg-yellow-200' : ''}`}
+                          onClick={() => handleDependencyStartClick(task.id)}
+                          title="Criar dependência a partir desta tarefa"
                         >
-                          {expandedGroups[task.id] ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full" />
                         </Button>
                       )}
                     </div>
-                    <div 
-                      className={`ml-1 text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
-                      style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
-                    >
-                      {task.name}
-                    </div>
-                    
-                    {!task.isGroup && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-6 w-6 p-0 rounded-full ${createDependencyMode?.sourceId === task.id ? 'bg-yellow-200' : ''}`}
-                        onClick={() => handleDependencyStartClick(task.id)}
-                        title="Criar dependência a partir desta tarefa"
-                      >
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                      </Button>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="overflow-auto flex-grow" style={{ minWidth: `${tableWidth}px` }}>
             <div className="flex h-12 border-b">
@@ -304,7 +325,7 @@ const GanttChart = ({
                   className="border-r flex items-center justify-center"
                   style={{ width: `${month.weeks * actualCellWidth}px` }}
                 >
-                  <div className="text-sm font-medium text-gray-700">{month.name}</div>
+                  <div className="text-sm font-medium text-foreground">{month.name}</div>
                 </div>
               ))}
             </div>
@@ -316,7 +337,7 @@ const GanttChart = ({
                   className="border-r flex items-center justify-center"
                   style={{ width: `${actualCellWidth}px` }}
                 >
-                  <div className="text-xs text-gray-500">{week}</div>
+                  <div className="text-xs text-muted-foreground">{week}</div>
                 </div>
               ))}
             </div>
@@ -426,13 +447,22 @@ const GanttChart = ({
         </div>
       </div>
       
-      <div className="p-2 bg-white border-t flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+      <div className="p-2 bg-card border-t flex flex-wrap justify-between items-center gap-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-yellow-400 rounded-full mr-1"></div>
               <span>Dependências</span>
             </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-4">
+            {priorityLegend.map(priority => (
+              <div key={priority.level} className="flex items-center">
+                <div className={`w-3 h-3 rounded-full ${priority.color} mr-1`}></div>
+                <span className="text-xs text-muted-foreground">{priority.label}</span>
+              </div>
+            ))}
           </div>
           
           <div className="flex items-center space-x-1">
@@ -445,7 +475,7 @@ const GanttChart = ({
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
-            <span className="text-xs text-gray-500 min-w-10 text-center">
+            <span className="text-xs text-muted-foreground min-w-10 text-center">
               {Math.round(zoomLevel * 100)}%
             </span>
             <Button

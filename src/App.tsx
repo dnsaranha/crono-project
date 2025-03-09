@@ -9,25 +9,43 @@ import GanttView from "@/pages/GanttView";
 import GridView from "@/pages/GridView";
 import BoardView from "@/pages/BoardView";
 import TimelineView from "@/pages/TimelineView";
+import WBSView from "@/pages/WBSView";
+import { Layout } from "@/components/Layout";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/project/:projectId" element={<ProjectView />}>
-          <Route index element={<Navigate to="gantt" replace />} />
-          <Route path="gantt" element={<GanttView />} />
-          <Route path="grid" element={<GridView />} />
-          <Route path="board" element={<BoardView />} />
-          <Route path="timeline" element={<TimelineView />} />
-          <Route path="team" element={<ProjectView />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      
-      <Toaster />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          } />
+          <Route path="/project/:projectId" element={
+            <Layout>
+              <ProjectView />
+            </Layout>
+          }>
+            <Route index element={<Navigate to="gantt" replace />} />
+            <Route path="gantt" element={<GanttView />} />
+            <Route path="grid" element={<GridView />} />
+            <Route path="board" element={<BoardView />} />
+            <Route path="timeline" element={<TimelineView />} />
+            <Route path="wbs" element={<WBSView />} />
+            <Route path="team" element={<ProjectView />} />
+          </Route>
+          <Route path="*" element={
+            <Layout>
+              <NotFound />
+            </Layout>
+          } />
+        </Routes>
+        
+        <Toaster />
+      </Router>
+    </ThemeProvider>
   );
 }
