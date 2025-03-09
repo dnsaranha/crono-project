@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,6 @@ const BoardView = () => {
   const [columnDescription, setColumnDescription] = useState("");
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   
-  // Load project members
   useEffect(() => {
     async function loadMembers() {
       const members = await getProjectMembers();
@@ -55,17 +53,14 @@ const BoardView = () => {
     loadMembers();
   }, []);
   
-  // Initialize columns and map tasks to them
   useEffect(() => {
     if (!loading && tasks.length > 0) {
-      // Default columns if none exist
       const defaultColumns = [
         { id: "todo", title: "A Fazer", tasks: [] },
         { id: "in-progress", title: "Em Progresso", tasks: [] },
         { id: "done", title: "Concluído", tasks: [] }
       ];
       
-      // Map existing columns from localStorage or use defaults
       let existingColumns: Column[] = [];
       try {
         const savedColumns = localStorage.getItem(`board-columns-${projectId}`);
@@ -79,7 +74,6 @@ const BoardView = () => {
         existingColumns = defaultColumns;
       }
       
-      // Map tasks to columns based on progress
       const mappedColumns = existingColumns.map(column => {
         return {
           ...column,
@@ -87,11 +81,9 @@ const BoardView = () => {
         };
       });
       
-      // Map tasks to columns
       tasks.forEach(task => {
-        if (task.isGroup) return; // Skip group tasks in Kanban
+        if (task.isGroup) return;
         
-        // Find assignee names for this task
         const assigneeNames = task.assignees?.map(assigneeId => {
           const member = projectMembers.find(m => m.id === assigneeId);
           return member ? member.name : "Não atribuído";
@@ -107,7 +99,6 @@ const BoardView = () => {
           taskId: task.id
         };
         
-        // Determine column based on progress
         if (task.progress >= 100) {
           const doneColumn = mappedColumns.find(col => col.id === "done");
           if (doneColumn) doneColumn.tasks.push(taskItem);
@@ -124,7 +115,6 @@ const BoardView = () => {
     }
   }, [tasks, loading, projectMembers]);
   
-  // Save columns to localStorage when they change
   useEffect(() => {
     if (columns.length > 0 && projectId) {
       localStorage.setItem(`board-columns-${projectId}`, JSON.stringify(columns));
@@ -147,14 +137,12 @@ const BoardView = () => {
   
   const handleSaveColumn = () => {
     if (editingColumn) {
-      // Update existing column
       setColumns(prev => prev.map(col => 
         col.id === editingColumn.id 
           ? {...col, title: columnTitle}
           : col
       ));
     } else {
-      // Add new column
       const newColumnId = `column-${Date.now()}`;
       setColumns([
         ...columns, 
@@ -193,7 +181,6 @@ const BoardView = () => {
   const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
     try {
       if (isNewTask) {
-        // Create new task
         const newTask = await createTask({
           name: taskData.name || "Nova Tarefa",
           startDate: taskData.startDate || new Date().toISOString().split('T')[0],
@@ -206,7 +193,6 @@ const BoardView = () => {
         });
         
         if (newTask) {
-          // Add to board in "Todo" column
           const newBoardItem: TaskItem = {
             id: `item-${newTask.id}`,
             title: newTask.name,
@@ -237,7 +223,6 @@ const BoardView = () => {
           });
         }
       } else if (selectedTask) {
-        // Update existing task
         const success = await updateTask({
           ...selectedTask,
           ...taskData
@@ -302,26 +287,22 @@ const BoardView = () => {
       const item = columns[sourceColIndex].tasks.find(t => t.id === itemId);
       
       if (item) {
-        // Remove from source
         const sourceCol = {
           ...columns[sourceColIndex],
           tasks: columns[sourceColIndex].tasks.filter(t => t.id !== itemId)
         };
         
-        // Add to target
         const targetCol = {
           ...columns[targetColIndex],
           tasks: [...columns[targetColIndex].tasks, item]
         };
         
-        // Update columns
         const newColumns = [...columns];
         newColumns[sourceColIndex] = sourceCol;
         newColumns[targetColIndex] = targetCol;
         
         setColumns(newColumns);
         
-        // Update task progress based on column
         if (item.taskId) {
           const taskToUpdate = tasks.find(t => t.id === item.taskId);
           

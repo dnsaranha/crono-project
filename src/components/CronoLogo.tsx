@@ -20,7 +20,7 @@ export function CronoLogo({ size = "md", withText = true }: CronoLogoProps) {
   return (
     <div className="flex items-center space-x-2">
       <div className="relative">
-        <Clock size={icon} className="text-primary" weight="bold" />
+        <Clock size={icon} className="text-primary" strokeWidth={2} />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-[30%] h-[30%] bg-primary-foreground rounded-full"></div>
         </div>

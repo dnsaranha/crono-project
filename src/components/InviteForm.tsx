@@ -115,11 +115,14 @@ export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
       if (inviterError) throw inviterError;
       
       // Call edge function to send email invitation
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-invitation`, {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://uukooogzeldwmudkazxj.supabase.co'}/functions/v1/send-invitation`;
+      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1a29vb2d6ZWxkd211ZGthenhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzEyNjcsImV4cCI6MjA1NjcwNzI2N30.ipN-qLeY_vJtWlpfILQ2UwVz3xMrDjAYEeWXXyCTPCc';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           email,

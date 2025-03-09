@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useRef } from "react";
 
@@ -14,6 +13,7 @@ export interface TaskType {
   progress?: number;
   dependencies?: string[];
   assignees?: string[];
+  description?: string; // Add the description property
 }
 
 interface TaskProps {
