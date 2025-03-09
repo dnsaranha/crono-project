@@ -35,16 +35,16 @@ export default function Auth() {
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
-      <header className="bg-white px-4 py-3">
+      <header className="bg-white px-4 py-3 shadow-sm">
         <div className="container mx-auto">
           <CronoLogo size="md" />
         </div>
       </header>
       
-      <div className="flex flex-col items-center justify-center flex-1 px-4 sm:px-8 py-8">
+      <div className="flex flex-col items-center justify-center flex-1 px-4 py-8">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight">
+          <div className="flex flex-col space-y-2 text-center mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
               Bem-vindo ao CronoProject
             </h1>
             <p className="text-sm text-muted-foreground">

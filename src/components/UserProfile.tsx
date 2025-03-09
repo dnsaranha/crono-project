@@ -102,7 +102,7 @@ export function UserProfile() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Seu Perfil</CardTitle>
+        <CardTitle className="text-xl">Seu Perfil</CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -112,6 +112,7 @@ export function UserProfile() {
             id="email" 
             value={profile.email} 
             disabled 
+            className="h-11 text-base sm:text-sm"
           />
         </div>
         
@@ -121,15 +122,17 @@ export function UserProfile() {
             id="fullName" 
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Seu nome completo" 
+            placeholder="Seu nome completo"
+            className="h-11 text-base sm:text-sm"
           />
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex flex-col sm:flex-row sm:justify-between space-y-3 sm:space-y-0">
         <Button
           variant="outline"
           onClick={handleSignOut}
+          className="w-full sm:w-auto"
         >
           Sair
         </Button>
@@ -137,6 +140,7 @@ export function UserProfile() {
         <Button 
           onClick={handleUpdateProfile}
           disabled={loading}
+          className="w-full sm:w-auto"
         >
           {loading ? "Salvando..." : "Salvar Alterações"}
         </Button>

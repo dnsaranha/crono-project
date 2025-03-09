@@ -74,19 +74,19 @@ export function AuthForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto border shadow-sm">
       <Tabs defaultValue="login">
-        <CardHeader>
+        <CardHeader className="space-y-1 p-4 sm:p-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Cadastro</TabsTrigger>
           </TabsList>
-          <CardDescription className="pt-4">
+          <CardDescription className="pt-3 text-xs sm:text-sm">
             Acesse ou crie sua conta para gerenciar seus projetos
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <TabsContent value="login" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -96,6 +96,7 @@ export function AuthForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com" 
+                className="h-11 text-base sm:text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -107,6 +108,7 @@ export function AuthForm() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-11 text-base sm:text-sm"
               />
             </div>
           </TabsContent>
@@ -118,7 +120,8 @@ export function AuthForm() {
                 id="fullName" 
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Seu Nome Completo" 
+                placeholder="Seu Nome Completo"
+                className="h-11 text-base sm:text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -128,7 +131,8 @@ export function AuthForm() {
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com" 
+                placeholder="seu@email.com"
+                className="h-11 text-base sm:text-sm"
               />
             </div>
             <div className="space-y-2">
@@ -138,15 +142,16 @@ export function AuthForm() {
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-11 text-base sm:text-sm"
               />
             </div>
           </TabsContent>
         </CardContent>
         
-        <CardFooter>
+        <CardFooter className="p-4 sm:p-6">
           <TabsContent value="login" className="w-full">
             <Button 
-              className="w-full" 
+              className="w-full h-11 text-base sm:text-sm" 
               onClick={handleSignIn}
               disabled={loading}
             >
@@ -156,7 +161,7 @@ export function AuthForm() {
           
           <TabsContent value="register" className="w-full">
             <Button 
-              className="w-full" 
+              className="w-full h-11 text-base sm:text-sm" 
               onClick={handleSignUp}
               disabled={loading}
             >
