@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import {
   ReactFlow,
@@ -9,8 +10,8 @@ import {
   MarkerType,
   Controls,
   Background,
-  useReactFlow,
   Panel,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTasks } from "@/hooks/useTasks";
@@ -60,17 +61,23 @@ interface CriticalPathViewProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
-  const { tasks } = useTasks();
+// Internal component wrapped with ReactFlowProvider
+const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: { 
+  tasks: TaskType[], 
+  loading: boolean,
+  calculateCriticalPath: (tasks: TaskType[]) => void 
+}) => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [loading, setLoading] = useState(true);
-  const reactFlowInstance = useReactFlow();
   const isMobile = useIsMobile();
 
-  const calculateCriticalPath = useCallback((tasksData: TaskType[]) => {
-    setLoading(true);
-    
+  useEffect(() => {
+    if (tasks.length > 0) {
+      calculateCriticalPathInternal(tasks);
+    }
+  }, [tasks]);
+  
+  const calculateCriticalPathInternal = useCallback((tasksData: TaskType[]) => {
     const taskMap = new Map<string, TaskType & { 
       earliestStart: number; 
       earliestFinish: number; 
@@ -297,24 +304,75 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
     
     setNodes(flowNodes);
     setEdges(flowEdges);
-    setLoading(false);
   }, [isMobile]);
 
+  // Logic for fit view
+  const onInit = (reactFlowInstance: any) => {
+    setTimeout(() => {
+      reactFlowInstance.fitView({ padding: 0.2 });
+    }, 100);
+  };
+
+  return (
+    <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-md border relative">
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            <span className="mt-2 text-sm">Calculando caminho crítico...</span>
+          </div>
+        </div>
+      ) : (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.1}
+          maxZoom={1.5}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+          attributionPosition="bottom-right"
+          proOptions={{ hideAttribution: true }}
+          onInit={onInit}
+        >
+          <Background />
+          <Controls showInteractive={false} />
+          <Panel position="top-right" className="flex space-x-2">
+            <Button 
+              size="icon" 
+              variant="outline" 
+              className="h-8 w-8 bg-background"
+              onClick={(e) => {
+                e.preventDefault();
+                calculateCriticalPath(tasks);
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </Panel>
+        </ReactFlow>
+      )}
+    </div>
+  );
+};
+
+const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
+  const { tasks } = useTasks();
+  const [loading, setLoading] = useState(true);
+  
+  const calculateCriticalPath = useCallback((tasksData: TaskType[]) => {
+    setLoading(true);
+    // This is just to simulate loading for UI feedback
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+  }, []);
+
   useEffect(() => {
-    if (open && tasks.length > 0) {
+    if (open) {
       calculateCriticalPath(tasks);
     }
-  }, [tasks, open, calculateCriticalPath]);
-  
-  useEffect(() => {
-    if (open && nodes.length > 0 && !loading) {
-      const timer = setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.2 });
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [nodes, open, loading, reactFlowInstance]);
+  }, [open, tasks, calculateCriticalPath]);
 
   if (!open) return null;
 
@@ -374,49 +432,14 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
             </Card>
           </div>
           
-          <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-md border relative">
-            {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                  <span className="mt-2 text-sm">Calculando caminho crítico...</span>
-                </div>
-              </div>
-            ) : (
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                fitView
-                minZoom={0.1}
-                maxZoom={1.5}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-                attributionPosition="bottom-right"
-                proOptions={{ hideAttribution: true }}
-              >
-                <Background />
-                <Controls showInteractive={false} />
-                <Panel position="top-right" className="flex space-x-2">
-                  <Button 
-                    size="icon" 
-                    variant="outline" 
-                    className="h-8 w-8 bg-background"
-                    onClick={() => reactFlowInstance.fitView({ padding: 0.2 })}
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="outline" 
-                    className="h-8 w-8 bg-background"
-                    onClick={() => calculateCriticalPath(tasks)}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </Panel>
-              </ReactFlow>
-            )}
-          </div>
+          {/* Wrap the ReactFlow in ReactFlowProvider */}
+          <ReactFlowProvider>
+            <CriticalPathFlowContent 
+              tasks={tasks} 
+              loading={loading} 
+              calculateCriticalPath={calculateCriticalPath}
+            />
+          </ReactFlowProvider>
         </div>
       </DialogContent>
     </Dialog>

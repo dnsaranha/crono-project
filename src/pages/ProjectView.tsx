@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams, Outlet, Link } from "react-router-dom";
+import { useParams, Outlet, Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectMembers } from "@/components/ProjectMembers";
 import LoadingState from "@/components/LoadingState";
@@ -9,6 +9,7 @@ import ExcelExportImport from "@/components/ExcelExportImport";
 import { useTasks } from "@/hooks/useTasks";
 import { TaskType } from "@/components/Task";
 import { ProjectActions } from "@/components/ProjectActions";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Project {
   id: string;
@@ -23,6 +24,8 @@ export default function ProjectView() {
   const [loading, setLoading] = useState(true);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const { tasks, batchUpdateTasks } = useTasks();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (projectId) {
@@ -46,6 +49,12 @@ export default function ProjectView() {
       setProject(projectData);
     } catch (error) {
       console.error('Erro ao carregar projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar o projeto. Verifique sua conexão e tente novamente.",
+        variant: "destructive",
+      });
+      navigate('/');
     } finally {
       setLoading(false);
     }
@@ -57,7 +66,10 @@ export default function ProjectView() {
       
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) return;
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
       
       // Check if user is owner
       const { data: projectData, error: projectError } = await supabase
@@ -81,11 +93,35 @@ export default function ProjectView() {
         .eq('user_id', user.id)
         .single();
         
-      if (memberError && memberError.code !== 'PGRST116') throw memberError;
+      if (memberError && memberError.code !== 'PGRST116') {
+        // Check if user has any access to project
+        const { data: anyMember, error: anyMemberError } = await supabase
+          .from('project_members')
+          .select('id')
+          .eq('project_id', projectId)
+          .eq('user_id', user.id);
+          
+        if (anyMemberError || !anyMember || anyMember.length === 0) {
+          // User has no access to this project
+          toast({
+            title: "Acesso negado",
+            description: "Você não tem permissão para acessar este projeto.",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+      }
       
       setIsOwnerOrAdmin(memberData?.role === 'admin');
     } catch (error) {
       console.error('Erro ao verificar permissões:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível verificar suas permissões. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+      navigate('/');
     }
   }
   
