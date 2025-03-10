@@ -8,6 +8,7 @@ import LoadingState from "@/components/LoadingState";
 import ExcelExportImport from "@/components/ExcelExportImport";
 import { useTasks } from "@/hooks/useTasks";
 import { TaskType } from "@/components/Task";
+import { ProjectActions } from "@/components/ProjectActions";
 
 interface Project {
   id: string;
@@ -106,7 +107,7 @@ export default function ProjectView() {
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold">{project.name}</h1>
           {project.description && (
@@ -114,7 +115,13 @@ export default function ProjectView() {
           )}
         </div>
         
-        <div className="flex space-x-4 items-center">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center">
+          <ProjectActions 
+            project={project} 
+            isOwnerOrAdmin={isOwnerOrAdmin}
+            onProjectUpdated={loadProject}
+          />
+          
           <ExcelExportImport 
             tasks={tasks} 
             projectId={projectId || ''} 

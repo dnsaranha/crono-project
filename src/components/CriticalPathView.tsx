@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   ReactFlow,
   NodeTypes,
@@ -8,6 +8,10 @@ import {
   Edge,
   Position,
   MarkerType,
+  Controls,
+  Background,
+  useReactFlow,
+  Panel,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTasks } from "@/hooks/useTasks";
@@ -15,7 +19,8 @@ import { TaskType } from "@/components/Task";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { X, ZoomIn, ZoomOut, Maximize2, RefreshCw } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
 
 // Define custom node type for critical path visualization
 interface CriticalPathNodeProps {
@@ -30,7 +35,7 @@ interface CriticalPathNodeProps {
 const CriticalPathNode = ({ data }: CriticalPathNodeProps) => {
   return (
     <div
-      className={`px-4 py-2 rounded-md shadow-md border text-sm font-medium ${
+      className={`px-4 py-2 rounded-md shadow-md border text-sm font-medium touch-none ${
         data.isCritical
           ? "bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200"
           : data.isMilestone
@@ -39,9 +44,9 @@ const CriticalPathNode = ({ data }: CriticalPathNodeProps) => {
       }`}
     >
       <div className="flex flex-col">
-        <div>{data.label}</div>
+        <div className="text-xs sm:text-sm line-clamp-2">{data.label}</div>
         <div className="text-xs mt-1">
-          {data.isMilestone ? "Marco" : `Duração: ${data.duration} dias`}
+          {data.isMilestone ? "Marco" : `${data.duration} dias`}
         </div>
       </div>
     </div>
@@ -61,10 +66,15 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
   const { tasks } = useTasks();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const reactFlowInstance = useReactFlow();
+  const isMobile = useMobile();
 
   // Find the critical path through the network of tasks
   // This uses a simplified version of the Critical Path Method (CPM)
-  const calculateCriticalPath = (tasksData: TaskType[]) => {
+  const calculateCriticalPath = useCallback((tasksData: TaskType[]) => {
+    setLoading(true);
+    
     // Create a map for each task for easy lookup
     const taskMap = new Map<string, TaskType & { 
       earliestStart: number; 
@@ -246,6 +256,9 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       calculateTaskLevel(task.id, 0);
     });
     
+    // Use horizontal layout on mobile, vertical on desktop
+    const direction = isMobile ? 'TB' : 'LR'; // TB = top-to-bottom, LR = left-to-right
+    
     // Calculate node positions and create nodes
     tasksData.forEach(task => {
       const mappedTask = taskMap.get(task.id)!;
@@ -256,18 +269,34 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
         taskLevels.get(t.id) === level
       ).length;
       
-      // Calculate position  
-      const horizontalSpacing = 250;
-      const verticalSpacing = 100;
-      const x = level * horizontalSpacing;
+      // Calculate position based on layout direction
+      const horizontalSpacing = isMobile ? 150 : 250;
+      const verticalSpacing = isMobile ? 180 : 100;
       
-      // Find tasks with same level to distribute them vertically
+      // Find tasks with same level to distribute them vertically/horizontally
       const tasksWithSameLevel = tasksData
         .filter(t => taskLevels.get(t.id) === level)
         .sort((a, b) => a.name.localeCompare(b.name));
       
       const index = tasksWithSameLevel.findIndex(t => t.id === task.id);
-      const y = index * verticalSpacing;
+      
+      // Position based on direction
+      let x, y;
+      let sourcePos, targetPos;
+      
+      if (direction === 'LR') {
+        // Left to right layout
+        x = level * horizontalSpacing;
+        y = index * verticalSpacing;
+        sourcePos = Position.Right;
+        targetPos = Position.Left;
+      } else {
+        // Top to bottom layout
+        x = index * horizontalSpacing;
+        y = level * verticalSpacing;
+        sourcePos = Position.Bottom;
+        targetPos = Position.Top;
+      }
       
       // Create the node
       flowNodes.push({
@@ -280,8 +309,8 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
           isCritical: mappedTask.isCritical,
           isMilestone: task.isMilestone || false
         },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
+        sourcePosition: sourcePos,
+        targetPosition: targetPos,
       });
       
       // Create edges for dependencies
@@ -308,20 +337,33 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
     
     setNodes(flowNodes);
     setEdges(flowEdges);
-  };
+    setLoading(false);
+  }, [isMobile]);
 
   useEffect(() => {
     if (open && tasks.length > 0) {
       calculateCriticalPath(tasks);
     }
-  }, [tasks, open]);
+  }, [tasks, open, calculateCriticalPath]);
+  
+  useEffect(() => {
+    // Fit view whenever nodes change or when dialog opens
+    if (open && nodes.length > 0 && !loading) {
+      // Small delay to ensure the component is rendered
+      const timer = setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.2 });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [nodes, open, loading, reactFlowInstance]);
 
   if (!open) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[80vw] sm:max-h-[90vh] h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[90vw] sm:max-h-[90vh] h-[90vh] p-0 overflow-hidden">
+        <DialogHeader className="p-4 sm:p-6">
           <DialogTitle className="flex items-center justify-between">
             <span>Análise de Caminho Crítico</span>
             <Button
@@ -335,56 +377,87 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex h-full flex-col space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+        <div className="flex h-full flex-col space-y-2 p-2 sm:p-4 pt-0">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Caminho Crítico</CardTitle>
+              <CardHeader className="p-2 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm">Caminho Crítico</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 pt-0">
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-red-100 border border-red-300 dark:bg-red-900/30 dark:border-red-700 rounded"></div>
-                  <span className="text-xs">Tarefas no caminho crítico</span>
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-100 border border-red-300 dark:bg-red-900/30 dark:border-red-700 rounded"></div>
+                  <span className="text-xs">Tarefas críticas</span>
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Marcos</CardTitle>
+              <CardHeader className="p-2 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm">Marcos</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 pt-0">
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-purple-100 border border-purple-300 dark:bg-purple-900/30 dark:border-purple-700 rounded"></div>
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-100 border border-purple-300 dark:bg-purple-900/30 dark:border-purple-700 rounded"></div>
                   <span className="text-xs">Marcos do projeto</span>
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Outras Tarefas</CardTitle>
+              <CardHeader className="p-2 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm">Outras Tarefas</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 pt-0">
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 rounded"></div>
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 rounded"></div>
                   <span className="text-xs">Tarefas não críticas</span>
                 </div>
               </CardContent>
             </Card>
           </div>
           
-          <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-md border">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              fitView
-              minZoom={0.1}
-              maxZoom={1.5}
-              defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-              attributionPosition="bottom-right"
-            />
+          <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900 rounded-md border relative">
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                  <span className="mt-2 text-sm">Calculando caminho crítico...</span>
+                </div>
+              </div>
+            ) : (
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                fitView
+                minZoom={0.1}
+                maxZoom={1.5}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+                attributionPosition="bottom-right"
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background />
+                <Controls showInteractive={false} />
+                <Panel position="top-right" className="flex space-x-2">
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="h-8 w-8 bg-background"
+                    onClick={() => reactFlowInstance.fitView({ padding: 0.2 })}
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="h-8 w-8 bg-background"
+                    onClick={() => calculateCriticalPath(tasks)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </Panel>
+              </ReactFlow>
+            )}
           </div>
         </div>
       </DialogContent>
