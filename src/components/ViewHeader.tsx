@@ -1,25 +1,30 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { ReactNode } from "react";
 
 interface ViewHeaderProps {
   title: string;
   onAddItem: () => void;
   buttonText?: string;
+  extraActions?: ReactNode;
 }
 
-const ViewHeader = ({ title, onAddItem, buttonText = "Nova Tarefa" }: ViewHeaderProps) => {
+const ViewHeader = ({ title, onAddItem, buttonText = "Nova Tarefa", extraActions }: ViewHeaderProps) => {
   return (
-    <div className="flex justify-between items-center mb-6">
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
       <h1 className="text-2xl font-semibold">{title}</h1>
-      <Button 
-        size="sm"
-        className="bg-primary hover:bg-primary/90 text-white font-medium"
-        onClick={onAddItem}
-      >
-        <Plus className="h-4 w-4 mr-1" />
-        {buttonText}
-      </Button>
+      <div className="flex items-center gap-2 w-full md:w-auto flex-wrap justify-end">
+        {extraActions}
+        <Button 
+          size="sm"
+          className="bg-primary hover:bg-primary/90 text-white font-medium"
+          onClick={onAddItem}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          {buttonText}
+        </Button>
+      </div>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GanttChart } from "@/components/GanttChart";
+import GanttChart from "@/components/GanttChart";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
 import { useTasks } from "@/hooks/useTasks";

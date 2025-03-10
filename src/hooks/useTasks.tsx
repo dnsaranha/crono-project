@@ -74,7 +74,8 @@ export function useTasks() {
           parentId: task.parent_id || undefined,
           dependencies: taskDeps.map(dep => dep.predecessor_id),
           assignees: taskAssignees.map(assign => assign.user_id),
-          priority: task.priority || 3
+          priority: task.priority || 3,
+          description: task.description
         };
       });
       
@@ -202,7 +203,8 @@ export function useTasks() {
           is_group: newTask.isGroup || false,
           is_milestone: newTask.isMilestone || false,
           created_by: user.id,
-          priority: newTask.priority || 3
+          priority: newTask.priority || 3,
+          description: newTask.description
         })
         .select()
         .single();
@@ -247,7 +249,8 @@ export function useTasks() {
         parentId: data.parent_id,
         dependencies: newTask.dependencies,
         assignees: newTask.assignees,
-        priority: data.priority || 3
+        priority: data.priority || 3,
+        description: data.description
       };
       
       setTasks(prevTasks => [...prevTasks, createdTask]);
