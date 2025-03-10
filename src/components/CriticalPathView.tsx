@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import {
   ReactFlow,
@@ -20,9 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X, ZoomIn, ZoomOut, Maximize2, RefreshCw } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-// Define custom node type for critical path visualization
 interface CriticalPathNodeProps {
   data: {
     label: string;
@@ -68,14 +66,11 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoading] = useState(true);
   const reactFlowInstance = useReactFlow();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
-  // Find the critical path through the network of tasks
-  // This uses a simplified version of the Critical Path Method (CPM)
   const calculateCriticalPath = useCallback((tasksData: TaskType[]) => {
     setLoading(true);
     
-    // Create a map for each task for easy lookup
     const taskMap = new Map<string, TaskType & { 
       earliestStart: number; 
       earliestFinish: number; 
@@ -85,7 +80,6 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       isCritical: boolean;
     }>();
     
-    // Initialize task map with all tasks
     tasksData.forEach(task => {
       taskMap.set(task.id, { 
         ...task, 
@@ -98,17 +92,14 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       });
     });
     
-    // Find tasks with no dependencies (starting tasks)
     const startTasks = tasksData.filter(task => 
       !tasksData.some(t => t.dependencies?.includes(task.id))
     );
     
-    // Find tasks that are not predecessors to any task (ending tasks)
     const endTasks = tasksData.filter(task => 
       !task.dependencies || task.dependencies.length === 0
     );
     
-    // Forward pass - calculate earliest start and finish times
     const toVisit = [...startTasks];
     const visited = new Set<string>();
     
@@ -118,14 +109,12 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       if (!visited.has(task.id)) {
         const mappedTask = taskMap.get(task.id)!;
         
-        // Check if all dependencies have been visited
         const allDepsVisited = 
           !task.dependencies || 
           task.dependencies.length === 0 || 
           task.dependencies.every(depId => visited.has(depId));
         
         if (allDepsVisited) {
-          // Calculate earliest start time based on predecessors
           let earliestStart = 0;
           
           if (task.dependencies && task.dependencies.length > 0) {
@@ -140,23 +129,19 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
           mappedTask.earliestStart = earliestStart;
           mappedTask.earliestFinish = earliestStart + (task.duration || 0);
           
-          // Mark as visited
           visited.add(task.id);
           
-          // Add all tasks that depend on this task to the queue
           const dependents = tasksData.filter(t => 
             t.dependencies && t.dependencies.includes(task.id)
           );
           
           toVisit.push(...dependents);
         } else {
-          // Put back in the queue for later processing
           toVisit.push(task);
         }
       }
     }
     
-    // Determine the overall project duration
     let projectDuration = 0;
     endTasks.forEach(task => {
       const mappedTask = taskMap.get(task.id);
@@ -165,11 +150,9 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       }
     });
     
-    // Backward pass - calculate latest start and finish times
     tasksData.forEach(task => {
       const mappedTask = taskMap.get(task.id)!;
       
-      // For end tasks, latest finish = earliest finish
       if (!tasksData.some(t => t.dependencies?.includes(task.id))) {
         mappedTask.latestFinish = projectDuration;
       } else {
@@ -177,7 +160,6 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       }
     });
     
-    // Process tasks in reverse order
     const reverseVisited = new Set<string>();
     const reverseToVisit = [...endTasks];
     
@@ -187,7 +169,6 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       if (!reverseVisited.has(task.id)) {
         const mappedTask = taskMap.get(task.id)!;
         
-        // Calculate latest finish based on successors
         const successors = tasksData.filter(t => 
           t.dependencies && t.dependencies.includes(task.id)
         );
@@ -201,19 +182,14 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
           );
         }
         
-        // Calculate latest start
         mappedTask.latestStart = mappedTask.latestFinish - (task.duration || 0);
         
-        // Calculate slack
         mappedTask.slack = mappedTask.latestStart - mappedTask.earliestStart;
         
-        // Determine if task is on critical path
         mappedTask.isCritical = mappedTask.slack === 0;
         
-        // Mark as visited
         reverseVisited.add(task.id);
         
-        // Add all dependencies to the queue
         if (task.dependencies && task.dependencies.length > 0) {
           const dependencies = task.dependencies
             .map(depId => tasksData.find(t => t.id === depId))
@@ -224,24 +200,19 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       }
     }
     
-    // Convert to nodes and edges for react-flow
     const flowNodes: Node[] = [];
     const flowEdges: Edge[] = [];
     
-    // Position calculation helpers
     const taskLevels = new Map<string, number>();
     const maxTasksPerLevel: number[] = [];
     
-    // Determine task level in the hierarchy
     const calculateTaskLevel = (taskId: string, level: number) => {
       if (!taskLevels.has(taskId) || level > taskLevels.get(taskId)!) {
         taskLevels.set(taskId, level);
       }
       
-      // Update count for this level
       maxTasksPerLevel[level] = (maxTasksPerLevel[level] || 0) + 1;
       
-      // Get successors and calculate their levels
       const successors = tasksData.filter(t => 
         t.dependencies && t.dependencies.includes(taskId)
       );
@@ -251,54 +222,44 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
       });
     };
     
-    // Calculate levels starting from each start task
     startTasks.forEach(task => {
       calculateTaskLevel(task.id, 0);
     });
     
-    // Use horizontal layout on mobile, vertical on desktop
-    const direction = isMobile ? 'TB' : 'LR'; // TB = top-to-bottom, LR = left-to-right
+    const direction = isMobile ? 'TB' : 'LR';
     
-    // Calculate node positions and create nodes
     tasksData.forEach(task => {
       const mappedTask = taskMap.get(task.id)!;
       const level = taskLevels.get(task.id) || 0;
       
-      // Count how many tasks are at this level
       const tasksAtThisLevel = tasksData.filter(t => 
         taskLevels.get(t.id) === level
       ).length;
       
-      // Calculate position based on layout direction
       const horizontalSpacing = isMobile ? 150 : 250;
       const verticalSpacing = isMobile ? 180 : 100;
       
-      // Find tasks with same level to distribute them vertically/horizontally
       const tasksWithSameLevel = tasksData
         .filter(t => taskLevels.get(t.id) === level)
         .sort((a, b) => a.name.localeCompare(b.name));
       
       const index = tasksWithSameLevel.findIndex(t => t.id === task.id);
       
-      // Position based on direction
       let x, y;
       let sourcePos, targetPos;
       
       if (direction === 'LR') {
-        // Left to right layout
         x = level * horizontalSpacing;
         y = index * verticalSpacing;
         sourcePos = Position.Right;
         targetPos = Position.Left;
       } else {
-        // Top to bottom layout
         x = index * horizontalSpacing;
         y = level * verticalSpacing;
         sourcePos = Position.Bottom;
         targetPos = Position.Top;
       }
       
-      // Create the node
       flowNodes.push({
         id: task.id,
         type: 'criticalPath',
@@ -313,7 +274,6 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
         targetPosition: targetPos,
       });
       
-      // Create edges for dependencies
       if (task.dependencies && task.dependencies.length > 0) {
         task.dependencies.forEach(depId => {
           flowEdges.push({
@@ -347,9 +307,7 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
   }, [tasks, open, calculateCriticalPath]);
   
   useEffect(() => {
-    // Fit view whenever nodes change or when dialog opens
     if (open && nodes.length > 0 && !loading) {
-      // Small delay to ensure the component is rendered
       const timer = setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.2 });
       }, 100);
