@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ const GanttView = () => {
 
   const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
     if (isNewTask) {
-      // Create new task
       const newTaskDetails: Omit<TaskType, 'id'> = {
         name: taskData.name || "Nova Tarefa",
         startDate: taskData.startDate || new Date().toISOString().split('T')[0],
@@ -72,7 +70,6 @@ const GanttView = () => {
         setIsTaskFormOpen(false);
       }
     } else if (selectedTask) {
-      // Update existing task
       const updatedTaskData: TaskType = {
         ...selectedTask,
         ...taskData
@@ -100,7 +97,6 @@ const GanttView = () => {
       return;
     }
     
-    // Check for circular dependency
     const sourceTask = tasks.find(t => t.id === sourceId);
     const targetTask = tasks.find(t => t.id === targetId);
     
@@ -113,7 +109,6 @@ const GanttView = () => {
       return;
     }
     
-    // Check if the target task already depends on the source task (directly or indirectly)
     const hasCyclicDependency = (checkId: string, visitedIds = new Set<string>()): boolean => {
       if (checkId === sourceId) return true;
       if (visitedIds.has(checkId)) return false;
@@ -178,7 +173,7 @@ const GanttView = () => {
           <GanttChart 
             tasks={tasks} 
             onTaskClick={handleEditTask}
-            onDependencyCreated={handleDependencyCreated}
+            onCreateDependency={handleDependencyCreated}
           />
         </div>
       )}
