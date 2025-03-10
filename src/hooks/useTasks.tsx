@@ -73,7 +73,8 @@ export function useTasks() {
           progress: task.progress || 0,
           parentId: task.parent_id || undefined,
           dependencies: taskDeps.map(dep => dep.predecessor_id),
-          assignees: taskAssignees.map(assign => assign.user_id)
+          assignees: taskAssignees.map(assign => assign.user_id),
+          priority: task.priority || 3
         };
       });
       
@@ -104,7 +105,8 @@ export function useTasks() {
           progress: updatedTask.progress,
           parent_id: updatedTask.parentId,
           is_group: updatedTask.isGroup || false,
-          is_milestone: updatedTask.isMilestone || false
+          is_milestone: updatedTask.isMilestone || false,
+          priority: updatedTask.priority || 3
         })
         .eq('id', updatedTask.id)
         .select();
@@ -199,7 +201,8 @@ export function useTasks() {
           project_id: projectId,
           is_group: newTask.isGroup || false,
           is_milestone: newTask.isMilestone || false,
-          created_by: user.id
+          created_by: user.id,
+          priority: newTask.priority || 3
         })
         .select()
         .single();
@@ -243,7 +246,8 @@ export function useTasks() {
         progress: data.progress,
         parentId: data.parent_id,
         dependencies: newTask.dependencies,
-        assignees: newTask.assignees
+        assignees: newTask.assignees,
+        priority: data.priority || 3
       };
       
       setTasks(prevTasks => [...prevTasks, createdTask]);

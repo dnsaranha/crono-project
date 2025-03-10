@@ -1,338 +1,245 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Edit, Plus, Pencil } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import TaskForm from "@/components/TaskForm";
-import { TaskType } from "@/components/Task";
 import { useTasks } from "@/hooks/useTasks";
-import { useParams } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import KanbanColumn from "@/components/KanbanColumn";
+import { TaskType } from "@/components/Task";
+import TaskForm from "@/components/TaskForm";
 import LoadingState from "@/components/LoadingState";
-
-interface TaskItem {
-  id: string;
-  title: string;
-  description?: string;
-  priority: 'low' | 'medium' | 'high';
-  assignee?: string;
-  assigneeId?: string;
-  taskId: string;
-}
-
-interface Column {
-  id: string;
-  title: string;
-  tasks: TaskItem[];
-}
+import EmptyTaskState from "@/components/EmptyTaskState";
+import NewTaskButton from "@/components/NewTaskButton";
+import ViewHeader from "@/components/ViewHeader";
+import KanbanColumnForm, { KanbanColumnData } from "@/components/KanbanColumnForm";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const BoardView = () => {
   const { toast } = useToast();
-  const { projectId } = useParams<{ projectId: string }>();
   const { tasks, loading, updateTask, createTask, getProjectMembers } = useTasks();
+  const [columns, setColumns] = useState<KanbanColumnData[]>([
+    { id: "todo", title: "A Fazer", progressMin: 0, progressMax: 0 },
+    { id: "in_progress", title: "Em Progresso", progressMin: 1, progressMax: 99 },
+    { id: "done", title: "Concluído", progressMin: 100, progressMax: 100 }
+  ]);
   
-  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isNewTask, setIsNewTask] = useState(false);
-  const [columns, setColumns] = useState<Column[]>([]);
-  const [columnDialog, setColumnDialog] = useState(false);
-  const [editingColumn, setEditingColumn] = useState<Column | null>(null);
-  const [columnTitle, setColumnTitle] = useState("");
-  const [columnDescription, setColumnDescription] = useState("");
-  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  
+  const [selectedColumn, setSelectedColumn] = useState<KanbanColumnData | null>(null);
+  const [isColumnFormOpen, setIsColumnFormOpen] = useState(false);
+  const [isNewColumn, setIsNewColumn] = useState(false);
+  
+  const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   
   useEffect(() => {
-    async function loadMembers() {
-      const members = await getProjectMembers();
-      setProjectMembers(members || []);
+    loadProjectMembers();
+    
+    // Load saved column configuration from localStorage if available
+    const savedColumns = localStorage.getItem('kanban_columns');
+    if (savedColumns) {
+      try {
+        setColumns(JSON.parse(savedColumns));
+      } catch (e) {
+        console.error('Failed to parse saved columns:', e);
+      }
     }
-    loadMembers();
   }, []);
   
+  // Save columns configuration to localStorage when it changes
   useEffect(() => {
-    if (!loading && tasks.length > 0) {
-      const defaultColumns = [
-        { id: "todo", title: "A Fazer", tasks: [] },
-        { id: "in-progress", title: "Em Progresso", tasks: [] },
-        { id: "done", title: "Concluído", tasks: [] }
-      ];
-      
-      let existingColumns: Column[] = [];
-      try {
-        const savedColumns = localStorage.getItem(`board-columns-${projectId}`);
-        if (savedColumns) {
-          existingColumns = JSON.parse(savedColumns);
-        } else {
-          existingColumns = defaultColumns;
-        }
-      } catch (error) {
-        console.error("Error loading columns:", error);
-        existingColumns = defaultColumns;
-      }
-      
-      const mappedColumns = existingColumns.map(column => {
-        return {
-          ...column,
-          tasks: []
-        };
-      });
-      
-      tasks.forEach(task => {
-        if (task.isGroup) return;
-        
-        const assigneeNames = task.assignees?.map(assigneeId => {
-          const member = projectMembers.find(m => m.id === assigneeId);
-          return member ? member.name : "Não atribuído";
-        }).join(", ");
-        
-        const taskItem: TaskItem = {
-          id: `item-${task.id}`,
-          title: task.name,
-          description: task.description || `Duração: ${task.duration} dias`,
-          priority: task.isMilestone ? 'high' : task.duration < 3 ? 'low' : 'medium',
-          assignee: assigneeNames,
-          assigneeId: task.assignees?.[0],
-          taskId: task.id
-        };
-        
-        if (task.progress >= 100) {
-          const doneColumn = mappedColumns.find(col => col.id === "done");
-          if (doneColumn) doneColumn.tasks.push(taskItem);
-        } else if (task.progress > 0) {
-          const progressColumn = mappedColumns.find(col => col.id === "in-progress");
-          if (progressColumn) progressColumn.tasks.push(taskItem);
-        } else {
-          const todoColumn = mappedColumns.find(col => col.id === "todo");
-          if (todoColumn) todoColumn.tasks.push(taskItem);
-        }
-      });
-      
-      setColumns(mappedColumns);
-    }
-  }, [tasks, loading, projectMembers]);
-  
-  useEffect(() => {
-    if (columns.length > 0 && projectId) {
-      localStorage.setItem(`board-columns-${projectId}`, JSON.stringify(columns));
-    }
-  }, [columns, projectId]);
-  
-  const handleAddColumn = () => {
-    setEditingColumn(null);
-    setColumnTitle("Nova Coluna");
-    setColumnDescription("");
-    setColumnDialog(true);
-  };
-  
-  const handleEditColumn = (column: Column) => {
-    setEditingColumn(column);
-    setColumnTitle(column.title);
-    setColumnDescription("");
-    setColumnDialog(true);
-  };
-  
-  const handleSaveColumn = () => {
-    if (editingColumn) {
-      setColumns(prev => prev.map(col => 
-        col.id === editingColumn.id 
-          ? {...col, title: columnTitle}
-          : col
-      ));
-    } else {
-      const newColumnId = `column-${Date.now()}`;
-      setColumns([
-        ...columns, 
-        {
-          id: newColumnId,
-          title: columnTitle,
-          tasks: []
-        }
-      ]);
-    }
-    
-    setColumnDialog(false);
-    toast({
-      title: editingColumn ? "Coluna atualizada" : "Coluna adicionada",
-      description: editingColumn 
-        ? `A coluna "${columnTitle}" foi atualizada.` 
-        : `A coluna "${columnTitle}" foi adicionada.`
-    });
+    localStorage.setItem('kanban_columns', JSON.stringify(columns));
+  }, [columns]);
+
+  const loadProjectMembers = async () => {
+    const members = await getProjectMembers();
+    setProjectMembers(members);
   };
 
-  const handleEditTask = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setIsNewTask(false);
-      setIsTaskFormOpen(true);
-    }
-  };
-  
   const handleAddTask = () => {
     setSelectedTask(null);
     setIsNewTask(true);
     setIsTaskFormOpen(true);
   };
   
-  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
-    try {
-      if (isNewTask) {
-        const newTask = await createTask({
-          name: taskData.name || "Nova Tarefa",
-          startDate: taskData.startDate || new Date().toISOString().split('T')[0],
-          duration: taskData.duration || 7,
-          progress: taskData.progress || 0,
-          dependencies: taskData.dependencies || [],
-          assignees: taskData.assignees || [],
-          description: taskData.description,
-          isMilestone: taskData.isMilestone || false
-        });
-        
-        if (newTask) {
-          const newBoardItem: TaskItem = {
-            id: `item-${newTask.id}`,
-            title: newTask.name,
-            description: newTask.description || `Duração: ${newTask.duration} dias`,
-            priority: newTask.isMilestone ? 'high' : 'medium',
-            taskId: newTask.id,
-            assignee: newTask.assignees?.map(id => {
-              const member = projectMembers.find(m => m.id === id);
-              return member ? member.name : "";
-            }).join(", ")
-          };
-          
-          const updatedColumns = columns.map(col => {
-            if (col.id === "todo") {
-              return {
-                ...col,
-                tasks: [...col.tasks, newBoardItem]
-              };
-            }
-            return col;
-          });
-          
-          setColumns(updatedColumns);
-          
-          toast({
-            title: "Tarefa adicionada",
-            description: `${newTask.name} foi adicionada com sucesso.`,
-          });
-        }
-      } else if (selectedTask) {
-        const success = await updateTask({
-          ...selectedTask,
-          ...taskData
-        });
-        
-        if (success) {
-          toast({
-            title: "Tarefa atualizada",
-            description: `${taskData.name} foi atualizada com sucesso.`,
-          });
-        }
-      }
-      
-      setIsTaskFormOpen(false);
-    } catch (error) {
-      console.error("Error handling task submission:", error);
+  const handleEditTask = (task: TaskType) => {
+    setSelectedTask(task);
+    setIsNewTask(false);
+    setIsTaskFormOpen(true);
+  };
+  
+  const handleAddColumn = () => {
+    setSelectedColumn(null);
+    setIsNewColumn(true);
+    setIsColumnFormOpen(true);
+  };
+  
+  const handleEditColumn = (columnId: string) => {
+    const column = columns.find(col => col.id === columnId);
+    if (column) {
+      setSelectedColumn(column);
+      setIsNewColumn(false);
+      setIsColumnFormOpen(true);
+    }
+  };
+  
+  const handleDeleteColumn = (columnId: string) => {
+    if (columns.length <= 2) {
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao salvar a tarefa.",
-        variant: "destructive"
+        title: "Operação não permitida",
+        description: "Você deve manter pelo menos duas colunas no quadro.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Remove column and update tasks
+    setColumns(prevColumns => prevColumns.filter(col => col.id !== columnId));
+    
+    // Move tasks from deleted column to first column
+    const firstColumnId = columns[0].id;
+    
+    // Update tasks in database if needed
+    const tasksToUpdate = tasks.filter(task => getTaskColumn(task) === columnId);
+    
+    if (tasksToUpdate.length > 0) {
+      // Batch update tasks
+      tasksToUpdate.forEach(task => {
+        // Determine new progress value based on first column
+        const newProgress = columns[0].progressMin || 0;
+        updateTask({ ...task, progress: newProgress });
+      });
+      
+      toast({
+        title: "Coluna excluída",
+        description: `${tasksToUpdate.length} tarefas foram movidas para a coluna "${columns[0].title}".`,
+      });
+    } else {
+      toast({
+        title: "Coluna excluída",
+        description: "A coluna foi excluída com sucesso.",
       });
     }
   };
-
-  const handleDragStart = (e: React.DragEvent, itemId: string, columnId: string) => {
-    e.dataTransfer.setData("itemId", itemId);
-    e.dataTransfer.setData("sourceColumnId", columnId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const dropZone = target.closest(".drop-zone");
-    
-    if (dropZone) {
-      dropZone.classList.add("drag-over");
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const dropZone = target.closest(".drop-zone");
-    
-    if (dropZone) {
-      dropZone.classList.remove("drag-over");
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
-    e.preventDefault();
-    
-    const itemId = e.dataTransfer.getData("itemId");
-    const sourceColumnId = e.dataTransfer.getData("sourceColumnId");
-    
-    if (sourceColumnId === targetColumnId) return;
-    
-    const sourceColIndex = columns.findIndex(col => col.id === sourceColumnId);
-    const targetColIndex = columns.findIndex(col => col.id === targetColumnId);
-    
-    if (sourceColIndex !== -1 && targetColIndex !== -1) {
-      const item = columns[sourceColIndex].tasks.find(t => t.id === itemId);
+  
+  const handleColumnFormSubmit = (columnData: KanbanColumnData) => {
+    if (isNewColumn) {
+      // Add new column
+      setColumns(prevColumns => [...prevColumns, columnData]);
       
-      if (item) {
-        const sourceCol = {
-          ...columns[sourceColIndex],
-          tasks: columns[sourceColIndex].tasks.filter(t => t.id !== itemId)
-        };
-        
-        const targetCol = {
-          ...columns[targetColIndex],
-          tasks: [...columns[targetColIndex].tasks, item]
-        };
-        
-        const newColumns = [...columns];
-        newColumns[sourceColIndex] = sourceCol;
-        newColumns[targetColIndex] = targetCol;
-        
-        setColumns(newColumns);
-        
-        if (item.taskId) {
-          const taskToUpdate = tasks.find(t => t.id === item.taskId);
-          
-          if (taskToUpdate) {
-            const progress = targetColumnId === "done" ? 100 : 
-                            targetColumnId === "in-progress" ? 50 : 0;
-            
-            await updateTask({
-              ...taskToUpdate,
-              progress
-            });
-          }
-        }
+      toast({
+        title: "Coluna adicionada",
+        description: `A coluna "${columnData.title}" foi adicionada com sucesso.`,
+      });
+    } else {
+      // Update existing column
+      setColumns(prevColumns => 
+        prevColumns.map(col => 
+          col.id === columnData.id ? columnData : col
+        )
+      );
+      
+      toast({
+        title: "Coluna atualizada",
+        description: `A coluna "${columnData.title}" foi atualizada com sucesso.`,
+      });
+      
+      // Update tasks that may have moved due to progress range changes
+      updateTasksBasedOnProgressRanges();
+    }
+  };
+  
+  const updateTasksBasedOnProgressRanges = () => {
+    // This will be called when column ranges change to recategorize tasks
+    // No need to update the tasks in the database as their progress hasn't changed
+    // They'll just show up in different columns based on the new ranges
+  };
+
+  const getTaskColumn = (task: TaskType): string => {
+    // Find which column this task belongs to based on its progress
+    for (const column of columns) {
+      const min = column.progressMin ?? 0;
+      const max = column.progressMax ?? 100;
+      
+      if (task.progress >= min && task.progress <= max) {
+        return column.id;
       }
     }
     
-    const dropZones = document.querySelectorAll(".drop-zone");
-    dropZones.forEach(zone => zone.classList.remove("drag-over"));
+    // Default to first column if no match
+    return columns[0]?.id || "todo";
   };
   
-  const getPriorityStyles = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return "bg-red-100 text-red-800";
-      case 'medium':
-        return "bg-yellow-100 text-yellow-800";
-      case 'low':
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleDropOnColumn = (columnId: string, taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Find the column's progress range
+    const column = columns.find(col => col.id === columnId);
+    if (!column) return;
+    
+    // Set the task's progress to the middle of the column's range
+    const min = column.progressMin ?? 0;
+    const max = column.progressMax ?? 100;
+    let newProgress = Math.floor((min + max) / 2);
+    
+    // For "Done" column with 100% progress
+    if (max === 100 && min === 100) {
+      newProgress = 100;
+    }
+    // For "Todo" column with 0% progress
+    else if (max === 0 && min === 0) {
+      newProgress = 0;
+    }
+    
+    // Update the task
+    updateTask({
+      ...task,
+      progress: newProgress
+    });
+  };
+  
+  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
+    if (isNewTask) {
+      // Create new task
+      const newTaskDetails: Omit<TaskType, 'id'> = {
+        name: taskData.name || "Nova Tarefa",
+        startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+        duration: taskData.duration || 7,
+        progress: taskData.progress || 0,
+        dependencies: taskData.dependencies || [],
+        assignees: taskData.assignees || [],
+        isGroup: taskData.isGroup || false,
+        isMilestone: taskData.isMilestone || false,
+        parentId: taskData.parentId,
+        priority: taskData.priority || 3
+      };
+      
+      const result = await createTask(newTaskDetails);
+      
+      if (result) {
+        toast({
+          title: "Tarefa adicionada",
+          description: `${newTaskDetails.name} foi adicionada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
+      }
+    } else if (selectedTask) {
+      // Update existing task
+      const updatedTaskData: TaskType = {
+        ...selectedTask,
+        ...taskData
+      };
+      
+      const success = await updateTask(updatedTaskData);
+      
+      if (success) {
+        toast({
+          title: "Tarefa atualizada",
+          description: `${updatedTaskData.name} foi atualizada com sucesso.`,
+        });
+        setIsTaskFormOpen(false);
+      }
     }
   };
 
@@ -340,122 +247,51 @@ const BoardView = () => {
     return <LoadingState />;
   }
 
+  if (tasks.length === 0) {
+    return <EmptyTaskState onAddTask={handleAddTask} />;
+  }
+
   return (
-    <div className="flex-1 overflow-auto p-6 animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Quadro de Tarefas</h1>
-        <div className="space-x-2">
+    <div className="flex flex-col h-full">
+      <ViewHeader 
+        title="Quadro Kanban" 
+        onAddItem={handleAddTask}
+        extraActions={
           <Button 
             variant="outline" 
-            size="sm"
+            size="sm" 
             onClick={handleAddColumn}
+            className="flex items-center"
           >
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             Nova Coluna
           </Button>
-          <Button 
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-white font-medium"
-            onClick={handleAddTask}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Nova Tarefa
-          </Button>
+        }
+      />
+      
+      <div className="board-container flex-1 overflow-x-auto py-2 touch-pan-x">
+        <div className="flex space-x-4 h-full min-h-[500px] pr-4">
+          {columns.map(column => {
+            const columnTasks = tasks.filter(task => getTaskColumn(task) === column.id);
+            
+            return (
+              <KanbanColumn 
+                key={column.id}
+                columnId={column.id}
+                title={column.title}
+                tasks={columnTasks}
+                onDrop={(taskId) => handleDropOnColumn(column.id, taskId)}
+                onEditTask={handleEditTask}
+                onEditColumn={handleEditColumn}
+                onDeleteColumn={handleDeleteColumn}
+                totalColumns={columns.length}
+              />
+            );
+          })}
         </div>
       </div>
       
-      <div className="flex gap-6 h-[calc(100vh-160px)] pb-6 overflow-x-auto">
-        {columns.map((column) => (
-          <div key={column.id} className="flex-shrink-0 w-80">
-            <div 
-              className="bg-white rounded-lg shadow-sm h-full flex flex-col drop-zone"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, column.id)}
-            >
-              <div className="px-4 py-3 border-b flex justify-between items-center">
-                <h3 className="font-medium">{column.title} ({column.tasks.length})</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleEditColumn(column)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-              
-              <div className="flex-1 p-3 overflow-y-auto space-y-3">
-                {column.tasks.map((task) => (
-                  <Card 
-                    key={task.id} 
-                    className="shadow-sm hover:shadow-md transition-shadow animate-task-appear"
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id, column.id)}
-                  >
-                    <CardHeader className="p-3 pb-2 flex flex-row items-start justify-between space-y-0">
-                      <CardTitle className="text-base font-medium">{task.title}</CardTitle>
-                      {task.taskId && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0" 
-                          onClick={() => handleEditTask(task.taskId)}
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0">
-                      {task.description && (
-                        <p className="text-sm text-gray-500 mb-3">{task.description}</p>
-                      )}
-                      <div className="flex justify-between items-center">
-                        {task.assignee && (
-                          <div className="text-xs text-gray-600">
-                            {task.assignee}
-                          </div>
-                        )}
-                        <div className={cn(
-                          "ml-auto px-2 py-0.5 rounded text-xs font-medium",
-                          getPriorityStyles(task.priority)
-                        )}>
-                          {task.priority === 'high' ? 'Alta' : 
-                           task.priority === 'medium' ? 'Média' : 'Baixa'}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              
-              <Separator />
-              <div className="p-3">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-gray-500 hover:text-gray-900"
-                  onClick={handleAddTask}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar tarefa
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-        
-        <div className="flex-shrink-0 w-80 bg-gray-100 bg-opacity-60 rounded-lg border border-dashed border-gray-300 flex items-center justify-center">
-          <Button 
-            variant="ghost" 
-            className="text-gray-500"
-            onClick={handleAddColumn}
-          >
-            <Plus className="h-5 w-5 mr-1" />
-            Adicionar Coluna
-          </Button>
-        </div>
-      </div>
+      <NewTaskButton onClick={handleAddTask} />
       
       <TaskForm
         open={isTaskFormOpen}
@@ -464,47 +300,16 @@ const BoardView = () => {
         onSubmit={handleTaskFormSubmit}
         tasks={tasks}
         isNew={isNewTask}
+        projectMembers={projectMembers}
       />
       
-      <Dialog open={columnDialog} onOpenChange={setColumnDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editingColumn ? "Editar Coluna" : "Nova Coluna"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Título
-              </label>
-              <Input
-                id="name"
-                value={columnTitle}
-                onChange={(e) => setColumnTitle(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Descrição (opcional)
-              </label>
-              <Textarea
-                id="description"
-                value={columnDescription}
-                onChange={(e) => setColumnDescription(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setColumnDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveColumn} disabled={!columnTitle.trim()}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <KanbanColumnForm
+        open={isColumnFormOpen}
+        onOpenChange={setIsColumnFormOpen}
+        column={selectedColumn}
+        onSubmit={handleColumnFormSubmit}
+        isNew={isNewColumn}
+      />
     </div>
   );
 };

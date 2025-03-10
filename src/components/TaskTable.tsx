@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { TaskType } from "@/components/Task";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -18,6 +18,17 @@ interface TaskTableProps {
 const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: TaskTableProps) => {
   const [showSubtasks, setShowSubtasks] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  
+  // Initialize expanded groups state with all groups expanded
+  useEffect(() => {
+    const initialExpandState: Record<string, boolean> = {};
+    tasks.forEach(task => {
+      if (task.isGroup) {
+        initialExpandState[task.id] = true;
+      }
+    });
+    setExpandedGroups(initialExpandState);
+  }, [tasks]);
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -48,36 +59,72 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
     return member ? member.name : "Usuário";
   };
 
-  // Filter tasks based on showSubtasks toggle and expansion state
-  const getFilteredTasks = () => {
-    // First, get all top-level tasks (no parent)
-    const topLevelTasks = tasks.filter(task => !task.parentId);
+  // Get priority color and label
+  const getPriorityInfo = (priority?: number) => {
+    const priorityLevel = priority || 3;
+    const options = [
+      { value: 1, label: "Muito Baixa", color: "bg-gray-400", textColor: "text-gray-400" },
+      { value: 2, label: "Baixa", color: "bg-blue-400", textColor: "text-blue-400" },
+      { value: 3, label: "Média", color: "bg-green-400", textColor: "text-green-400" },
+      { value: 4, label: "Alta", color: "bg-yellow-400", textColor: "text-yellow-400" },
+      { value: 5, label: "Muito Alta", color: "bg-red-400", textColor: "text-red-400" }
+    ];
     
-    if (!showSubtasks) {
-      return topLevelTasks;
-    }
+    return options.find(o => o.value === priorityLevel) || options[2];
+  };
+
+  // Helper function to build a nested task hierarchy
+  const buildTaskHierarchy = (allTasks: TaskType[]): TaskType[] => {
+    // Create a map of tasks by ID for quick lookup
+    const taskMap = new Map<string, TaskType & { children?: TaskType[] }>();
     
-    // For each expanded group, add its children
-    const result = [...topLevelTasks];
+    // First pass: map all tasks to their IDs
+    allTasks.forEach(task => {
+      taskMap.set(task.id, { ...task, children: [] });
+    });
     
-    topLevelTasks.forEach(task => {
-      if (task.isGroup && expandedGroups[task.id]) {
-        // Get all direct children of this group
-        const children = tasks.filter(t => t.parentId === task.id);
-        // Insert children right after their parent
-        const parentIndex = result.findIndex(t => t.id === task.id);
-        result.splice(parentIndex + 1, 0, ...children);
+    // Second pass: build tree structure
+    const rootTasks: TaskType[] = [];
+    
+    allTasks.forEach(task => {
+      const mappedTask = taskMap.get(task.id)!;
+      
+      if (task.parentId && taskMap.has(task.parentId)) {
+        // This is a child task
+        const parent = taskMap.get(task.parentId)!;
+        parent.children = parent.children || [];
+        parent.children.push(mappedTask);
+      } else {
+        // This is a root task
+        rootTasks.push(mappedTask);
+      }
+    });
+    
+    return rootTasks;
+  };
+
+  // Recursively flatten task hierarchy based on expanded state
+  const flattenTaskHierarchy = (tasks: (TaskType & { children?: TaskType[] })[], level = 0, result: (TaskType & { level: number })[] = []): (TaskType & { level: number })[] => {
+    tasks.forEach(task => {
+      // Add the task with its nesting level
+      result.push({ ...task, level });
+      
+      // Add children if this group is expanded and we're showing subtasks
+      if (task.isGroup && task.children && task.children.length > 0 && expandedGroups[task.id] && showSubtasks) {
+        flattenTaskHierarchy(task.children, level + 1, result);
       }
     });
     
     return result;
   };
 
-  const filteredTasks = getFilteredTasks();
+  // Build task hierarchy and flatten based on current expanded state
+  const hierarchicalTasks = buildTaskHierarchy(tasks);
+  const displayTasks = flattenTaskHierarchy(hierarchicalTasks);
 
   return (
     <div>
-      <div className="p-2 flex items-center space-x-4 bg-gray-50 border-b">
+      <div className="p-2 flex items-center space-x-4 bg-gray-50 dark:bg-gray-800 border-b">
         <div className="flex items-center space-x-2">
           <Switch
             id="showSubtasks"
@@ -108,6 +155,7 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
             </TableHead>
             <TableHead className="w-[150px]">Data de Fim</TableHead>
             <TableHead className="w-[150px]">Progresso</TableHead>
+            <TableHead className="w-[100px]">Prioridade</TableHead>
             <TableHead className="w-[150px]">
               <div className="flex items-center">
                 <Users className="h-4 w-4 mr-1" />
@@ -118,105 +166,120 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredTasks.map((task) => (
-            <TableRow key={task.id} className={task.isGroup ? "bg-gray-50 font-medium" : ""}>
-              <TableCell className={task.isGroup ? "font-bold" : "font-medium"}>
-                <div className="flex items-center">
-                  {task.isGroup ? (
+          {displayTasks.map((task) => {
+            const priorityInfo = getPriorityInfo(task.priority);
+            return (
+              <TableRow 
+                key={task.id} 
+                className={task.isGroup ? "bg-gray-50 dark:bg-gray-800 font-medium" : ""}
+              >
+                <TableCell className={task.isGroup ? "font-bold" : "font-medium"}>
+                  <div className="flex items-center">
+                    {/* Indent based on level */}
+                    {task.level > 0 && (
+                      <div style={{ width: `${task.level * 20}px` }} className="flex-shrink-0"></div>
+                    )}
+                    
+                    {task.isGroup ? (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 mr-1 h-6 w-6"
+                        onClick={() => toggleGroup(task.id)}
+                      >
+                        {expandedGroups[task.id] ? 
+                          <ChevronDown className="h-4 w-4" /> : 
+                          <ChevronRight className="h-4 w-4" />
+                        }
+                      </Button>
+                    ) : null}
+                    
+                    {task.isMilestone && (
+                      <Flag className="h-4 w-4 mr-1 text-purple-600 dark:text-purple-500" />
+                    )}
+                    
+                    {task.name}
+                  </div>
+                </TableCell>
+                <TableCell>{formatDate(task.startDate)}</TableCell>
+                <TableCell>
+                  {task.isMilestone ? (
+                    <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200">Marco</Badge>
+                  ) : (
+                    `${task.duration} dias`
+                  )}
+                </TableCell>
+                <TableCell>{calculateEndDate(task.startDate, task.duration || 0)}</TableCell>
+                <TableCell>
+                  {!task.isMilestone && (
+                    <>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-gantt-blue dark:bg-blue-500 h-2.5 rounded-full transition-all duration-500 ease-out" 
+                          style={{ width: `${task.progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{task.progress}%</div>
+                    </>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${priorityInfo.color}`}></div>
+                    <span className="text-xs">{priorityInfo.label}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {task.assignees && task.assignees.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {task.assignees.slice(0, 2).map(userId => (
+                        <TooltipProvider key={userId}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30">
+                                {getMemberName(userId).split(' ')[0]}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{getMemberName(userId)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ))}
+                      {task.assignees.length > 2 && (
+                        <Badge variant="outline">+{task.assignees.length - 2}</Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">Nenhum</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-1">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="p-0 mr-1 h-6 w-6"
-                      onClick={() => toggleGroup(task.id)}
+                      onClick={() => onEditTask(task)}
+                      className="px-2"
                     >
-                      {expandedGroups[task.id] ? 
-                        <ChevronDown className="h-4 w-4" /> : 
-                        <ChevronRight className="h-4 w-4" />
-                      }
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                  ) : task.parentId ? (
-                    <span className="ml-6"></span>
-                  ) : null}
-                  
-                  {task.isMilestone && (
-                    <Flag className="h-4 w-4 mr-1 text-purple-600" />
-                  )}
-                  
-                  {task.name}
-                </div>
-              </TableCell>
-              <TableCell>{formatDate(task.startDate)}</TableCell>
-              <TableCell>
-                {task.isMilestone ? (
-                  <Badge variant="outline" className="bg-purple-50">Marco</Badge>
-                ) : (
-                  `${task.duration} dias`
-                )}
-              </TableCell>
-              <TableCell>{calculateEndDate(task.startDate, task.duration || 0)}</TableCell>
-              <TableCell>
-                {!task.isMilestone && (
-                  <>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-gantt-blue h-2.5 rounded-full transition-all duration-500 ease-out" 
-                        style={{ width: `${task.progress}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">{task.progress}%</div>
-                  </>
-                )}
-              </TableCell>
-              <TableCell>
-                {task.assignees && task.assignees.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {task.assignees.slice(0, 2).map(userId => (
-                      <TooltipProvider key={userId}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline" className="bg-blue-50">
-                              {getMemberName(userId).split(' ')[0]}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{getMemberName(userId)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ))}
-                    {task.assignees.length > 2 && (
-                      <Badge variant="outline">+{task.assignees.length - 2}</Badge>
+                    
+                    {onDeleteTask && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => onDeleteTask(task.id)}
+                        className="px-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                ) : (
-                  <span className="text-gray-400 text-xs">Nenhum</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex space-x-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onEditTask(task)}
-                    className="px-2"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  
-                  {onDeleteTask && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => onDeleteTask(task.id)}
-                      className="px-2 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
