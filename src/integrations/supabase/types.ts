@@ -196,6 +196,7 @@ export type Database = {
           is_milestone: boolean
           name: string
           parent_id: string | null
+          priority: number | null
           progress: number
           project_id: string
           start_date: string
@@ -211,6 +212,7 @@ export type Database = {
           is_milestone?: boolean
           name: string
           parent_id?: string | null
+          priority?: number | null
           progress?: number
           project_id: string
           start_date: string
@@ -226,6 +228,7 @@ export type Database = {
           is_milestone?: boolean
           name?: string
           parent_id?: string | null
+          priority?: number | null
           progress?: number
           project_id?: string
           start_date?: string

@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import GanttChart from "@/components/GanttChart";
@@ -24,14 +25,14 @@ const GanttView = () => {
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
 
-  useState(() => {
+  useEffect(() => {
     const loadMembers = async () => {
       const members = await getProjectMembers();
       setProjectMembers(members);
     };
     
     loadMembers();
-  });
+  }, []);
 
   const handleEditTask = (task: TaskType) => {
     setSelectedTask(task);
