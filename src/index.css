@@ -43,6 +43,19 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Kanban board column colors - light mode */
+    --board-column-bg: 0 0% 100%;
+    --board-column-header: 0 0% 95%;
+    
+    /* Table colors - light mode */
+    --table-header-bg: 210 40% 96.1%;
+    --table-row-bg: 0 0% 100%;
+    --table-row-alt-bg: 210 40% 98%;
+    
+    /* Milestone text for WBS - light mode */
+    --milestone-text: 270 50% 60%;
+    --milestone-bg: 270 70% 98%;
   }
 
   .dark {
@@ -73,6 +86,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -81,6 +95,19 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Kanban board column colors - dark mode */
+    --board-column-bg: 220 10% 18%;
+    --board-column-header: 220 10% 22%;
+    
+    /* Table colors - dark mode */
+    --table-header-bg: 225 10% 15%;
+    --table-row-bg: 220 10% 20%;
+    --table-row-alt-bg: 220 10% 18%;
+    
+    /* Milestone text for WBS - dark mode */
+    --milestone-text: 270 80% 80%;
+    --milestone-bg: 270 80% 25%;
   }
 }
 
@@ -239,8 +266,12 @@
 
 /* Fix for dark mode board view */
 .dark .board-column {
-  background-color: hsl(var(--card));
+  background-color: hsl(var(--board-column-bg));
   border-color: hsl(var(--border));
+}
+
+.dark .board-column .px-4.py-3.border-b {
+  background-color: hsl(var(--board-column-header));
 }
 
 .dark .board-card {
@@ -250,8 +281,12 @@
 
 /* Fix for dark mode milestone in EAP view */
 .dark .milestone-node {
-  color: hsl(var(--purple-foreground, white));
-  background-color: hsl(var(--sidebar-primary));
+  color: hsl(var(--milestone-text));
+  background-color: hsl(var(--milestone-bg));
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  border: 1px solid hsl(var(--milestone-text));
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 /* Make grid visible in dark mode */
@@ -265,7 +300,40 @@
   border-color: hsl(var(--border));
 }
 
-.dark .grid-view-table th,
+.dark .grid-view-table th {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--table-header-bg));
+}
+
+.dark .grid-view-table tr {
+  background-color: hsl(var(--table-row-bg));
+  border-color: hsl(var(--border));
+}
+
+.dark .grid-view-table tr:nth-child(even) {
+  background-color: hsl(var(--table-row-alt-bg));
+}
+
 .dark .grid-view-table td {
   border-color: hsl(var(--border));
+}
+
+/* Melhorias para Drag & Drop em dispositivos móveis */
+@media (max-width: 768px) {
+  .board-column {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .board-card {
+    touch-action: pan-x;
+  }
+  
+  .drop-zone {
+    min-height: 100px; /* Área maior para toque */
+  }
+  
+  .gantt-task {
+    min-height: 30px; /* Área maior para toque */
+  }
 }

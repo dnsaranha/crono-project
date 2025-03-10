@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,34 @@ const BoardView = () => {
     });
   };
 
+  const handleDeleteColumn = () => {
+    if (!editingColumn) return;
+    
+    // Mover tarefas para a primeira coluna ou a coluna "A Fazer"
+    const targetColumn = columns.find(col => col.id !== editingColumn.id);
+    if (!targetColumn) return;
+    
+    setColumns(prev => {
+      const newColumns = prev.map(col => {
+        if (col.id === targetColumn.id) {
+          return {
+            ...col,
+            tasks: [...col.tasks, ...editingColumn.tasks]
+          };
+        }
+        return col;
+      }).filter(col => col.id !== editingColumn.id);
+      
+      return newColumns;
+    });
+    
+    setColumnDialog(false);
+    toast({
+      title: "Coluna excluída",
+      description: `A coluna "${editingColumn.title}" foi excluída.`
+    });
+  };
+
   const handleEditTask = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
@@ -250,6 +279,12 @@ const BoardView = () => {
   const handleDragStart = (e: React.DragEvent, itemId: string, columnId: string) => {
     e.dataTransfer.setData("itemId", itemId);
     e.dataTransfer.setData("sourceColumnId", columnId);
+    
+    // Para dispositivos móveis, adicione informações extras
+    if ('ontouchstart' in window) {
+      const target = e.target as HTMLElement;
+      target.classList.add('task-dragging');
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -260,6 +295,25 @@ const BoardView = () => {
     if (dropZone) {
       dropZone.classList.add("drag-over");
     }
+  };
+  
+  const handleTouchStart = (e: React.TouchEvent, itemId: string, columnId: string) => {
+    const target = e.currentTarget as HTMLElement;
+    target.setAttribute('data-item-id', itemId);
+    target.setAttribute('data-column-id', columnId);
+    target.classList.add('task-dragging');
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent, targetColumnId: string) => {
+    const target = e.currentTarget as HTMLElement;
+    const itemId = target.getAttribute('data-item-id');
+    const sourceColumnId = target.getAttribute('data-column-id');
+    
+    if (itemId && sourceColumnId && sourceColumnId !== targetColumnId) {
+      moveTaskBetweenColumns(itemId, sourceColumnId, targetColumnId);
+    }
+    
+    target.classList.remove('task-dragging');
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -280,6 +334,13 @@ const BoardView = () => {
     
     if (sourceColumnId === targetColumnId) return;
     
+    await moveTaskBetweenColumns(itemId, sourceColumnId, targetColumnId);
+    
+    const dropZones = document.querySelectorAll(".drop-zone");
+    dropZones.forEach(zone => zone.classList.remove("drag-over"));
+  };
+  
+  const moveTaskBetweenColumns = async (itemId: string, sourceColumnId: string, targetColumnId: string) => {
     const sourceColIndex = columns.findIndex(col => col.id === sourceColumnId);
     const targetColIndex = columns.findIndex(col => col.id === targetColumnId);
     
@@ -318,21 +379,18 @@ const BoardView = () => {
         }
       }
     }
-    
-    const dropZones = document.querySelectorAll(".drop-zone");
-    dropZones.forEach(zone => zone.classList.remove("drag-over"));
   };
   
   const getPriorityStyles = (priority: string) => {
     switch (priority) {
       case 'high':
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       case 'medium':
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       case 'low':
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
     }
   };
 
@@ -341,21 +399,22 @@ const BoardView = () => {
   }
 
   return (
-    <div className="flex-1 overflow-auto p-6 animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Quadro de Tarefas</h1>
-        <div className="space-x-2">
+    <div className="flex-1 overflow-auto p-3 sm:p-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-semibold">Quadro de Tarefas</h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="sm"
             onClick={handleAddColumn}
+            className="w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-1" />
             Nova Coluna
           </Button>
           <Button 
             size="sm"
-            className="bg-primary hover:bg-primary/90 text-white font-medium"
+            className="bg-primary hover:bg-primary/90 text-white font-medium w-full sm:w-auto"
             onClick={handleAddTask}
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -364,11 +423,11 @@ const BoardView = () => {
         </div>
       </div>
       
-      <div className="flex gap-6 h-[calc(100vh-160px)] pb-6 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 h-auto sm:h-[calc(100vh-160px)] overflow-x-auto pb-6">
         {columns.map((column) => (
-          <div key={column.id} className="flex-shrink-0 w-80">
+          <div key={column.id} className="flex-shrink-0 w-full sm:w-80">
             <div 
-              className="bg-white rounded-lg shadow-sm h-full flex flex-col drop-zone"
+              className="bg-white dark:bg-board-column-bg rounded-lg shadow-sm h-full flex flex-col drop-zone board-column"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, column.id)}
@@ -389,9 +448,11 @@ const BoardView = () => {
                 {column.tasks.map((task) => (
                   <Card 
                     key={task.id} 
-                    className="shadow-sm hover:shadow-md transition-shadow animate-task-appear"
+                    className="shadow-sm hover:shadow-md transition-shadow animate-task-appear board-card"
                     draggable
                     onDragStart={(e) => handleDragStart(e, task.id, column.id)}
+                    onTouchStart={(e) => handleTouchStart(e, task.id, column.id)}
+                    onTouchEnd={(e) => handleTouchEnd(e, column.id)}
                   >
                     <CardHeader className="p-3 pb-2 flex flex-row items-start justify-between space-y-0">
                       <CardTitle className="text-base font-medium">{task.title}</CardTitle>
@@ -408,11 +469,11 @@ const BoardView = () => {
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
                       {task.description && (
-                        <p className="text-sm text-gray-500 mb-3">{task.description}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{task.description}</p>
                       )}
                       <div className="flex justify-between items-center">
                         {task.assignee && (
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-gray-600 dark:text-gray-300">
                             {task.assignee}
                           </div>
                         )}
@@ -434,7 +495,7 @@ const BoardView = () => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full justify-start text-gray-500 hover:text-gray-900"
+                  className="w-full justify-start text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                   onClick={handleAddTask}
                 >
                   <Plus className="h-4 w-4 mr-1" />
@@ -445,10 +506,10 @@ const BoardView = () => {
           </div>
         ))}
         
-        <div className="flex-shrink-0 w-80 bg-gray-100 bg-opacity-60 rounded-lg border border-dashed border-gray-300 flex items-center justify-center">
+        <div className="flex-shrink-0 w-full sm:w-80 h-32 sm:h-auto bg-gray-100 dark:bg-gray-800 bg-opacity-60 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
           <Button 
             variant="ghost" 
-            className="text-gray-500"
+            className="text-gray-500 dark:text-gray-400"
             onClick={handleAddColumn}
           >
             <Plus className="h-5 w-5 mr-1" />
@@ -495,11 +556,16 @@ const BoardView = () => {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setColumnDialog(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            {editingColumn && (
+              <Button variant="destructive" onClick={handleDeleteColumn} className="w-full sm:w-auto">
+                Excluir
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setColumnDialog(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleSaveColumn} disabled={!columnTitle.trim()}>
+            <Button onClick={handleSaveColumn} disabled={!columnTitle.trim()} className="w-full sm:w-auto">
               Salvar
             </Button>
           </DialogFooter>
