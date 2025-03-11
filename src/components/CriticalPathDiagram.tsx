@@ -276,7 +276,7 @@ export default function CriticalPathDiagram({
           zoomOnScroll={true}
           zoomOnPinch={true}
           panOnScroll={true}
-          defaultZoom={zoomLevel}
+          defaultViewport={{ x: 0, y: 0, zoom: zoomLevel }}
           proOptions={{ hideAttribution: true }}
         >
           <Background />
