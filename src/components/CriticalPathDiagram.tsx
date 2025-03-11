@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   ReactFlow, 
   Node, 
@@ -10,7 +10,8 @@ import {
   Background,
   Controls,
   Panel,
-  MarkerType
+  MarkerType,
+  useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { TaskType } from './Task';
@@ -60,6 +61,7 @@ export default function CriticalPathDiagram({
   const { toast } = useToast();
   const [isLayouting, setIsLayouting] = useState(true);
   const flowRef = useRef<HTMLDivElement>(null);
+  const reactFlowInstance = useReactFlow();
 
   // Initialize the diagram with tasks and connections
   useEffect(() => {
@@ -70,9 +72,18 @@ export default function CriticalPathDiagram({
     // Calculate positions - horizontal layout
     const allTasks = [...criticalTasks, ...nonCriticalTasks];
     
-    // Organize tasks by their early start time for horizontal positioning
-    // Using Object.groupBy which is provided by our polyfill
-    const tasksByEarlyStart = Object.groupBy(allTasks, (task: EnhancedTaskType) => task.earlyStart);
+    // Group tasks by their early start time for horizontal positioning
+    const tasksByEarlyStart: Record<number, EnhancedTaskType[]> = {};
+    
+    // Manual implementation of groupBy since Object.groupBy might not be available
+    allTasks.forEach((task) => {
+      const earlyStart = task.earlyStart;
+      if (!tasksByEarlyStart[earlyStart]) {
+        tasksByEarlyStart[earlyStart] = [];
+      }
+      tasksByEarlyStart[earlyStart].push(task);
+    });
+    
     const timeSlots = Object.keys(tasksByEarlyStart).map(Number).sort((a, b) => a - b);
     
     // Calculate spacing
@@ -89,7 +100,7 @@ export default function CriticalPathDiagram({
       tasksInSlot.forEach((task, rowIndex) => {
         const isCritical = criticalTasks.some(t => t.id === task.id);
         
-        // Create node data with task information and make it compatible with Record<string, unknown>
+        // Create node data with task information
         const nodeData: TaskNodeData = {
           task: task,
           isCritical,
@@ -101,11 +112,11 @@ export default function CriticalPathDiagram({
           hasEditPermission,
         };
         
-        // Create the node
+        // Create the node with explicit type casting
         flowNodes.push({
           id: task.id,
           type: 'taskNode',
-          data: nodeData as unknown as Record<string, unknown>,
+          data: nodeData as any,
           position: { 
             x: columnIndex * horizontalGap + 50, 
             y: rowIndex * verticalGap + 50
@@ -184,13 +195,21 @@ export default function CriticalPathDiagram({
     }
   };
 
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 2));
-  };
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => {
+      const newZoom = Math.min(prev + 0.2, 2);
+      reactFlowInstance.setViewport({ zoom: newZoom, x: 0, y: 0 });
+      return newZoom;
+    });
+  }, [reactFlowInstance]);
   
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-  };
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => {
+      const newZoom = Math.max(prev - 0.2, 0.5);
+      reactFlowInstance.setViewport({ zoom: newZoom, x: 0, y: 0 });
+      return newZoom;
+    });
+  }, [reactFlowInstance]);
 
   return (
     <div className="flex flex-col w-full h-full gap-2">
@@ -257,7 +276,7 @@ export default function CriticalPathDiagram({
           zoomOnScroll={true}
           zoomOnPinch={true}
           panOnScroll={true}
-          zoom={zoomLevel}
+          defaultZoom={zoomLevel}
           proOptions={{ hideAttribution: true }}
         >
           <Background />
