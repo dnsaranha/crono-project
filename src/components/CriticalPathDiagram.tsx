@@ -66,6 +66,7 @@ export default function CriticalPathDiagram({
     const allTasks = [...criticalTasks, ...nonCriticalTasks];
     
     // Organize tasks by their early start time for horizontal positioning
+    // Using Object.groupBy which is provided by our polyfill
     const tasksByEarlyStart = Object.groupBy(allTasks, (task: EnhancedTaskType) => task.earlyStart);
     const timeSlots = Object.keys(tasksByEarlyStart).map(Number).sort((a, b) => a - b);
     
@@ -83,8 +84,8 @@ export default function CriticalPathDiagram({
       tasksInSlot.forEach((task, rowIndex) => {
         const isCritical = criticalTasks.some(t => t.id === task.id);
         
-        // Create node data with task information
-        const nodeData: TaskNodeData & Record<string, unknown> = {
+        // Create node data with task information and make it compatible with Record<string, unknown>
+        const nodeData: TaskNodeData = {
           task: task,
           isCritical,
           earlyStart: task.earlyStart,
@@ -99,7 +100,7 @@ export default function CriticalPathDiagram({
         flowNodes.push({
           id: task.id,
           type: 'taskNode',
-          data: nodeData,
+          data: nodeData as unknown as Record<string, unknown>,
           position: { 
             x: columnIndex * horizontalGap + 50, 
             y: rowIndex * verticalGap + 50
