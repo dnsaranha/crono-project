@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, Outlet, Link, useNavigate } from "react-router-dom";
@@ -220,6 +219,9 @@ export default function ProjectView() {
           <TabsTrigger value="wbs" asChild>
             <Link to={`/project/${projectId}/wbs`}>EAP</Link>
           </TabsTrigger>
+          <TabsTrigger value="critical-path" asChild>
+            <Link to={`/project/${projectId}/critical-path`}>Caminho Crítico</Link>
+          </TabsTrigger>
           <TabsTrigger value="team" asChild>
             <Link to={`/project/${projectId}/team`}>Equipe</Link>
           </TabsTrigger>
@@ -246,6 +248,10 @@ export default function ProjectView() {
         </TabsContent>
         
         <TabsContent value="wbs" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="critical-path" className="border-none p-0">
           <Outlet context={{ hasEditPermission }} />
         </TabsContent>
       </Tabs>

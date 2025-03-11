@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +62,9 @@ export function useTasks() {
         // Encontrar todos os responsáveis para esta tarefa
         const taskAssignees = assignees?.filter(assign => assign.task_id === task.id) || [];
         
+        // Cast priority to the correct type
+        const priority = task.priority !== undefined ? (task.priority as 1 | 2 | 3 | 4 | 5) : 3;
+        
         return {
           id: task.id,
           name: task.name,
@@ -74,7 +76,7 @@ export function useTasks() {
           parentId: task.parent_id || undefined,
           dependencies: taskDeps.map(dep => dep.predecessor_id),
           assignees: taskAssignees.map(assign => assign.user_id),
-          priority: task.priority !== undefined ? task.priority : 3,
+          priority: priority,
           description: task.description
         };
       });
@@ -100,6 +102,11 @@ export function useTasks() {
       // First ensure parent_id is correctly formatted for the database
       const parent_id = updatedTask.parentId || null;
       
+      // Ensure priority is a valid value
+      const priority = updatedTask.priority !== undefined 
+        ? (updatedTask.priority as 1 | 2 | 3 | 4 | 5) 
+        : 3;
+          
       const { data, error } = await supabase
         .from('tasks')
         .update({
@@ -110,7 +117,7 @@ export function useTasks() {
           parent_id: parent_id,
           is_group: updatedTask.isGroup || false,
           is_milestone: updatedTask.isMilestone || false,
-          priority: updatedTask.priority || 3,
+          priority: priority,
           description: updatedTask.description
         })
         .eq('id', updatedTask.id)
@@ -198,6 +205,11 @@ export function useTasks() {
       // First ensure parent_id is correctly formatted for the database
       const parent_id = newTask.parentId || null;
       
+      // Ensure priority is a valid value
+      const priority = newTask.priority !== undefined 
+        ? (newTask.priority as 1 | 2 | 3 | 4 | 5) 
+        : 3;
+          
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -210,7 +222,7 @@ export function useTasks() {
           is_group: newTask.isGroup || false,
           is_milestone: newTask.isMilestone || false,
           created_by: user.id,
-          priority: newTask.priority !== undefined ? newTask.priority : 3,
+          priority: priority,
           description: newTask.description
         })
         .select()
@@ -244,7 +256,7 @@ export function useTasks() {
         if (assigneeError) throw assigneeError;
       }
       
-      // Adicionar nova tarefa à lista local
+      // Assign the priority correctly when creating the task
       const createdTask: TaskType = {
         id: data.id,
         name: data.name,
@@ -256,7 +268,7 @@ export function useTasks() {
         parentId: data.parent_id,
         dependencies: newTask.dependencies,
         assignees: newTask.assignees,
-        priority: data.priority !== undefined ? data.priority : 3,
+        priority: data.priority !== undefined ? (data.priority as 1 | 2 | 3 | 4 | 5) : 3,
         description: data.description
       };
       

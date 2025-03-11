@@ -10,6 +10,7 @@ import GridView from "@/pages/GridView";
 import BoardView from "@/pages/BoardView";
 import TimelineView from "@/pages/TimelineView";
 import WBSView from "@/pages/WBSView";
+import CriticalPathView from "@/pages/CriticalPathView";
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="board" element={<BoardView />} />
             <Route path="timeline" element={<TimelineView />} />
             <Route path="wbs" element={<WBSView />} />
+            <Route path="critical-path" element={<CriticalPathView />} />
             <Route path="team" element={<ProjectView />} />
           </Route>
           <Route path="*" element={
