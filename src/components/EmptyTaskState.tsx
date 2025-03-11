@@ -4,19 +4,26 @@ import { Plus } from "lucide-react";
 
 interface EmptyTaskStateProps {
   onAddTask: () => void;
+  hideAddButton?: boolean;
 }
 
-const EmptyTaskState = ({ onAddTask }: EmptyTaskStateProps) => {
+const EmptyTaskState = ({ onAddTask, hideAddButton = false }: EmptyTaskStateProps) => {
   return (
-    <div className="bg-white shadow-sm rounded-lg p-8 text-center">
-      <p className="text-gray-500 mb-4">Nenhuma tarefa encontrada para este projeto</p>
-      <Button 
-        onClick={onAddTask}
-        className="bg-primary hover:bg-primary/90 text-white"
-      >
-        <Plus className="h-4 w-4 mr-1" />
-        Adicionar primeira tarefa
-      </Button>
+    <div className="border rounded-md p-8 flex flex-col items-center justify-center text-center space-y-4 bg-card">
+      <div className="text-4xl">📋</div>
+      <h3 className="text-xl font-semibold">Nenhuma tarefa encontrada</h3>
+      <p className="text-muted-foreground max-w-md">
+        {hideAddButton 
+          ? "Este projeto ainda não possui tarefas definidas." 
+          : "Este projeto ainda não possui tarefas. Comece adicionando sua primeira tarefa."}
+      </p>
+      
+      {!hideAddButton && (
+        <Button onClick={onAddTask} className="mt-4">
+          <Plus className="mr-2 h-4 w-4" />
+          Adicionar Tarefa
+        </Button>
+      )}
     </div>
   );
 };

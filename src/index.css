@@ -263,18 +263,22 @@
 }
 
 /* Make grid visible in dark mode */
-.dark .grid-view-container {
+.dark .grid-view-container,
+.dark .task-table {
   background-color: hsl(var(--background));
 }
 
-.dark .grid-view-table {
+.dark .grid-view-table,
+.dark .task-table {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border-color: hsl(var(--border));
 }
 
 .dark .grid-view-table th,
-.dark .grid-view-table td {
+.dark .grid-view-table td,
+.dark .task-table th,
+.dark .task-table td {
   border-color: hsl(var(--border));
 }
 
@@ -285,6 +289,11 @@
 
 .dark .table {
   color: hsl(var(--foreground));
+  background-color: hsl(var(--card));
+}
+
+.dark .table thead tr {
+  background-color: hsl(var(--secondary));
 }
 
 .dark .task-table-row {
@@ -299,4 +308,6 @@
 .dark-mode-fix {
   border-color: hsl(var(--border));
   color: hsl(var(--foreground));
+  background-color: hsl(var(--card));
 }
+

@@ -10,12 +10,20 @@ import { useTasks } from "@/hooks/useTasks";
 import { TaskType } from "@/components/Task";
 import { ProjectActions } from "@/components/ProjectActions";
 import { useToast } from "@/components/ui/use-toast";
+import { User } from "lucide-react";
 
 interface Project {
   id: string;
   name: string;
   description?: string;
   owner_id: string;
+  created_at?: string;
+}
+
+interface ProfileInfo {
+  id: string;
+  full_name?: string;
+  email?: string;
 }
 
 export default function ProjectView() {
@@ -23,6 +31,8 @@ export default function ProjectView() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
+  const [hasEditPermission, setHasEditPermission] = useState(false);
+  const [ownerProfile, setOwnerProfile] = useState<ProfileInfo | null>(null);
   const { tasks, batchUpdateTasks } = useTasks();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,6 +57,19 @@ export default function ProjectView() {
       if (error) throw error;
       
       setProject(projectData);
+      
+      // Load owner profile information
+      if (projectData.owner_id) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', projectData.owner_id)
+          .single();
+          
+        if (!profileError && profileData) {
+          setOwnerProfile(profileData);
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar projeto:', error);
       toast({
@@ -82,6 +105,7 @@ export default function ProjectView() {
       
       if (projectData.owner_id === user.id) {
         setIsOwnerOrAdmin(true);
+        setHasEditPermission(true);
         return;
       }
       
@@ -114,6 +138,7 @@ export default function ProjectView() {
       }
       
       setIsOwnerOrAdmin(memberData?.role === 'admin');
+      setHasEditPermission(memberData?.role === 'admin' || memberData?.role === 'editor');
     } catch (error) {
       console.error('Erro ao verificar permissões:', error);
       toast({
@@ -141,6 +166,10 @@ export default function ProjectView() {
     return <div>Projeto não encontrado</div>;
   }
 
+  const formattedDate = project.created_at 
+    ? new Date(project.created_at).toLocaleDateString('pt-BR') 
+    : '';
+
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
@@ -149,6 +178,12 @@ export default function ProjectView() {
           {project.description && (
             <p className="text-muted-foreground mt-1">{project.description}</p>
           )}
+          
+          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4 mr-1" />
+            <span>Criado por: {ownerProfile?.full_name || ownerProfile?.email || 'Usuário'}</span>
+            {formattedDate && <span className="ml-2">em {formattedDate}</span>}
+          </div>
         </div>
         
         <div className="flex flex-col md:flex-row gap-4 md:items-center">
@@ -158,11 +193,13 @@ export default function ProjectView() {
             onProjectUpdated={loadProject}
           />
           
-          <ExcelExportImport 
-            tasks={tasks} 
-            projectId={projectId || ''} 
-            onImport={handleExcelImport}
-          />
+          {hasEditPermission && (
+            <ExcelExportImport 
+              tasks={tasks} 
+              projectId={projectId || ''} 
+              onImport={handleExcelImport}
+            />
+          )}
         </div>
       </div>
       
@@ -193,23 +230,23 @@ export default function ProjectView() {
         </TabsContent>
         
         <TabsContent value="gantt" className="border-none p-0">
-          <Outlet />
+          <Outlet context={{ hasEditPermission }} />
         </TabsContent>
         
         <TabsContent value="grid" className="border-none p-0">
-          <Outlet />
+          <Outlet context={{ hasEditPermission }} />
         </TabsContent>
         
         <TabsContent value="board" className="border-none p-0">
-          <Outlet />
+          <Outlet context={{ hasEditPermission }} />
         </TabsContent>
         
         <TabsContent value="timeline" className="border-none p-0">
-          <Outlet />
+          <Outlet context={{ hasEditPermission }} />
         </TabsContent>
         
         <TabsContent value="wbs" className="border-none p-0">
-          <Outlet />
+          <Outlet context={{ hasEditPermission }} />
         </TabsContent>
       </Tabs>
     </div>

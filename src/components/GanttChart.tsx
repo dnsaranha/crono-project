@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ interface GanttChartProps {
   onCreateDependency?: (sourceId: string, targetId: string) => void;
   sidebarVisible?: boolean;
   onToggleSidebar?: () => void;
+  hasEditPermission?: boolean;
 }
 
 const GanttChart = ({ 
@@ -21,7 +21,8 @@ const GanttChart = ({
   onTaskUpdate,
   onCreateDependency,
   sidebarVisible = true,
-  onToggleSidebar
+  onToggleSidebar,
+  hasEditPermission = true
 }: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
@@ -350,7 +351,7 @@ const GanttChart = ({
                         ? 'border-b-2 border-b-primary'
                         : ''
                     }`}
-                    onDragOver={(e) => handleTaskDragOver(e, task)}
+                    onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : null}
                     onDragLeave={handleTaskDragLeave}
                   >
                     <div className="flex items-center w-full">
@@ -377,7 +378,7 @@ const GanttChart = ({
                         {task.name}
                       </div>
                       
-                      {!task.isGroup && (
+                      {!task.isGroup && hasEditPermission && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -437,7 +438,7 @@ const GanttChart = ({
                       : ''
                   }`}
                   style={{ top: `${rowIndex * 40}px` }}
-                  onDragOver={(e) => handleTaskDragOver(e, task)}
+                  onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : null}
                   onDragLeave={handleTaskDragLeave}
                 >
                   <div className="absolute inset-0 flex">
@@ -450,8 +451,8 @@ const GanttChart = ({
                             : ''
                         }`}
                         style={{ width: `${actualCellWidth}px` }}
-                        onDragOver={(e) => handleCellDragOver(e, weekIndex, rowIndex)}
-                        onDrop={(e) => handleCellDrop(e, weekIndex, rowIndex)}
+                        onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, weekIndex, rowIndex) : null}
+                        onDrop={(e) => hasEditPermission ? handleCellDrop(e, weekIndex, rowIndex) : null}
                       />
                     ))}
                   </div>
@@ -459,15 +460,16 @@ const GanttChart = ({
                   <Task 
                     task={task}
                     style={getTaskStyle(task)}
-                    onClick={handleTaskClick}
-                    onDragStart={handleTaskDragStart}
-                    onDragEnd={handleTaskDragEnd}
+                    onClick={onTaskClick ? () => onTaskClick(task) : undefined}
+                    onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
+                    onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
                     cellWidth={actualCellWidth}
-                    onResize={handleTaskResize}
+                    onResize={hasEditPermission ? (newDuration) => handleTaskResize(task, newDuration) : undefined}
                     className={createDependencyMode?.active ? 
                       createDependencyMode.sourceId === task.id ? 
                         'dependency-source' : 'dependency-target-candidate' 
                       : ''}
+                    draggable={hasEditPermission}
                   />
                 </div>
               ))}
@@ -593,7 +595,7 @@ const GanttChart = ({
           </div>
         </div>
         
-        {!createDependencyMode?.active && onAddTask && (
+        {!createDependencyMode?.active && onAddTask && hasEditPermission && (
           <Button 
             variant="outline" 
             size="sm" 

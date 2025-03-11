@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useParams, useOutletContext } from "react-router-dom";
 import GanttChart from "@/components/GanttChart";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
@@ -11,16 +10,16 @@ import NewTaskButton from "@/components/NewTaskButton";
 import LoadingState from "@/components/LoadingState";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import ViewHeader from "@/components/ViewHeader";
-import { Route } from "lucide-react";
-import CriticalPathView from "@/components/CriticalPathView";
+
+type ContextType = { hasEditPermission: boolean };
 
 const GanttView = () => {
   const { toast } = useToast();
   const { projectId } = useParams<{ projectId: string }>();
+  const { hasEditPermission } = useOutletContext<ContextType>();
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  const [isCriticalPathOpen, setIsCriticalPathOpen] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   
@@ -42,12 +41,16 @@ const GanttView = () => {
   };
 
   const handleAddTask = () => {
+    if (!hasEditPermission) return;
+    
     setSelectedTask(null);
     setIsNewTask(true);
     setIsTaskFormOpen(true);
   };
 
   const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
+    if (!hasEditPermission) return;
+    
     if (isNewTask) {
       const newTaskDetails: Omit<TaskType, 'id'> = {
         name: taskData.name || "Nova Tarefa",
@@ -90,6 +93,15 @@ const GanttView = () => {
   };
 
   const handleDependencyCreated = async (sourceId: string, targetId: string) => {
+    if (!hasEditPermission) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para criar dependências.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (sourceId === targetId) {
       toast({
         title: "Dependência inválida",
@@ -157,36 +169,29 @@ const GanttView = () => {
       <ViewHeader 
         title="Gráfico de Gantt" 
         onAddItem={handleAddTask}
-        extraActions={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsCriticalPathOpen(true)} 
-            className="flex items-center"
-          >
-            <Route className="mr-2 h-4 w-4" />
-            Caminho Crítico
-          </Button>
-        }
+        buttonText="Nova Tarefa"
+        extraActions={null}
+        hideAddButton={!hasEditPermission}
       />
       
       {loading ? (
         <LoadingState />
       ) : tasks.length === 0 ? (
-        <EmptyTaskState onAddTask={handleAddTask} />
+        <EmptyTaskState onAddTask={handleAddTask} hideAddButton={!hasEditPermission} />
       ) : (
         <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow">
           <GanttChart 
             tasks={tasks} 
-            onTaskClick={handleEditTask}
-            onCreateDependency={handleDependencyCreated}
+            onTaskClick={hasEditPermission ? handleEditTask : undefined}
+            onCreateDependency={hasEditPermission ? handleDependencyCreated : undefined}
             sidebarVisible={sidebarVisible}
             onToggleSidebar={toggleSidebar}
+            hasEditPermission={hasEditPermission}
           />
         </div>
       )}
       
-      <NewTaskButton onClick={handleAddTask} />
+      {hasEditPermission && <NewTaskButton onClick={handleAddTask} />}
       
       <TaskForm
         open={isTaskFormOpen}
@@ -196,11 +201,7 @@ const GanttView = () => {
         tasks={tasks}
         isNew={isNewTask}
         projectMembers={projectMembers}
-      />
-      
-      <CriticalPathView 
-        open={isCriticalPathOpen}
-        onOpenChange={setIsCriticalPathOpen}
+        readOnly={!hasEditPermission}
       />
     </div>
   );

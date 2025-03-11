@@ -1,7 +1,7 @@
 
-import { useState } from "react";
-import { CheckCircle2, Flag } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useRef } from "react";
+import { ChevronRight } from "lucide-react";
+import { cva } from "class-variance-authority";
 
 export interface TaskType {
   id: string;
@@ -11,154 +11,161 @@ export interface TaskType {
   progress: number;
   dependencies?: string[];
   assignees?: string[];
+  parentId?: string;
   isGroup?: boolean;
   isMilestone?: boolean;
-  parentId?: string;
   priority?: number;
-  description?: string; // Added description field
 }
 
 interface TaskProps {
   task: TaskType;
   style?: React.CSSProperties;
-  onClick?: (task: TaskType) => void;
-  onDragStart?: (e: React.DragEvent, task: TaskType) => void;
-  onDragEnd?: (e: React.DragEvent, task: TaskType) => void;
+  onClick?: () => void;
+  onResize?: (newDuration: number) => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
   cellWidth?: number;
-  onResize?: (task: TaskType, newDuration: number) => void;
   className?: string;
+  draggable?: boolean;
 }
+
+const taskVariants = cva("gantt-task cursor-pointer absolute top-0 rounded-sm shadow-sm text-xs overflow-hidden transition-shadow duration-200", {
+  variants: {
+    priority: {
+      1: "bg-gray-200 dark:bg-gray-700",      // Very Low
+      2: "bg-blue-200 dark:bg-blue-800",      // Low
+      3: "bg-green-200 dark:bg-green-800",    // Medium
+      4: "bg-yellow-200 dark:bg-yellow-800",  // High
+      5: "bg-red-200 dark:bg-red-800",        // Very High
+    },
+    type: {
+      normal: "h-8 mt-1",
+      group: "h-5 mt-[10px] bg-gantt-group-bg dark:bg-gray-700",
+      milestone: "h-0 w-0 mt-[20px] shadow-none transform-origin-center"
+    }
+  },
+  defaultVariants: {
+    priority: 3,
+    type: "normal"
+  }
+});
 
 const Task = ({ 
   task, 
   style, 
   onClick, 
+  onResize, 
   onDragStart, 
-  onDragEnd, 
-  cellWidth = 100,
-  onResize,
-  className = ""
+  onDragEnd,
+  cellWidth = 30,
+  className = "",
+  draggable = true
 }: TaskProps) => {
+  const resizeHandleRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [initialX, setInitialX] = useState(0);
-  const [initialWidth, setInitialWidth] = useState(0);
-  
-  // Get task color based on priority
-  const getPriorityColor = (priority: number = 3) => {
-    switch(priority) {
-      case 1: return "bg-gray-400 border-gray-500 dark:bg-gray-500 dark:border-gray-400";
-      case 2: return "bg-blue-400 border-blue-500 dark:bg-blue-500 dark:border-blue-400";
-      case 3: return "bg-green-400 border-green-500 dark:bg-green-500 dark:border-green-400";
-      case 4: return "bg-yellow-400 border-yellow-500 dark:bg-yellow-500 dark:border-yellow-400";
-      case 5: return "bg-red-400 border-red-500 dark:bg-red-500 dark:border-red-400";
-      default: return "bg-green-400 border-green-500 dark:bg-green-500 dark:border-green-400";
-    }
-  };
-  
-  // Base task classes based on task type
-  const getTaskClasses = () => {
-    if (task.isMilestone) {
-      return "absolute w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[16px] border-b-purple-500 dark:border-b-purple-400 cursor-pointer transform translate-x-[-8px] milestone-node";
-    } else if (task.isGroup) {
-      return cn(
-        "absolute h-6 rounded cursor-pointer border-l-4 border-teal-700 dark:border-teal-400 flex items-center px-2 task-group",
-        "bg-gantt-teal dark:bg-sidebar-primary dark:text-white",
-        "animate-task-appear overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white font-medium"
-      );
-    } else {
-      return cn(
-        "absolute h-6 rounded cursor-pointer border-l-4 flex items-center px-2",
-        getPriorityColor(task.priority),
-        "animate-task-appear overflow-hidden text-ellipsis whitespace-nowrap text-xs text-white font-medium"
-      );
-    }
-  };
-  
-  // Handle resize start
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [originalWidth, setOriginalWidth] = useState(0);
+
   const handleResizeStart = (e: React.MouseEvent) => {
-    if (task.isMilestone || !onResize) return;
+    if (!onResize) return;
     
     e.stopPropagation();
     setIsResizing(true);
-    setInitialX(e.clientX);
-    setInitialWidth(e.currentTarget.parentElement?.offsetWidth || 0);
+    setResizeStartX(e.clientX);
+    setOriginalWidth(parseInt(style?.width?.toString() || "0"));
     
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeEnd);
-  };
-  
-  // Handle resize move
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!isResizing) return;
-    
-    const deltaX = e.clientX - initialX;
-    const newWidth = Math.max(initialWidth + deltaX, cellWidth / 2);
-    
-    if (style && onResize) {
-      const resizeHandleEl = document.getElementById(`resize-handle-${task.id}`);
-      const taskEl = resizeHandleEl?.parentElement;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
       
-      if (taskEl) {
-        taskEl.style.width = `${newWidth}px`;
-      }
-    }
-  };
-  
-  // Handle resize end
-  const handleResizeEnd = (e: MouseEvent) => {
-    if (!isResizing) return;
-    
-    setIsResizing(false);
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeEnd);
-    
-    if (style && onResize) {
-      const resizeHandleEl = document.getElementById(`resize-handle-${task.id}`);
-      const taskEl = resizeHandleEl?.parentElement;
+      const diff = e.clientX - resizeStartX;
+      const newWidth = Math.max(cellWidth * 0.5, originalWidth + diff); // Minimum width is half a cell
       
-      if (taskEl) {
-        const newWidth = taskEl.offsetWidth;
-        const newDuration = Math.max(Math.round((newWidth / cellWidth) * 7), 1);
-        onResize(task, newDuration);
+      const newDuration = Math.ceil((newWidth / cellWidth) * 7);
+      
+      if (resizeHandleRef.current?.parentElement) {
+        resizeHandleRef.current.parentElement.style.width = `${newWidth}px`;
       }
-    }
+    };
+    
+    const handleMouseUp = () => {
+      if (!isResizing || !onResize) return;
+      
+      setIsResizing(false);
+      
+      if (resizeHandleRef.current?.parentElement) {
+        const newWidth = parseInt(resizeHandleRef.current.parentElement.style.width);
+        const newDuration = Math.max(1, Math.ceil((newWidth / cellWidth) * 7));
+        onResize(newDuration);
+      }
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
+
+  if (task.isMilestone) {
+    return (
+      <div 
+        className={`gantt-milestone absolute cursor-pointer top-[12px] ${className}`}
+        style={{
+          ...style,
+          width: 0,
+          height: 0,
+          marginLeft: `${parseInt(style?.marginLeft?.toString() || "0") - 8}px`,
+          borderLeft: '8px solid transparent',
+          borderRight: '8px solid transparent',
+          borderBottom: '16px solid purple',
+        }}
+        onClick={onClick}
+        draggable={draggable && !!onDragStart}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      />
+    );
+  }
+  
+  // Calculate priority for styling
+  const priority = task.priority || 3;
   
   return (
-    <div
-      className={cn(getTaskClasses(), className)}
+    <div 
+      className={`${taskVariants({
+        priority, 
+        type: task.isGroup ? "group" : "normal"
+      })} ${className}`}
       style={style}
-      onClick={() => onClick && onClick(task)}
-      draggable={!task.isMilestone}
-      onDragStart={(e) => onDragStart && onDragStart(e, task)}
-      onDragEnd={(e) => onDragEnd && onDragEnd(e, task)}
+      onClick={onClick}
+      draggable={draggable && !!onDragStart}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
-      {!task.isMilestone && (
-        <>
-          <span className="truncate">
-            {task.name}
-          </span>
-          
-          {task.progress === 100 && (
-            <CheckCircle2 className="ml-1 h-3 w-3 text-white" />
-          )}
-          
-          {onResize && !task.isMilestone && (
-            <div 
-              id={`resize-handle-${task.id}`}
-              className="absolute right-0 top-0 h-full w-1 cursor-ew-resize bg-opacity-50 hover:bg-opacity-100"
-              onMouseDown={handleResizeStart}
-              onClick={(e) => e.stopPropagation()}
-            ></div>
-          )}
-        </>
+      {!task.isGroup && !task.isMilestone && (
+        <div 
+          className="absolute inset-0 bg-foreground/5 z-0"
+          style={{ width: `${task.progress}%` }}
+        />
       )}
       
-      {task.isMilestone && (
-        <div className="absolute top-4 flex justify-center w-0">
-          <Flag className="h-3 w-3 text-purple-600 dark:text-purple-300" />
+      <div className="relative z-10 p-1 flex items-center justify-between h-full truncate">
+        <div className="truncate text-xs">
+          {task.name}
         </div>
-      )}
+        
+        {!task.isGroup && !task.isMilestone && onResize && (
+          <div 
+            ref={resizeHandleRef}
+            className="absolute top-0 right-0 w-2 h-full cursor-ew-resize opacity-0 hover:opacity-100 bg-gray-400 hover:bg-gray-600"
+            onMouseDown={handleResizeStart}
+            onTouchStart={(e) => {
+              // Handle touch for mobile
+              e.stopPropagation();
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };
