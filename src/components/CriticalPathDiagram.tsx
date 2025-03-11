@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { 
   ReactFlow, 
   Node, 
@@ -17,6 +17,9 @@ import { TaskType } from './Task';
 import { TaskNodeData, TaskNode } from './TaskNode';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import html2canvas from 'html2canvas';
+import { Download, ZoomIn, ZoomOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EnhancedTaskType extends TaskType {
   earlyStart: number;
@@ -52,9 +55,11 @@ export default function CriticalPathDiagram({
 }: CriticalPathDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLayouting, setIsLayouting] = useState(true);
+  const flowRef = useRef<HTMLDivElement>(null);
 
   // Initialize the diagram with tasks and connections
   useEffect(() => {
@@ -139,7 +144,7 @@ export default function CriticalPathDiagram({
     
     const taskId = node.id;
     
-    // Navigate to gantt view with this task highlighted for editing
+    // Navigate to the task edit form directly with this task highlighted
     navigate(`../gantt?taskId=${taskId}`);
     
     toast({
@@ -148,30 +153,124 @@ export default function CriticalPathDiagram({
     });
   };
 
+  // Function to export diagram as image
+  const exportDiagram = async () => {
+    if (!flowRef.current) return;
+    
+    try {
+      const element = flowRef.current;
+      const canvas = await html2canvas(element, {
+        backgroundColor: null,
+        scale: 2, // Higher resolution
+      });
+      
+      const image = canvas.toDataURL("image/png", 1.0);
+      const link = document.createElement('a');
+      link.download = 'caminho-critico.png';
+      link.href = image;
+      link.click();
+      
+      toast({
+        title: "Diagrama Exportado",
+        description: "Imagem do caminho crítico salva com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar diagrama:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível exportar o diagrama.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.2, 2));
+  };
+  
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+  };
+
   return (
-    <div style={{ width: '100%', height: '500px' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        onNodeClick={handleNodeClick}
-        fitView
-        minZoom={0.1}
-        maxZoom={1.5}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background />
-        <Controls />
-        <Panel position="top-left" className="bg-transparent">
-          {isLayouting && (
-            <div className="text-sm text-muted-foreground">
-              Organizando diagrama...
-            </div>
-          )}
-        </Panel>
-      </ReactFlow>
+    <div className="flex flex-col w-full h-full gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+            <span className="text-sm">Tarefa Crítica</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
+            <span className="text-sm">Tarefa com Folga</span>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap items-center space-x-2">
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8"
+              onClick={handleZoomOut}
+              title="Diminuir Zoom"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-xs min-w-10 text-center">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8"
+              onClick={handleZoomIn}
+              title="Aumentar Zoom"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportDiagram}
+            className="flex items-center"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
+        </div>
+      </div>
+
+      <div ref={flowRef} style={{ width: '100%', height: '500px' }} className="touch-manipulation">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          onNodeClick={handleNodeClick}
+          fitView
+          minZoom={0.1}
+          maxZoom={1.5}
+          zoomOnScroll={true}
+          zoomOnPinch={true}
+          panOnScroll={true}
+          zoom={zoomLevel}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background />
+          <Controls showInteractive={false} className="react-flow__controls-mobile" />
+          <Panel position="top-left" className="bg-transparent">
+            {isLayouting && (
+              <div className="text-sm text-muted-foreground">
+                Organizando diagrama...
+              </div>
+            )}
+          </Panel>
+        </ReactFlow>
+      </div>
     </div>
   );
 }
