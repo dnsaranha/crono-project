@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   ReactFlow, 
   Node, 
@@ -10,17 +10,13 @@ import {
   Background,
   Controls,
   Panel,
-  MarkerType,
-  useReactFlow
+  MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { TaskType } from './Task';
 import { TaskNodeData, TaskNode } from './TaskNode';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import html2canvas from 'html2canvas';
-import { Download, ZoomIn, ZoomOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface EnhancedTaskType extends TaskType {
   earlyStart: number;
@@ -56,12 +52,9 @@ export default function CriticalPathDiagram({
 }: CriticalPathDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [zoomLevel, setZoomLevel] = useState(1);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLayouting, setIsLayouting] = useState(true);
-  const flowRef = useRef<HTMLDivElement>(null);
-  const reactFlowInstance = useReactFlow();
 
   // Initialize the diagram with tasks and connections
   useEffect(() => {
@@ -72,18 +65,9 @@ export default function CriticalPathDiagram({
     // Calculate positions - horizontal layout
     const allTasks = [...criticalTasks, ...nonCriticalTasks];
     
-    // Group tasks by their early start time for horizontal positioning
-    const tasksByEarlyStart: Record<number, EnhancedTaskType[]> = {};
-    
-    // Manual implementation of groupBy since Object.groupBy might not be available
-    allTasks.forEach((task) => {
-      const earlyStart = task.earlyStart;
-      if (!tasksByEarlyStart[earlyStart]) {
-        tasksByEarlyStart[earlyStart] = [];
-      }
-      tasksByEarlyStart[earlyStart].push(task);
-    });
-    
+    // Organize tasks by their early start time for horizontal positioning
+    // Using Object.groupBy which is provided by our polyfill
+    const tasksByEarlyStart = Object.groupBy(allTasks, (task: EnhancedTaskType) => task.earlyStart);
     const timeSlots = Object.keys(tasksByEarlyStart).map(Number).sort((a, b) => a - b);
     
     // Calculate spacing
@@ -100,7 +84,7 @@ export default function CriticalPathDiagram({
       tasksInSlot.forEach((task, rowIndex) => {
         const isCritical = criticalTasks.some(t => t.id === task.id);
         
-        // Create node data with task information
+        // Create node data with task information and make it compatible with Record<string, unknown>
         const nodeData: TaskNodeData = {
           task: task,
           isCritical,
@@ -112,11 +96,11 @@ export default function CriticalPathDiagram({
           hasEditPermission,
         };
         
-        // Create the node with explicit type casting
+        // Create the node
         flowNodes.push({
           id: task.id,
           type: 'taskNode',
-          data: nodeData as any,
+          data: nodeData as unknown as Record<string, unknown>,
           position: { 
             x: columnIndex * horizontalGap + 50, 
             y: rowIndex * verticalGap + 50
@@ -155,7 +139,7 @@ export default function CriticalPathDiagram({
     
     const taskId = node.id;
     
-    // Navigate to the task edit form directly with this task highlighted
+    // Navigate to gantt view with this task highlighted for editing
     navigate(`../gantt?taskId=${taskId}`);
     
     toast({
@@ -164,132 +148,30 @@ export default function CriticalPathDiagram({
     });
   };
 
-  // Function to export diagram as image
-  const exportDiagram = async () => {
-    if (!flowRef.current) return;
-    
-    try {
-      const element = flowRef.current;
-      const canvas = await html2canvas(element, {
-        backgroundColor: null,
-        scale: 2, // Higher resolution
-      });
-      
-      const image = canvas.toDataURL("image/png", 1.0);
-      const link = document.createElement('a');
-      link.download = 'caminho-critico.png';
-      link.href = image;
-      link.click();
-      
-      toast({
-        title: "Diagrama Exportado",
-        description: "Imagem do caminho crítico salva com sucesso.",
-      });
-    } catch (error) {
-      console.error("Erro ao exportar diagrama:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível exportar o diagrama.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => {
-      const newZoom = Math.min(prev + 0.2, 2);
-      reactFlowInstance.setViewport({ zoom: newZoom, x: 0, y: 0 });
-      return newZoom;
-    });
-  }, [reactFlowInstance]);
-  
-  const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => {
-      const newZoom = Math.max(prev - 0.2, 0.5);
-      reactFlowInstance.setViewport({ zoom: newZoom, x: 0, y: 0 });
-      return newZoom;
-    });
-  }, [reactFlowInstance]);
-
   return (
-    <div className="flex flex-col w-full h-full gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-            <span className="text-sm">Tarefa Crítica</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
-            <span className="text-sm">Tarefa com Folga</span>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center space-x-2">
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8"
-              onClick={handleZoomOut}
-              title="Diminuir Zoom"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-xs min-w-10 text-center">
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8"
-              onClick={handleZoomIn}
-              title="Aumentar Zoom"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportDiagram}
-            className="flex items-center"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
-        </div>
-      </div>
-
-      <div ref={flowRef} style={{ width: '100%', height: '500px' }} className="touch-manipulation">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          onNodeClick={handleNodeClick}
-          fitView
-          minZoom={0.1}
-          maxZoom={1.5}
-          zoomOnScroll={true}
-          zoomOnPinch={true}
-          panOnScroll={true}
-          defaultViewport={{ x: 0, y: 0, zoom: zoomLevel }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background />
-          <Controls showInteractive={false} className="react-flow__controls-mobile" />
-          <Panel position="top-left" className="bg-transparent">
-            {isLayouting && (
-              <div className="text-sm text-muted-foreground">
-                Organizando diagrama...
-              </div>
-            )}
-          </Panel>
-        </ReactFlow>
-      </div>
+    <div style={{ width: '100%', height: '500px' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        onNodeClick={handleNodeClick}
+        fitView
+        minZoom={0.1}
+        maxZoom={1.5}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background />
+        <Controls />
+        <Panel position="top-left" className="bg-transparent">
+          {isLayouting && (
+            <div className="text-sm text-muted-foreground">
+              Organizando diagrama...
+            </div>
+          )}
+        </Panel>
+      </ReactFlow>
     </div>
   );
 }

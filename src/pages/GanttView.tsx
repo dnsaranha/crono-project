@@ -1,6 +1,6 @@
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useOutletContext } from "react-router-dom";
 import GanttChart from "@/components/GanttChart";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
@@ -10,9 +10,6 @@ import NewTaskButton from "@/components/NewTaskButton";
 import LoadingState from "@/components/LoadingState";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import ViewHeader from "@/components/ViewHeader";
-import html2canvas from "html2canvas";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 
 type ContextType = { hasEditPermission: boolean };
 
@@ -20,13 +17,11 @@ const GanttView = () => {
   const { toast } = useToast();
   const { projectId } = useParams<{ projectId: string }>();
   const { hasEditPermission } = useOutletContext<ContextType>();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const ganttRef = useRef<HTMLDivElement>(null);
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
 
@@ -37,24 +32,9 @@ const GanttView = () => {
     };
     
     loadMembers();
-  }, [getProjectMembers]);
-
-  // Check for task ID in URL params to open edit form
-  useEffect(() => {
-    const taskId = searchParams.get('taskId');
-    if (taskId && hasEditPermission) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        setSelectedTask(task);
-        setIsNewTask(false);
-        setIsTaskFormOpen(true);
-      }
-    }
-  }, [searchParams, tasks, hasEditPermission]);
+  }, []);
 
   const handleEditTask = (task: TaskType) => {
-    if (!hasEditPermission) return;
-    
     setSelectedTask(task);
     setIsNewTask(false);
     setIsTaskFormOpen(true);
@@ -93,12 +73,6 @@ const GanttView = () => {
           description: `${newTaskDetails.name} foi adicionada com sucesso.`,
         });
         setIsTaskFormOpen(false);
-        
-        // Remove taskId from URL if present
-        if (searchParams.has('taskId')) {
-          searchParams.delete('taskId');
-          setSearchParams(searchParams);
-        }
       }
     } else if (selectedTask) {
       const updatedTaskData: TaskType = {
@@ -114,12 +88,6 @@ const GanttView = () => {
           description: `${updatedTaskData.name} foi atualizada com sucesso.`,
         });
         setIsTaskFormOpen(false);
-        
-        // Remove taskId from URL if present
-        if (searchParams.has('taskId')) {
-          searchParams.delete('taskId');
-          setSearchParams(searchParams);
-        }
       }
     }
   };
@@ -196,67 +164,26 @@ const GanttView = () => {
     setSidebarVisible(!sidebarVisible);
   };
 
-  const exportGanttChart = async () => {
-    if (!ganttRef.current) return;
-    
-    try {
-      const element = ganttRef.current;
-      const canvas = await html2canvas(element, {
-        backgroundColor: null,
-        scale: 2, // Higher resolution
-      });
-      
-      const image = canvas.toDataURL("image/png", 1.0);
-      const link = document.createElement('a');
-      link.download = 'gantt-chart.png';
-      link.href = image;
-      link.click();
-      
-      toast({
-        title: "Gráfico Exportado",
-        description: "Imagem do gráfico de Gantt salva com sucesso.",
-      });
-    } catch (error) {
-      console.error("Erro ao exportar gráfico:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível exportar o gráfico.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="flex flex-col">
       <ViewHeader 
         title="Gráfico de Gantt" 
-        onAddItem={hasEditPermission ? handleAddTask : undefined}
+        onAddItem={handleAddTask}
         buttonText="Nova Tarefa"
-        extraActions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportGanttChart}
-            className="flex items-center ml-2"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
-        }
+        extraActions={null}
         hideAddButton={!hasEditPermission}
       />
       
       {loading ? (
         <LoadingState />
       ) : tasks.length === 0 ? (
-        <EmptyTaskState onAddTask={hasEditPermission ? handleAddTask : undefined} hideAddButton={!hasEditPermission} />
+        <EmptyTaskState onAddTask={handleAddTask} hideAddButton={!hasEditPermission} />
       ) : (
-        <div ref={ganttRef} className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow">
+        <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow">
           <GanttChart 
             tasks={tasks} 
             onTaskClick={hasEditPermission ? handleEditTask : undefined}
             onCreateDependency={hasEditPermission ? handleDependencyCreated : undefined}
-            onAddTask={hasEditPermission ? handleAddTask : undefined}
             sidebarVisible={sidebarVisible}
             onToggleSidebar={toggleSidebar}
             hasEditPermission={hasEditPermission}

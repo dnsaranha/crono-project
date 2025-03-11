@@ -45,11 +45,11 @@ export const TaskNode = memo(({ data }: TaskNodeProps) => {
       <Tooltip>
         <TooltipTrigger asChild>
           <div 
-            className={`px-4 py-3 rounded-md shadow-md w-52 sm:w-60 border-2 ${
+            className={`px-4 py-3 rounded-md shadow-md w-60 border-2 ${
               isCritical 
                 ? 'bg-red-50 dark:bg-red-950/30 border-red-500 dark:border-red-600' 
                 : 'bg-blue-50 dark:bg-blue-950/30 border-blue-500 dark:border-blue-600'
-            } ${hasEditPermission ? 'cursor-pointer' : 'cursor-default'} touch-manipulation`}
+            } ${hasEditPermission ? 'cursor-pointer' : 'cursor-default'}`}
           >
             <Handle
               type="target"
@@ -57,8 +57,8 @@ export const TaskNode = memo(({ data }: TaskNodeProps) => {
               className={`w-3 h-3 ${isCritical ? 'bg-red-500' : 'bg-blue-500'}`}
             />
             
-            <div className="flex items-start gap-2 sm:gap-3">
-              <div className={`flex-shrink-0 flex items-center justify-center text-lg sm:text-xl font-bold w-8 h-8 sm:w-10 sm:h-10 rounded-full ${
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 flex items-center justify-center text-xl font-bold w-10 h-10 rounded-full ${
                 isCritical 
                   ? 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200' 
                   : 'bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-200'
@@ -67,7 +67,7 @@ export const TaskNode = memo(({ data }: TaskNodeProps) => {
               </div>
               
               <div className="flex-1 overflow-hidden">
-                <div className="font-semibold truncate mb-1 text-sm sm:text-base">{task.name}</div>
+                <div className="font-semibold truncate mb-1">{task.name}</div>
                 
                 <div className="flex items-center text-xs gap-1 mb-1">
                   <Clock className="h-3 w-3" />
