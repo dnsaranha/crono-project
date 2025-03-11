@@ -31,6 +31,7 @@ interface TaskFormProps {
   tasks: TaskType[];
   isNew?: boolean;
   projectMembers?: Array<{ id: string; name: string; email: string }>;
+  readOnly?: boolean;
 }
 
 const TaskForm = ({ 

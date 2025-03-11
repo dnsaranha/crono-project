@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import { cva } from "class-variance-authority";
@@ -14,7 +13,8 @@ export interface TaskType {
   parentId?: string;
   isGroup?: boolean;
   isMilestone?: boolean;
-  priority?: number;
+  priority?: 1 | 2 | 3 | 4 | 5;
+  description?: string;
 }
 
 interface TaskProps {
@@ -127,8 +127,8 @@ const Task = ({
     );
   }
   
-  // Calculate priority for styling
-  const priority = task.priority || 3;
+  // Calculate priority for styling - make sure it's a valid value
+  const priority = (task.priority || 3) as 1 | 2 | 3 | 4 | 5;
   
   return (
     <div 
