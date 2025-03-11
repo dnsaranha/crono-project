@@ -1,7 +1,8 @@
+
 import { useState, useRef, useEffect } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut } from "lucide-react";
 
 interface GanttChartProps {
   tasks: TaskType[];
@@ -10,6 +11,7 @@ interface GanttChartProps {
   onTaskUpdate?: (updatedTask: TaskType) => void;
   onCreateDependency?: (sourceId: string, targetId: string) => void;
   sidebarVisible?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 const GanttChart = ({ 
@@ -18,7 +20,8 @@ const GanttChart = ({
   onAddTask, 
   onTaskUpdate,
   onCreateDependency,
-  sidebarVisible = true
+  sidebarVisible = true,
+  onToggleSidebar
 }: GanttChartProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
@@ -526,6 +529,23 @@ const GanttChart = ({
                 </div>
               )}
             </div>
+          </div>
+          
+          {/* Toggle sidebar button */}
+          <div className="absolute left-0 top-1/2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleSidebar}
+              className="bg-card/70 hover:bg-card border-r border-t border-b rounded-l-none"
+              aria-label={sidebarVisible ? "Esconder lista de tarefas" : "Mostrar lista de tarefas"}
+            >
+              {sidebarVisible ? (
+                <ChevronLeftSquare className="h-5 w-5" />
+              ) : (
+                <ChevronRightSquare className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
       </div>

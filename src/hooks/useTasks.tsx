@@ -97,6 +97,9 @@ export function useTasks() {
   // Função para atualizar uma tarefa no banco de dados
   async function updateTask(updatedTask: TaskType) {
     try {
+      // First ensure parent_id is correctly formatted for the database
+      const parent_id = updatedTask.parentId || null;
+      
       const { data, error } = await supabase
         .from('tasks')
         .update({
@@ -104,10 +107,11 @@ export function useTasks() {
           start_date: updatedTask.startDate,
           duration: updatedTask.duration,
           progress: updatedTask.progress,
-          parent_id: updatedTask.parentId,
+          parent_id: parent_id,
           is_group: updatedTask.isGroup || false,
           is_milestone: updatedTask.isMilestone || false,
-          priority: updatedTask.priority || 3
+          priority: updatedTask.priority || 3,
+          description: updatedTask.description
         })
         .eq('id', updatedTask.id)
         .select();
@@ -191,6 +195,9 @@ export function useTasks() {
         return null;
       }
       
+      // First ensure parent_id is correctly formatted for the database
+      const parent_id = newTask.parentId || null;
+      
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -198,7 +205,7 @@ export function useTasks() {
           start_date: newTask.startDate,
           duration: newTask.duration,
           progress: newTask.progress || 0,
-          parent_id: newTask.parentId,
+          parent_id: parent_id,
           project_id: projectId,
           is_group: newTask.isGroup || false,
           is_milestone: newTask.isMilestone || false,

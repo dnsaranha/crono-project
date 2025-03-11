@@ -1,9 +1,7 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   ReactFlow,
-  NodeTypes,
-  EdgeTypes,
   Node,
   Edge,
   Position,
@@ -19,7 +17,7 @@ import { TaskType } from "@/components/Task";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X, ZoomIn, ZoomOut, Maximize2, RefreshCw } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CriticalPathNodeProps {
@@ -52,7 +50,7 @@ const CriticalPathNode = ({ data }: CriticalPathNodeProps) => {
   );
 };
 
-const nodeTypes: NodeTypes = {
+const nodeTypes = {
   criticalPath: CriticalPathNode,
 };
 
@@ -72,12 +70,23 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (tasks.length > 0) {
+    if (tasks.length > 0 && !loading) {
       calculateCriticalPathInternal(tasks);
     }
-  }, [tasks]);
+  }, [tasks, loading]);
   
   const calculateCriticalPathInternal = useCallback((tasksData: TaskType[]) => {
+    // Skip calculation if there are no tasks
+    if (tasksData.length === 0) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+
+    // Use only tasks that aren't groups for critical path calculation
+    const workTasks = tasksData.filter(task => !task.isGroup);
+    
+    // Create a map of tasks with critical path calculations
     const taskMap = new Map<string, TaskType & { 
       earliestStart: number; 
       earliestFinish: number; 
@@ -87,7 +96,8 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       isCritical: boolean;
     }>();
     
-    tasksData.forEach(task => {
+    // Initialize the task map
+    workTasks.forEach(task => {
       taskMap.set(task.id, { 
         ...task, 
         earliestStart: 0, 
@@ -99,14 +109,19 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       });
     });
     
-    const startTasks = tasksData.filter(task => 
-      !tasksData.some(t => t.dependencies?.includes(task.id))
+    // Find start tasks (no dependencies) and end tasks (no successors)
+    const startTasks = workTasks.filter(task => 
+      !workTasks.some(t => t.dependencies?.includes(task.id))
     );
     
-    const endTasks = tasksData.filter(task => 
-      !task.dependencies || task.dependencies.length === 0
+    const endTasks = workTasks.filter(task => 
+      !task.dependencies || task.dependencies.length === 0 ||
+      !task.dependencies.some(depId => 
+        workTasks.some(t => t.id === depId)
+      )
     );
     
+    // Forward pass - calculate earliest start and finish times
     const toVisit = [...startTasks];
     const visited = new Set<string>();
     
@@ -119,17 +134,19 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
         const allDepsVisited = 
           !task.dependencies || 
           task.dependencies.length === 0 || 
-          task.dependencies.every(depId => visited.has(depId));
+          task.dependencies.every(depId => visited.has(depId) || !workTasks.some(t => t.id === depId));
         
         if (allDepsVisited) {
           let earliestStart = 0;
           
           if (task.dependencies && task.dependencies.length > 0) {
             earliestStart = Math.max(
-              ...task.dependencies.map(depId => {
-                const dep = taskMap.get(depId);
-                return dep ? dep.earliestFinish : 0;
-              })
+              ...task.dependencies
+                .filter(depId => workTasks.some(t => t.id === depId))
+                .map(depId => {
+                  const dep = taskMap.get(depId);
+                  return dep ? dep.earliestFinish : 0;
+                })
             );
           }
           
@@ -138,17 +155,19 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
           
           visited.add(task.id);
           
-          const dependents = tasksData.filter(t => 
+          const dependents = workTasks.filter(t => 
             t.dependencies && t.dependencies.includes(task.id)
           );
           
           toVisit.push(...dependents);
         } else {
+          // Add back to the end of the queue
           toVisit.push(task);
         }
       }
     }
     
+    // Find the project duration
     let projectDuration = 0;
     endTasks.forEach(task => {
       const mappedTask = taskMap.get(task.id);
@@ -157,11 +176,13 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       }
     });
     
-    tasksData.forEach(task => {
+    // Backward pass - calculate latest start and finish times
+    workTasks.forEach(task => {
       const mappedTask = taskMap.get(task.id)!;
       
-      if (!tasksData.some(t => t.dependencies?.includes(task.id))) {
+      if (!workTasks.some(t => t.dependencies?.includes(task.id))) {
         mappedTask.latestFinish = projectDuration;
+        mappedTask.latestStart = mappedTask.latestFinish - (task.duration || 0);
       } else {
         mappedTask.latestFinish = Number.MAX_SAFE_INTEGER;
       }
@@ -176,7 +197,7 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       if (!reverseVisited.has(task.id)) {
         const mappedTask = taskMap.get(task.id)!;
         
-        const successors = tasksData.filter(t => 
+        const successors = workTasks.filter(t => 
           t.dependencies && t.dependencies.includes(task.id)
         );
         
@@ -190,16 +211,15 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
         }
         
         mappedTask.latestStart = mappedTask.latestFinish - (task.duration || 0);
-        
         mappedTask.slack = mappedTask.latestStart - mappedTask.earliestStart;
-        
         mappedTask.isCritical = mappedTask.slack === 0;
         
         reverseVisited.add(task.id);
         
         if (task.dependencies && task.dependencies.length > 0) {
           const dependencies = task.dependencies
-            .map(depId => tasksData.find(t => t.id === depId))
+            .filter(depId => workTasks.some(t => t.id === depId))
+            .map(depId => workTasks.find(t => t.id === depId))
             .filter(Boolean) as TaskType[];
           
           reverseToVisit.push(...dependencies);
@@ -207,25 +227,30 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       }
     }
     
+    // Create nodes and edges for ReactFlow
     const flowNodes: Node[] = [];
     const flowEdges: Edge[] = [];
     
+    // Calculate levels for each task (for layout)
     const taskLevels = new Map<string, number>();
     const maxTasksPerLevel: number[] = [];
     
-    const calculateTaskLevel = (taskId: string, level: number) => {
+    const calculateTaskLevel = (taskId: string, level: number, visited = new Set<string>()) => {
+      if (visited.has(taskId)) return; // Prevent cycles
+      visited.add(taskId);
+      
       if (!taskLevels.has(taskId) || level > taskLevels.get(taskId)!) {
         taskLevels.set(taskId, level);
       }
       
       maxTasksPerLevel[level] = (maxTasksPerLevel[level] || 0) + 1;
       
-      const successors = tasksData.filter(t => 
+      const successors = workTasks.filter(t => 
         t.dependencies && t.dependencies.includes(taskId)
       );
       
       successors.forEach(succ => {
-        calculateTaskLevel(succ.id, level + 1);
+        calculateTaskLevel(succ.id, level + 1, new Set(visited));
       });
     };
     
@@ -233,20 +258,18 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       calculateTaskLevel(task.id, 0);
     });
     
+    // Use horizontal layout for desktops, vertical for mobile
     const direction = isMobile ? 'TB' : 'LR';
     
-    tasksData.forEach(task => {
+    // Create ReactFlow nodes and edges
+    workTasks.forEach(task => {
       const mappedTask = taskMap.get(task.id)!;
       const level = taskLevels.get(task.id) || 0;
-      
-      const tasksAtThisLevel = tasksData.filter(t => 
-        taskLevels.get(t.id) === level
-      ).length;
       
       const horizontalSpacing = isMobile ? 150 : 250;
       const verticalSpacing = isMobile ? 180 : 100;
       
-      const tasksWithSameLevel = tasksData
+      const tasksWithSameLevel = workTasks
         .filter(t => taskLevels.get(t.id) === level)
         .sort((a, b) => a.name.localeCompare(b.name));
       
@@ -282,29 +305,49 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
       });
       
       if (task.dependencies && task.dependencies.length > 0) {
-        task.dependencies.forEach(depId => {
-          flowEdges.push({
-            id: `e-${depId}-${task.id}`,
-            source: depId,
-            target: task.id,
-            type: 'default',
-            animated: mappedTask.isCritical,
-            style: {
-              stroke: mappedTask.isCritical ? '#ef4444' : '#93c5fd',
-              strokeWidth: mappedTask.isCritical ? 2 : 1,
-            },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: mappedTask.isCritical ? '#ef4444' : '#93c5fd',
-            },
+        task.dependencies
+          .filter(depId => workTasks.some(t => t.id === depId))
+          .forEach(depId => {
+            const depTask = taskMap.get(depId);
+            if (!depTask) return;
+            
+            flowEdges.push({
+              id: `e-${depId}-${task.id}`,
+              source: depId,
+              target: task.id,
+              type: 'default',
+              animated: mappedTask.isCritical && depTask.isCritical,
+              style: {
+                stroke: mappedTask.isCritical && depTask.isCritical ? '#ef4444' : '#93c5fd',
+                strokeWidth: mappedTask.isCritical && depTask.isCritical ? 2 : 1,
+              },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: mappedTask.isCritical && depTask.isCritical ? '#ef4444' : '#93c5fd',
+              },
+            });
           });
-        });
       }
     });
     
     setNodes(flowNodes);
     setEdges(flowEdges);
   }, [isMobile]);
+
+  // Handle empty tasks case
+  const emptyMessage = useMemo(() => {
+    if (loading) return null;
+    if (tasks.length === 0) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center p-4">
+            <p>Não há tarefas para calcular o caminho crítico.</p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }, [tasks, loading]);
 
   // Logic for fit view
   const onInit = (reactFlowInstance: any) => {
@@ -323,34 +366,63 @@ const CriticalPathFlowContent = ({ tasks, loading, calculateCriticalPath }: {
           </div>
         </div>
       ) : (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          fitView
-          minZoom={0.1}
-          maxZoom={1.5}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-          attributionPosition="bottom-right"
-          proOptions={{ hideAttribution: true }}
-          onInit={onInit}
-        >
-          <Background />
-          <Controls showInteractive={false} />
-          <Panel position="top-right" className="flex space-x-2">
-            <Button 
-              size="icon" 
-              variant="outline" 
-              className="h-8 w-8 bg-background"
-              onClick={(e) => {
-                e.preventDefault();
-                calculateCriticalPath(tasks);
-              }}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </Panel>
-        </ReactFlow>
+        <>
+          {emptyMessage}
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            minZoom={0.1}
+            maxZoom={2}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+            attributionPosition="bottom-right"
+            proOptions={{ hideAttribution: true }}
+            onInit={onInit}
+            className="touch-auto"
+          >
+            <Background />
+            <Controls showInteractive={false} />
+            <Panel position="top-right" className="flex space-x-2">
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className="h-8 w-8 bg-background"
+                onClick={() => calculateCriticalPath(tasks)}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className="h-8 w-8 bg-background"
+                onClick={(reactFlowInstance) => {
+                  // @ts-ignore This is expected to be called by ReactFlow
+                  if (reactFlowInstance && reactFlowInstance.zoomOut) {
+                    // @ts-ignore This is expected to be called by ReactFlow
+                    reactFlowInstance.zoomOut();
+                  }
+                }}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className="h-8 w-8 bg-background"
+                onClick={(reactFlowInstance) => {
+                  // @ts-ignore This is expected to be called by ReactFlow
+                  if (reactFlowInstance && reactFlowInstance.zoomIn) {
+                    // @ts-ignore This is expected to be called by ReactFlow
+                    reactFlowInstance.zoomIn();
+                  }
+                }}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </Panel>
+          </ReactFlow>
+        </>
       )}
     </div>
   );
@@ -362,10 +434,10 @@ const CriticalPathView = ({ open, onOpenChange }: CriticalPathViewProps) => {
   
   const calculateCriticalPath = useCallback((tasksData: TaskType[]) => {
     setLoading(true);
-    // This is just to simulate loading for UI feedback
+    // Shorter loading time to improve responsiveness
     setTimeout(() => {
       setLoading(false);
-    }, 500);
+    }, 100);
   }, []);
 
   useEffect(() => {

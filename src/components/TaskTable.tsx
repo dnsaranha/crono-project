@@ -137,9 +137,9 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
         </div>
       </div>
       
-      <Table>
+      <Table className="dark-mode-fix">
         <TableHeader>
-          <TableRow>
+          <TableRow className="dark-mode-fix">
             <TableHead className="w-[300px]">Nome da Tarefa</TableHead>
             <TableHead className="w-[150px]">
               <div className="flex items-center">
@@ -171,9 +171,9 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
             return (
               <TableRow 
                 key={task.id} 
-                className={task.isGroup ? "bg-gray-50 dark:bg-gray-800 font-medium" : ""}
+                className={`task-table-row dark-mode-fix ${task.isGroup ? "bg-gray-50 dark:bg-gray-800 font-medium" : ""}`}
               >
-                <TableCell className={task.isGroup ? "font-bold" : "font-medium"}>
+                <TableCell className={`dark-mode-fix ${task.isGroup ? "font-bold" : "font-medium"}`}>
                   <div className="flex items-center">
                     {/* Indent based on level */}
                     {task.level > 0 && (
@@ -201,16 +201,16 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
                     {task.name}
                   </div>
                 </TableCell>
-                <TableCell>{formatDate(task.startDate)}</TableCell>
-                <TableCell>
+                <TableCell className="dark-mode-fix">{formatDate(task.startDate)}</TableCell>
+                <TableCell className="dark-mode-fix">
                   {task.isMilestone ? (
                     <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/30 dark:text-purple-200">Marco</Badge>
                   ) : (
                     `${task.duration} dias`
                   )}
                 </TableCell>
-                <TableCell>{calculateEndDate(task.startDate, task.duration || 0)}</TableCell>
-                <TableCell>
+                <TableCell className="dark-mode-fix">{calculateEndDate(task.startDate, task.duration || 0)}</TableCell>
+                <TableCell className="dark-mode-fix">
                   {!task.isMilestone && (
                     <>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
@@ -223,13 +223,13 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
                     </>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="dark-mode-fix">
                   <div className="flex items-center space-x-2">
                     <div className={`w-3 h-3 rounded-full ${priorityInfo.color}`}></div>
                     <span className="text-xs">{priorityInfo.label}</span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="dark-mode-fix">
                   {task.assignees && task.assignees.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {task.assignees.slice(0, 2).map(userId => (
@@ -254,7 +254,7 @@ const TaskTable = ({ tasks, onEditTask, onDeleteTask, projectMembers = [] }: Tas
                     <span className="text-gray-400 text-xs">Nenhum</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="dark-mode-fix">
                   <div className="flex space-x-1">
                     <Button 
                       variant="ghost" 

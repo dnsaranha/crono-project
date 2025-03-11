@@ -22,6 +22,7 @@ const GanttView = () => {
   const [isNewTask, setIsNewTask] = useState(false);
   const [isCriticalPathOpen, setIsCriticalPathOpen] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
 
@@ -147,6 +148,10 @@ const GanttView = () => {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarVisible(!sidebarVisible);
+  };
+
   return (
     <div className="flex flex-col">
       <ViewHeader 
@@ -175,6 +180,8 @@ const GanttView = () => {
             tasks={tasks} 
             onTaskClick={handleEditTask}
             onCreateDependency={handleDependencyCreated}
+            sidebarVisible={sidebarVisible}
+            onToggleSidebar={toggleSidebar}
           />
         </div>
       )}

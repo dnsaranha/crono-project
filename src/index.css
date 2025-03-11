@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -275,4 +276,27 @@
 .dark .grid-view-table th,
 .dark .grid-view-table td {
   border-color: hsl(var(--border));
+}
+
+/* Fix for the task table lines in dark mode */
+.dark .react-flow__edge-path {
+  stroke: hsl(var(--foreground));
+}
+
+.dark .table {
+  color: hsl(var(--foreground));
+}
+
+.dark .task-table-row {
+  border-color: hsl(var(--border));
+}
+
+.dark .table th,
+.dark .table td {
+  border-color: hsl(var(--border));
+}
+
+.dark-mode-fix {
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
 }
