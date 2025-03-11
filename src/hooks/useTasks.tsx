@@ -38,7 +38,7 @@ export function useTasks() {
       const { data: dependencies, error: depError } = await supabase
         .from('task_dependencies')
         .select('*')
-        .in('predecessor_id', data.map(t => t.id));
+        .eq('successor_project_id', projectId);
       
       if (depError) {
         console.error("Erro ao carregar dependências:", depError);
@@ -289,17 +289,67 @@ export function useTasks() {
   // Função para adicionar uma dependência entre tarefas
   async function createDependency(sourceId: string, targetId: string) {
     try {
+      console.log("Criando dependência:", sourceId, "->", targetId);
+      
+      // 1. Primeiro verificar se esta dependência já existe
+      const { data: existingDep, error: checkError } = await supabase
+        .from('task_dependencies')
+        .select('*')
+        .eq('predecessor_id', sourceId)
+        .eq('successor_id', targetId)
+        .single();
+        
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found, que é o esperado
+        console.error("Erro ao verificar dependência existente:", checkError);
+        throw checkError;
+      }
+      
+      if (existingDep) {
+        console.log("Dependência já existe:", existingDep);
+        
+        // Atualizar tarefas localmente
+        setTasks(prevTasks => {
+          return prevTasks.map(task => {
+            if (task.id === targetId) {
+              const deps = task.dependencies || [];
+              if (!deps.includes(sourceId)) {
+                return {
+                  ...task,
+                  dependencies: [...deps, sourceId]
+                };
+              }
+            }
+            return task;
+          });
+        });
+        
+        return true;
+      }
+
+      // Encontrar a tarefa de destino para obter o project_id
+      const targetTask = tasks.find(t => t.id === targetId);
+      if (!targetTask) {
+        throw new Error("Tarefa de destino não encontrada");
+      }
+      
+      // 2. Inserir a dependência
       const { data, error } = await supabase
         .from('task_dependencies')
         .insert({
           predecessor_id: sourceId,
-          successor_id: targetId
+          successor_id: targetId,
+          successor_project_id: projectId
         })
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao inserir dependência:", error);
+        throw error;
+      }
       
-      // Atualizar tarefas localmente
+      console.log("Dependência criada com sucesso:", data);
+      
+      // 3. Atualizar tarefas localmente
       setTasks(prevTasks => {
         return prevTasks.map(task => {
           if (task.id === targetId) {

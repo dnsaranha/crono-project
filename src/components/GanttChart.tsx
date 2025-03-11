@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut, Download } from "lucide-react";
+import html2canvas from "html2canvas";
+import { useToast } from "@/components/ui/use-toast";
 
 interface GanttChartProps {
   tasks: TaskType[];
@@ -319,6 +321,42 @@ const GanttChart = ({
       setCreateDependencyMode(null);
     }
   };
+
+  // Função para exportar o gráfico como imagem
+  const exportToImage = async () => {
+    if (!containerRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(containerRef.current, {
+        allowTaint: true,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight,
+        scale: 1.5
+      });
+      
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `gantt-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = image;
+      link.click();
+      
+      // Feedback para o usuário
+      toast({
+        title: "Exportado com sucesso",
+        description: "A imagem do gráfico de Gantt foi baixada.",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar imagem:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível exportar o gráfico como imagem.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const priorityLegend = [
     { level: 1, label: "Muito Baixa", color: "bg-gray-400" },
@@ -327,6 +365,9 @@ const GanttChart = ({
     { level: 4, label: "Alta", color: "bg-yellow-400" },
     { level: 5, label: "Muito Alta", color: "bg-red-400" }
   ];
+  
+  // Importe o hook useToast
+  const { toast } = useToast();
   
   return (
     <div className="rounded-md border overflow-hidden" ref={containerRef}>
@@ -460,7 +501,7 @@ const GanttChart = ({
                   <Task 
                     task={task}
                     style={getTaskStyle(task)}
-                    onClick={onTaskClick ? () => onTaskClick(task) : undefined}
+                    onClick={handleTaskClick}
                     onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
                     onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
                     cellWidth={actualCellWidth}
@@ -593,6 +634,18 @@ const GanttChart = ({
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
+          
+          {/* Botão para exportar como imagem */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2"
+            onClick={exportToImage}
+            title="Exportar como imagem"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
         </div>
         
         {!createDependencyMode?.active && onAddTask && hasEditPermission && (

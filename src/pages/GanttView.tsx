@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from "react";
-import { useParams, useOutletContext } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
 import GanttChart from "@/components/GanttChart";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
@@ -22,9 +22,12 @@ const GanttView = () => {
   const [isNewTask, setIsNewTask] = useState(false);
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [searchParams] = useSearchParams();
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
+  const tasksLoadedRef = useRef(false);
 
+  // Carregar membros do projeto
   useEffect(() => {
     const loadMembers = async () => {
       const members = await getProjectMembers();
@@ -33,6 +36,21 @@ const GanttView = () => {
     
     loadMembers();
   }, []);
+
+  // Verificar se há um taskId na URL para abrir automaticamente
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && tasksLoadedRef.current === false) {
+      tasksLoadedRef.current = true;
+      
+      const taskId = searchParams.get('taskId');
+      if (taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+          handleEditTask(task);
+        }
+      }
+    }
+  }, [loading, tasks, searchParams]);
 
   const handleEditTask = (task: TaskType) => {
     setSelectedTask(task);
@@ -150,12 +168,23 @@ const GanttView = () => {
       return;
     }
     
-    const success = await createDependency(sourceId, targetId);
-    
-    if (success) {
+    try {
+      const success = await createDependency(sourceId, targetId);
+      
+      if (success) {
+        toast({
+          title: "Dependência criada",
+          description: "A dependência foi criada com sucesso.",
+        });
+      } else {
+        throw new Error("Falha ao criar dependência");
+      }
+    } catch (error) {
+      console.error("Erro ao criar dependência:", error);
       toast({
-        title: "Dependência criada",
-        description: "A dependência foi criada com sucesso.",
+        title: "Erro",
+        description: "Ocorreu um erro ao criar a dependência.",
+        variant: "destructive",
       });
     }
   };

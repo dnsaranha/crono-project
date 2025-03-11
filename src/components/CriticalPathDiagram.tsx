@@ -66,8 +66,16 @@ export default function CriticalPathDiagram({
     const allTasks = [...criticalTasks, ...nonCriticalTasks];
     
     // Organize tasks by their early start time for horizontal positioning
-    // Using Object.groupBy which is provided by our polyfill
-    const tasksByEarlyStart = Object.groupBy(allTasks, (task: EnhancedTaskType) => task.earlyStart);
+    // We need to group tasks by earlyStart manually since Object.groupBy might not be available
+    const tasksByEarlyStart: Record<number, EnhancedTaskType[]> = {};
+    allTasks.forEach(task => {
+      const earlyStart = task.earlyStart;
+      if (!tasksByEarlyStart[earlyStart]) {
+        tasksByEarlyStart[earlyStart] = [];
+      }
+      tasksByEarlyStart[earlyStart].push(task);
+    });
+    
     const timeSlots = Object.keys(tasksByEarlyStart).map(Number).sort((a, b) => a - b);
     
     // Calculate spacing
@@ -149,7 +157,7 @@ export default function CriticalPathDiagram({
   };
 
   return (
-    <div style={{ width: '100%', height: '500px' }}>
+    <div style={{ width: '100%', height: '500px' }} className="relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -160,6 +168,7 @@ export default function CriticalPathDiagram({
         fitView
         minZoom={0.1}
         maxZoom={1.5}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background />
