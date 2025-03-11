@@ -66,7 +66,7 @@ export default function CriticalPathDiagram({
     const allTasks = [...criticalTasks, ...nonCriticalTasks];
     
     // Organize tasks by their early start time for horizontal positioning
-    const tasksByEarlyStart = Object.groupBy(allTasks, task => task.earlyStart);
+    const tasksByEarlyStart = Object.groupBy(allTasks, (task: EnhancedTaskType) => task.earlyStart);
     const timeSlots = Object.keys(tasksByEarlyStart).map(Number).sort((a, b) => a - b);
     
     // Calculate spacing
@@ -84,7 +84,7 @@ export default function CriticalPathDiagram({
         const isCritical = criticalTasks.some(t => t.id === task.id);
         
         // Create node data with task information
-        const nodeData: TaskNodeData = {
+        const nodeData: TaskNodeData & Record<string, unknown> = {
           task: task,
           isCritical,
           earlyStart: task.earlyStart,
@@ -111,7 +111,7 @@ export default function CriticalPathDiagram({
     });
     
     // Create edges for connections
-    const flowEdges: Edge[] = connections.map((connection, index) => ({
+    const flowEdges: Edge[] = connections.map((connection) => ({
       id: `e-${connection.source}-${connection.target}`,
       source: connection.source,
       target: connection.target,

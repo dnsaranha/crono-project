@@ -1,5 +1,9 @@
 
-// Object.groupBy polyfill
+// Object.groupBy polyfill - TypeScript safe implementation
+interface ObjectConstructor {
+  groupBy<T>(items: T[], keyFn: (item: T) => string | number): Record<string | number, T[]>;
+}
+
 if (!Object.groupBy) {
   Object.defineProperty(Object, 'groupBy', {
     value: function<T>(items: T[], keyFn: (item: T) => string | number) {
