@@ -375,8 +375,8 @@ export function useTasks() {
         return true;
       }
 
-      // Adicionada verificação para evitar ciclos
-      const hasCycle = checkDependencyCycle(sourceId, targetId);
+      // Modified: Using the new cycle detection function
+      const hasCycle = willCreateCycle(sourceId, targetId);
       if (hasCycle) {
         toast({
           title: "Erro ao criar dependência",
@@ -431,93 +431,58 @@ export function useTasks() {
     }
   }
 
-  // Função para verificar se uma nova dependência vai criar um ciclo
-  function checkDependencyCycle(sourceId: string, targetId: string): boolean {
-    // Simplificar para evitar o erro de TypeScript
-    // Construir uma representação do grafo
-    const dependencyGraph: Record<string, string[]> = {};
+  // Completely rewritten cycle detection with an iterative approach
+  // This avoids the excessive type instantiation problem
+  function willCreateCycle(sourceId: string, targetId: string): boolean {
+    // Build dependency graph (reversed arrows direction for DFS)
+    const graph: Record<string, string[]> = {};
     
-    // Inicializar o grafo vazio
+    // Initialize graph with empty arrays for all tasks
     tasks.forEach(task => {
-      dependencyGraph[task.id] = [];
+      graph[task.id] = [];
     });
     
-    // Preencher o grafo com as dependências existentes
+    // Add existing dependencies
     tasks.forEach(task => {
-      if (task.dependencies && task.dependencies.length > 0) {
+      if (task.dependencies) {
         task.dependencies.forEach(depId => {
-          if (dependencyGraph[depId]) {
-            dependencyGraph[depId].push(task.id);
+          // Add an edge from dependent to dependency
+          // (This is the reverse of how dependencies normally work,
+          // but it makes detecting cycles easier)
+          if (graph[task.id]) {
+            graph[task.id].push(depId);
           }
         });
       }
     });
     
-    // Adicionar a nova aresta (dependência) que estamos verificando
-    if (dependencyGraph[targetId]) {
-      dependencyGraph[targetId].push(sourceId);
-    }
+    // Add the potential new dependency
+    if (!graph[targetId]) graph[targetId] = [];
+    graph[targetId].push(sourceId);
     
-    // Verificar ciclos com um algoritmo iterativo em vez de recursivo
-    function hasCycle(): boolean {
-      const visited: Record<string, boolean> = {};
-      const recursionStack: Record<string, boolean> = {};
+    // Iterative DFS to detect cycles
+    const visited = new Set<string>();
+    const stack: string[] = [sourceId];
+    
+    while (stack.length > 0) {
+      const current = stack.pop() as string;
       
-      // Converter para uma função iterativa usando uma pilha explícita
-      for (const nodeId of Object.keys(dependencyGraph)) {
-        if (checkCycleFromNode(nodeId, visited, recursionStack)) {
-          return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      
+      // If we find the target, we have a cycle
+      if (current === targetId) return true;
+      
+      // Add unvisited neighbors to stack
+      const neighbors = graph[current] || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          stack.push(neighbor);
         }
       }
-      
-      return false;
     }
     
-    function checkCycleFromNode(
-      startNode: string, 
-      visited: Record<string, boolean>, 
-      recursionStack: Record<string, boolean>
-    ): boolean {
-      // Usando uma pilha para simular a recursão
-      const stack: Array<{node: string, processed: boolean}> = [{node: startNode, processed: false}];
-      
-      while (stack.length > 0) {
-        const current = stack[stack.length - 1];
-        
-        if (!current.processed) {
-          // Marcar como processado para não processar novamente
-          current.processed = true;
-          
-          // Marcar como visitado e adicionar à pilha de recursão
-          visited[current.node] = true;
-          recursionStack[current.node] = true;
-          
-          // Adicionar vizinhos à pilha
-          const neighbors = dependencyGraph[current.node] || [];
-          for (let i = neighbors.length - 1; i >= 0; i--) {
-            const neighbor = neighbors[i];
-            
-            // Se já está na pilha de recursão, há um ciclo
-            if (recursionStack[neighbor]) {
-              return true;
-            }
-            
-            // Se não foi visitado, adicionar à pilha
-            if (!visited[neighbor]) {
-              stack.push({node: neighbor, processed: false});
-            }
-          }
-        } else {
-          // Já processamos este nó e seus vizinhos, remover da pilha de recursão
-          recursionStack[current.node] = false;
-          stack.pop();
-        }
-      }
-      
-      return false;
-    }
-    
-    return hasCycle();
+    return false;
   }
 
   // Função para modificar várias tarefas de uma vez (usado na importação)
