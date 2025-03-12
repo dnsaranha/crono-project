@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +21,10 @@ export function useTasks() {
     try {
       setLoading(true);
       
-      // Split the queries to avoid complex type instantiation
-      // First, fetch basic task data
+      // Fetch basic task data
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
-        .select('*')
+        .select('id, name, start_date, duration, progress, parent_id, is_group, is_milestone, priority, description, project_id, created_by')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
       
@@ -35,17 +35,17 @@ export function useTasks() {
         return;
       }
       
-      // Separately fetch dependencies
+      // Separately fetch dependencies with minimal fields
       const { data: dependencies, error: depError } = await supabase
         .from('task_dependencies')
-        .select('*')
+        .select('predecessor_id, successor_id')
         .eq('successor_project_id', projectId);
       
       if (depError) {
         console.error("Erro ao carregar dependências:", depError);
       }
       
-      // Separately fetch assignees
+      // Separately fetch assignees with minimal fields
       const { data: assignees, error: assigneeError } = await supabase
         .from('task_assignees')
         .select('task_id, user_id')
@@ -55,19 +55,42 @@ export function useTasks() {
         console.error("Erro ao carregar responsáveis:", assigneeError);
       }
       
+      // Create a simple lookup object for dependencies to avoid complex filtering
+      const dependencyMap: Record<string, string[]> = {};
+      if (dependencies) {
+        for (const dep of dependencies) {
+          if (!dependencyMap[dep.successor_id]) {
+            dependencyMap[dep.successor_id] = [];
+          }
+          dependencyMap[dep.successor_id].push(dep.predecessor_id);
+        }
+      }
+      
+      // Create a simple lookup object for assignees to avoid complex filtering
+      const assigneeMap: Record<string, string[]> = {};
+      if (assignees) {
+        for (const assign of assignees) {
+          if (!assigneeMap[assign.task_id]) {
+            assigneeMap[assign.task_id] = [];
+          }
+          assigneeMap[assign.task_id].push(assign.user_id);
+        }
+      }
+      
       // Map tasks with simple object assignment to avoid deep type recursion
-      const mappedTasks: TaskType[] = taskData.map(task => {
-        // Find dependencies for this task using simple array methods
-        const taskDeps = dependencies ? dependencies.filter(dep => dep.successor_id === task.id) : [];
+      const mappedTasks: TaskType[] = [];
+      for (const task of taskData) {
+        // Use lookup maps instead of filter operations
+        const taskDeps = dependencyMap[task.id] || [];
+        const taskAssignees = assigneeMap[task.id] || [];
         
-        // Find assignees for this task using simple array methods
-        const taskAssignees = assignees ? assignees.filter(assign => assign.task_id === task.id) : [];
+        // Cast priority to the correct type with a fallback
+        const priority = task.priority !== undefined 
+          ? (task.priority as 1 | 2 | 3 | 4 | 5) 
+          : 3;
         
-        // Cast priority to the correct type
-        const priority = task.priority !== undefined ? (task.priority as 1 | 2 | 3 | 4 | 5) : 3;
-        
-        // Create the task object with explicit typing
-        return {
+        // Create the task object with explicit typing and push to array
+        mappedTasks.push({
           id: task.id,
           name: task.name,
           startDate: task.start_date,
@@ -76,12 +99,12 @@ export function useTasks() {
           isMilestone: task.is_milestone || false,
           progress: task.progress || 0,
           parentId: task.parent_id || undefined,
-          dependencies: taskDeps.map(dep => dep.predecessor_id),
-          assignees: taskAssignees.map(assign => assign.user_id),
+          dependencies: taskDeps,
+          assignees: taskAssignees,
           priority: priority,
           description: task.description
-        };
-      });
+        });
+      }
       
       console.log("Tarefas carregadas do banco:", mappedTasks);
       setTasks(mappedTasks);
@@ -98,6 +121,61 @@ export function useTasks() {
     }
   }
   
+  // Update the detection cycle function to use a non-recursive approach
+  function detectCyclicDependency(sourceId: string, targetId: string): boolean {
+    // Simple adjacency list using a plain object instead of Map
+    const adjacencyList: Record<string, string[]> = {};
+    
+    // Initialize adjacency list for all tasks
+    for (const task of tasks) {
+      adjacencyList[task.id] = [];
+    }
+    
+    // Build the adjacency list with existing dependencies
+    for (const task of tasks) {
+      if (task.dependencies) {
+        for (const depId of task.dependencies) {
+          if (adjacencyList[depId]) {
+            adjacencyList[depId].push(task.id);
+          }
+        }
+      }
+    }
+    
+    // Add the potential new dependency for checking
+    if (adjacencyList[sourceId]) {
+      adjacencyList[sourceId].push(targetId);
+    }
+    
+    // Use iterative DFS with a manually managed stack
+    const visited: Record<string, boolean> = {};
+    const stack: string[] = [targetId];
+    
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      
+      if (current === sourceId) {
+        // We found a cycle
+        return true;
+      }
+      
+      if (!visited[current]) {
+        visited[current] = true;
+        
+        // Add all dependencies to the stack
+        const dependencies = adjacencyList[current] || [];
+        for (let i = 0; i < dependencies.length; i++) {
+          if (!visited[dependencies[i]]) {
+            stack.push(dependencies[i]);
+          }
+        }
+      }
+    }
+    
+    // No cycle detected
+    return false;
+  }
+
   // Função para atualizar uma tarefa no banco de dados
   async function updateTask(updatedTask: TaskType) {
     try {
@@ -400,7 +478,7 @@ export function useTasks() {
       // Check if this dependency already exists
       const { data: existingDep, error: checkError } = await supabase
         .from('task_dependencies')
-        .select('*')
+        .select('id')
         .eq('predecessor_id', sourceId)
         .eq('successor_id', targetId)
         .maybeSingle();
@@ -432,7 +510,7 @@ export function useTasks() {
         return true;
       }
 
-      // Use our new non-recursive cycle detection
+      // Use our non-recursive cycle detection
       if (detectCyclicDependency(sourceId, targetId)) {
         toast({
           title: "Erro ao criar dependência",
@@ -486,7 +564,7 @@ export function useTasks() {
       return false;
     }
   }
-
+  
   // Função para modificar várias tarefas de uma vez (usado na importação)
   async function batchUpdateTasks(tasksToUpdate: TaskType[], tasksToCreate: Omit<TaskType, 'id'>[]) {
     try {
