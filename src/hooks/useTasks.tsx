@@ -21,7 +21,7 @@ export function useTasks() {
     try {
       setLoading(true);
       
-      // Fetch basic task data
+      // Fetch basic task data - select minimal fields to avoid excessive type instantiation
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .select('id, name, start_date, duration, progress, parent_id, is_group, is_milestone, priority, description, project_id, created_by')
@@ -121,7 +121,7 @@ export function useTasks() {
     }
   }
   
-  // Update the detection cycle function to use a non-recursive approach
+  // Define the cycle detection function only once with an optimized implementation
   function detectCyclicDependency(sourceId: string, targetId: string): boolean {
     // Simple adjacency list using a plain object instead of Map
     const adjacencyList: Record<string, string[]> = {};
@@ -414,63 +414,8 @@ export function useTasks() {
       return null;
     }
   }
-  
-  // Fixed implementation to avoid excessive type instantiation
-  function detectCyclicDependency(sourceId: string, targetId: string): boolean {
-    // Simple adjacency list without using complex types
-    const adjacencyList: Record<string, string[]> = {};
-    
-    // Initialize adjacency list for all tasks
-    for (const task of tasks) {
-      adjacencyList[task.id] = [];
-    }
-    
-    // Build the adjacency list with existing dependencies
-    for (const task of tasks) {
-      if (task.dependencies) {
-        for (const depId of task.dependencies) {
-          if (adjacencyList[depId]) {
-            adjacencyList[depId].push(task.id);
-          }
-        }
-      }
-    }
-    
-    // Add the potential new dependency for checking
-    if (adjacencyList[sourceId]) {
-      adjacencyList[sourceId].push(targetId);
-    }
-    
-    // Use iterative DFS with a manually managed stack
-    const visited: Record<string, boolean> = {};
-    const stack: string[] = [targetId];
-    
-    while (stack.length > 0) {
-      const current = stack.pop()!;
-      
-      if (current === sourceId) {
-        // We found a cycle
-        return true;
-      }
-      
-      if (!visited[current]) {
-        visited[current] = true;
-        
-        // Add all dependencies to the stack
-        const dependencies = adjacencyList[current] || [];
-        for (let i = 0; i < dependencies.length; i++) {
-          if (!visited[dependencies[i]]) {
-            stack.push(dependencies[i]);
-          }
-        }
-      }
-    }
-    
-    // No cycle detected
-    return false;
-  }
 
-  // Update createDependency to use the new cycle detection
+  // Update createDependency to use the cycle detection
   async function createDependency(sourceId: string, targetId: string) {
     try {
       console.log("Criando dependência:", sourceId, "->", targetId);
