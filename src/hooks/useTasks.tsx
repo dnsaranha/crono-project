@@ -335,55 +335,52 @@ export function useTasks() {
     }
   }
   
-  // Completely rewrite cycle detection to use an iterative approach that avoids deep type instantiation
+  // Fixed implementation to avoid excessive type instantiation
   function detectCyclicDependency(sourceId: string, targetId: string): boolean {
-    // Create a dependency map to represent the graph
-    const dependencyMap = new Map<string, string[]>();
+    // Simple adjacency list without using complex types
+    const adjacencyList: Record<string, string[]> = {};
     
-    // Initialize the map for all tasks
-    tasks.forEach(task => {
-      dependencyMap.set(task.id, []);
-    });
-    
-    // Fill the map with current dependencies (in reverse for easier traversal)
-    // For each task, record which tasks depend on it
-    tasks.forEach(task => {
-      if (task.dependencies) {
-        task.dependencies.forEach(depId => {
-          const dependents = dependencyMap.get(depId);
-          if (dependents) {
-            dependents.push(task.id);
-          }
-        });
-      }
-    });
-    
-    // Add the potential new dependency for checking
-    const sourceDependents = dependencyMap.get(sourceId);
-    if (sourceDependents) {
-      sourceDependents.push(targetId);
+    // Initialize adjacency list for all tasks
+    for (const task of tasks) {
+      adjacencyList[task.id] = [];
     }
     
-    // Use a stack-based DFS approach to detect cycles
-    const visited = new Set<string>();
+    // Build the adjacency list with existing dependencies
+    for (const task of tasks) {
+      if (task.dependencies) {
+        for (const depId of task.dependencies) {
+          if (adjacencyList[depId]) {
+            adjacencyList[depId].push(task.id);
+          }
+        }
+      }
+    }
+    
+    // Add the potential new dependency for checking
+    if (adjacencyList[sourceId]) {
+      adjacencyList[sourceId].push(targetId);
+    }
+    
+    // Use iterative DFS with a manually managed stack
+    const visited: Record<string, boolean> = {};
     const stack: string[] = [targetId];
     
     while (stack.length > 0) {
-      const currentNode = stack.pop()!;
+      const current = stack.pop()!;
       
-      if (currentNode === sourceId) {
-        // We've found a path back to the source - a cycle exists
+      if (current === sourceId) {
+        // We found a cycle
         return true;
       }
       
-      if (!visited.has(currentNode)) {
-        visited.add(currentNode);
+      if (!visited[current]) {
+        visited[current] = true;
         
-        // Add all direct dependents to the stack
-        const dependents = dependencyMap.get(currentNode) || [];
-        for (const dependent of dependents) {
-          if (!visited.has(dependent)) {
-            stack.push(dependent);
+        // Add all dependencies to the stack
+        const dependencies = adjacencyList[current] || [];
+        for (let i = 0; i < dependencies.length; i++) {
+          if (!visited[dependencies[i]]) {
+            stack.push(dependencies[i]);
           }
         }
       }
@@ -433,7 +430,7 @@ export function useTasks() {
         return true;
       }
 
-      // Check for cycles using our iterative approach
+      // Use our new non-recursive cycle detection
       if (detectCyclicDependency(sourceId, targetId)) {
         toast({
           title: "Erro ao criar dependência",
