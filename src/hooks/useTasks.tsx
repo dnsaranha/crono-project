@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { TaskType } from "@/components/Task";
 import { useToast } from "@/components/ui/use-toast";
+import { detectCyclicDependency } from "@/utils/cycleDetection";
+import * as taskService from "@/services/taskService";
 
 export function useTasks() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -21,93 +22,9 @@ export function useTasks() {
     try {
       setLoading(true);
       
-      // Fetch basic task data - select minimal fields to avoid excessive type instantiation
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('id, name, start_date, duration, progress, parent_id, is_group, is_milestone, priority, description, project_id, created_by')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
-      
-      if (taskError) throw taskError;
-      
-      if (!taskData || taskData.length === 0) {
-        setTasks([]);
-        return;
-      }
-      
-      // Separately fetch dependencies with minimal fields
-      const { data: dependencies, error: depError } = await supabase
-        .from('task_dependencies')
-        .select('predecessor_id, successor_id')
-        .eq('successor_project_id', projectId);
-      
-      if (depError) {
-        console.error("Erro ao carregar dependências:", depError);
-      }
-      
-      // Separately fetch assignees with minimal fields
-      const { data: assignees, error: assigneeError } = await supabase
-        .from('task_assignees')
-        .select('task_id, user_id')
-        .in('task_id', taskData.map(t => t.id));
-        
-      if (assigneeError) {
-        console.error("Erro ao carregar responsáveis:", assigneeError);
-      }
-      
-      // Create a simple lookup object for dependencies to avoid complex filtering
-      const dependencyMap: Record<string, string[]> = {};
-      if (dependencies) {
-        for (const dep of dependencies) {
-          if (!dependencyMap[dep.successor_id]) {
-            dependencyMap[dep.successor_id] = [];
-          }
-          dependencyMap[dep.successor_id].push(dep.predecessor_id);
-        }
-      }
-      
-      // Create a simple lookup object for assignees to avoid complex filtering
-      const assigneeMap: Record<string, string[]> = {};
-      if (assignees) {
-        for (const assign of assignees) {
-          if (!assigneeMap[assign.task_id]) {
-            assigneeMap[assign.task_id] = [];
-          }
-          assigneeMap[assign.task_id].push(assign.user_id);
-        }
-      }
-      
-      // Map tasks with simple object assignment to avoid deep type recursion
-      const mappedTasks: TaskType[] = [];
-      for (const task of taskData) {
-        // Use lookup maps instead of filter operations
-        const taskDeps = dependencyMap[task.id] || [];
-        const taskAssignees = assigneeMap[task.id] || [];
-        
-        // Cast priority to the correct type with a fallback
-        const priority = task.priority !== undefined 
-          ? (task.priority as 1 | 2 | 3 | 4 | 5) 
-          : 3;
-        
-        // Create the task object with explicit typing and push to array
-        mappedTasks.push({
-          id: task.id,
-          name: task.name,
-          startDate: task.start_date,
-          duration: task.duration,
-          isGroup: task.is_group || false,
-          isMilestone: task.is_milestone || false,
-          progress: task.progress || 0,
-          parentId: task.parent_id || undefined,
-          dependencies: taskDeps,
-          assignees: taskAssignees,
-          priority: priority,
-          description: task.description
-        });
-      }
-      
-      console.log("Tarefas carregadas do banco:", mappedTasks);
-      setTasks(mappedTasks);
+      const loadedTasks = await taskService.loadProjectTasks(projectId as string);
+      console.log("Tarefas carregadas do banco:", loadedTasks);
+      setTasks(loadedTasks);
     } catch (error: any) {
       console.error("Erro ao carregar tarefas:", error.message);
       toast({
@@ -120,189 +37,20 @@ export function useTasks() {
       setLoading(false);
     }
   }
-  
-  // Define the cycle detection function only once with an optimized implementation
-  function detectCyclicDependency(sourceId: string, targetId: string): boolean {
-    // Simple adjacency list using a plain object instead of Map
-    const adjacencyList: Record<string, string[]> = {};
-    
-    // Initialize adjacency list for all tasks
-    for (const task of tasks) {
-      adjacencyList[task.id] = [];
-    }
-    
-    // Build the adjacency list with existing dependencies
-    for (const task of tasks) {
-      if (task.dependencies) {
-        for (const depId of task.dependencies) {
-          if (adjacencyList[depId]) {
-            adjacencyList[depId].push(task.id);
-          }
-        }
-      }
-    }
-    
-    // Add the potential new dependency for checking
-    if (adjacencyList[sourceId]) {
-      adjacencyList[sourceId].push(targetId);
-    }
-    
-    // Use iterative DFS with a manually managed stack
-    const visited: Record<string, boolean> = {};
-    const stack: string[] = [targetId];
-    
-    while (stack.length > 0) {
-      const current = stack.pop()!;
-      
-      if (current === sourceId) {
-        // We found a cycle
-        return true;
-      }
-      
-      if (!visited[current]) {
-        visited[current] = true;
-        
-        // Add all dependencies to the stack
-        const dependencies = adjacencyList[current] || [];
-        for (let i = 0; i < dependencies.length; i++) {
-          if (!visited[dependencies[i]]) {
-            stack.push(dependencies[i]);
-          }
-        }
-      }
-    }
-    
-    // No cycle detected
-    return false;
-  }
 
-  // Função para atualizar uma tarefa no banco de dados
   async function updateTask(updatedTask: TaskType) {
     try {
-      // First ensure parent_id is correctly formatted for the database
-      const parent_id = updatedTask.parentId || null;
+      const success = await taskService.updateExistingTask(projectId as string, updatedTask);
       
-      // Ensure priority is a valid value
-      const priority = updatedTask.priority !== undefined 
-        ? (updatedTask.priority as 1 | 2 | 3 | 4 | 5) 
-        : 3;
-          
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({
-          name: updatedTask.name,
-          start_date: updatedTask.startDate,
-          duration: updatedTask.duration,
-          progress: updatedTask.progress,
-          parent_id: parent_id,
-          is_group: updatedTask.isGroup || false,
-          is_milestone: updatedTask.isMilestone || false,
-          priority: priority,
-          description: updatedTask.description
-        })
-        .eq('id', updatedTask.id)
-        .select();
-      
-      if (error) throw error;
-      
-      // Atualizar tarefas localmente primeiro
-      setTasks(prevTasks => 
-        prevTasks.map(task => task.id === updatedTask.id ? 
-          {...task, ...updatedTask} : task)
-      );
-      
-      // Atualizar os responsáveis pelas tarefas, se houver mudanças
-      if (updatedTask.assignees) {
-        // Primeiro buscar os responsáveis atuais
-        const { data: currentAssignees, error: fetchError } = await supabase
-          .from('task_assignees')
-          .select('user_id')
-          .eq('task_id', updatedTask.id);
-          
-        if (fetchError) throw fetchError;
-        
-        const currentUserIds = currentAssignees?.map(a => a.user_id) || [];
-        const updatedUserIds = updatedTask.assignees || [];
-        
-        // Determinar quais adicionar e quais remover
-        const toAdd = updatedUserIds.filter(id => !currentUserIds.includes(id));
-        const toRemove = currentUserIds.filter(id => !updatedUserIds.includes(id));
-        
-        // Adicionar novos responsáveis
-        if (toAdd.length > 0) {
-          const assigneesToAdd = toAdd.map(userId => ({
-            task_id: updatedTask.id,
-            user_id: userId
-          }));
-          
-          const { error: insertError } = await supabase
-            .from('task_assignees')
-            .insert(assigneesToAdd);
-            
-          if (insertError) throw insertError;
-        }
-        
-        // Remover responsáveis
-        if (toRemove.length > 0) {
-          for (const userId of toRemove) {
-            const { error: deleteError } = await supabase
-              .from('task_assignees')
-              .delete()
-              .eq('task_id', updatedTask.id)
-              .eq('user_id', userId);
-              
-            if (deleteError) throw deleteError;
-          }
-        }
-      }
-
-      // Handle dependencies separately
-      if (updatedTask.dependencies) {
-        // Get existing dependencies
-        const { data: existingDeps, error: depsError } = await supabase
-          .from('task_dependencies')
-          .select('predecessor_id')
-          .eq('successor_id', updatedTask.id);
-          
-        if (depsError) throw depsError;
-        
-        const existingDepIds = existingDeps?.map(d => d.predecessor_id) || [];
-        const newDepIds = updatedTask.dependencies || [];
-        
-        // Find dependencies to add and remove
-        const depsToAdd = newDepIds.filter(id => !existingDepIds.includes(id));
-        const depsToRemove = existingDepIds.filter(id => !newDepIds.includes(id));
-        
-        // Add new dependencies
-        if (depsToAdd.length > 0) {
-          const depsToInsert = depsToAdd.map(depId => ({
-            predecessor_id: depId,
-            successor_id: updatedTask.id,
-            successor_project_id: projectId
-          }));
-          
-          const { error: insertDepsError } = await supabase
-            .from('task_dependencies')
-            .insert(depsToInsert);
-            
-          if (insertDepsError) throw insertDepsError;
-        }
-        
-        // Remove old dependencies
-        if (depsToRemove.length > 0) {
-          for (const depId of depsToRemove) {
-            const { error: deleteDepsError } = await supabase
-              .from('task_dependencies')
-              .delete()
-              .eq('predecessor_id', depId)
-              .eq('successor_id', updatedTask.id);
-              
-            if (deleteDepsError) throw deleteDepsError;
-          }
-        }
+      if (success) {
+        // Update tasks locally first for a responsive UI
+        setTasks(prevTasks => 
+          prevTasks.map(task => task.id === updatedTask.id ? 
+            {...task, ...updatedTask} : task)
+        );
       }
       
-      return true;
+      return success;
     } catch (error: any) {
       console.error("Erro ao atualizar tarefa:", error.message);
       toast({
@@ -314,94 +62,13 @@ export function useTasks() {
     }
   }
   
-  // Função para criar uma nova tarefa
   async function createTask(newTask: Omit<TaskType, 'id'>) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const createdTask = await taskService.createNewTask(projectId as string, newTask);
       
-      if (!user) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para criar uma tarefa.",
-          variant: "destructive",
-        });
-        return null;
+      if (createdTask) {
+        setTasks(prevTasks => [...prevTasks, createdTask]);
       }
-      
-      // First ensure parent_id is correctly formatted for the database
-      const parent_id = newTask.parentId || null;
-      
-      // Ensure priority is a valid value
-      const priority = newTask.priority !== undefined 
-        ? (newTask.priority as 1 | 2 | 3 | 4 | 5) 
-        : 3;
-          
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          name: newTask.name,
-          start_date: newTask.startDate,
-          duration: newTask.duration,
-          progress: newTask.progress || 0,
-          parent_id: parent_id,
-          project_id: projectId,
-          is_group: newTask.isGroup || false,
-          is_milestone: newTask.isMilestone || false,
-          created_by: user.id,
-          priority: priority,
-          description: newTask.description
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      // Adicionar dependências se houver
-      if (newTask.dependencies && newTask.dependencies.length > 0) {
-        const depsToInsert = newTask.dependencies.map(depId => ({
-          predecessor_id: depId,
-          successor_id: data.id,
-          successor_project_id: projectId
-        }));
-        
-        const { error: depsError } = await supabase
-          .from('task_dependencies')
-          .insert(depsToInsert);
-          
-        if (depsError) throw depsError;
-      }
-      
-      // Adicionar responsáveis se houver
-      if (newTask.assignees && newTask.assignees.length > 0) {
-        const assigneesToAdd = newTask.assignees.map(userId => ({
-          task_id: data.id,
-          user_id: userId
-        }));
-        
-        const { error: assigneeError } = await supabase
-          .from('task_assignees')
-          .insert(assigneesToAdd);
-          
-        if (assigneeError) throw assigneeError;
-      }
-      
-      // Assign the priority correctly when creating the task
-      const createdTask: TaskType = {
-        id: data.id,
-        name: data.name,
-        startDate: data.start_date,
-        duration: data.duration,
-        isGroup: data.is_group,
-        isMilestone: data.is_milestone,
-        progress: data.progress,
-        parentId: data.parent_id,
-        dependencies: newTask.dependencies,
-        assignees: newTask.assignees,
-        priority: data.priority !== undefined ? (data.priority as 1 | 2 | 3 | 4 | 5) : 3,
-        description: data.description
-      };
-      
-      setTasks(prevTasks => [...prevTasks, createdTask]);
       
       return createdTask;
     } catch (error: any) {
@@ -415,28 +82,24 @@ export function useTasks() {
     }
   }
 
-  // Update createDependency to use the cycle detection
   async function createDependency(sourceId: string, targetId: string) {
     try {
       console.log("Criando dependência:", sourceId, "->", targetId);
       
-      // Check if this dependency already exists
-      const { data: existingDep, error: checkError } = await supabase
-        .from('task_dependencies')
-        .select('id')
-        .eq('predecessor_id', sourceId)
-        .eq('successor_id', targetId)
-        .maybeSingle();
-        
-      if (checkError) {
-        console.error("Erro ao verificar dependência existente:", checkError);
-        throw checkError;
+      // Check for circular dependencies before creating
+      if (detectCyclicDependency(tasks, sourceId, targetId)) {
+        toast({
+          title: "Erro ao criar dependência",
+          description: "Não é possível criar dependências circulares",
+          variant: "destructive",
+        });
+        return false;
       }
       
-      if (existingDep) {
-        console.log("Dependência já existe:", existingDep);
-        
-        // Update local tasks to ensure UI consistency
+      const success = await taskService.createTaskDependency(projectId as string, sourceId, targetId);
+      
+      if (success) {
+        // Update local tasks
         setTasks(prevTasks => {
           return prevTasks.map(task => {
             if (task.id === targetId) {
@@ -451,54 +114,9 @@ export function useTasks() {
             return task;
           });
         });
-        
-        return true;
-      }
-
-      // Use our non-recursive cycle detection
-      if (detectCyclicDependency(sourceId, targetId)) {
-        toast({
-          title: "Erro ao criar dependência",
-          description: "Não é possível criar dependências circulares",
-          variant: "destructive",
-        });
-        return false;
       }
       
-      // Insert the dependency
-      const { data, error } = await supabase
-        .from('task_dependencies')
-        .insert({
-          predecessor_id: sourceId,
-          successor_id: targetId,
-          successor_project_id: projectId
-        })
-        .select();
-      
-      if (error) {
-        console.error("Erro ao inserir dependência:", error);
-        throw error;
-      }
-      
-      console.log("Dependência criada com sucesso:", data);
-      
-      // Update local tasks
-      setTasks(prevTasks => {
-        return prevTasks.map(task => {
-          if (task.id === targetId) {
-            const deps = task.dependencies || [];
-            if (!deps.includes(sourceId)) {
-              return {
-                ...task,
-                dependencies: [...deps, sourceId]
-              };
-            }
-          }
-          return task;
-        });
-      });
-      
-      return true;
+      return success;
     } catch (error: any) {
       console.error("Erro ao criar dependência:", error.message);
       toast({
@@ -510,10 +128,9 @@ export function useTasks() {
     }
   }
   
-  // Função para modificar várias tarefas de uma vez (usado na importação)
   async function batchUpdateTasks(tasksToUpdate: TaskType[], tasksToCreate: Omit<TaskType, 'id'>[]) {
     try {
-      // Verificar usuário atual
+      // Check current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -525,17 +142,17 @@ export function useTasks() {
         return false;
       }
       
-      // Atualizar tarefas existentes
+      // Update existing tasks
       for (const task of tasksToUpdate) {
         await updateTask(task);
       }
       
-      // Criar novas tarefas
+      // Create new tasks
       for (const task of tasksToCreate) {
         await createTask(task);
       }
       
-      // Recarregar tarefas para garantir consistência
+      // Reload tasks to ensure consistency
       await loadTasks();
       
       return true;
@@ -550,51 +167,25 @@ export function useTasks() {
     }
   }
   
-  // Buscar membros do projeto para assinalar tarefas
   async function getProjectMembers() {
     try {
-      const { data, error } = await supabase
-        .from('project_members')
-        .select(`
-          id,
-          user_id,
-          role,
-          profiles (
-            id,
-            email,
-            full_name
-          )
-        `)
-        .eq('project_id', projectId);
-        
-      if (error) throw error;
-      
-      return data.map(member => ({
-        id: member.user_id,
-        email: member.profiles.email,
-        name: member.profiles.full_name || member.profiles.email
-      }));
-      
+      return await taskService.getProjectMembersList(projectId as string);
     } catch (error: any) {
       console.error("Erro ao buscar membros do projeto:", error.message);
       return [];
     }
   }
   
-  // Função para deletar uma tarefa
   async function deleteTask(taskId: string) {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
-        
-      if (error) throw error;
+      const success = await taskService.deleteProjectTask(taskId);
       
-      // Remover tarefa da lista local
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      if (success) {
+        // Remove task from local list
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      }
       
-      return true;
+      return success;
     } catch (error: any) {
       console.error("Erro ao deletar tarefa:", error.message);
       toast({
