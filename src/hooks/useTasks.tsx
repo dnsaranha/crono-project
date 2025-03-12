@@ -434,34 +434,58 @@ export function useTasks() {
 
   // Função para verificar se uma nova dependência vai criar um ciclo
   function checkDependencyCycle(sourceId: string, targetId: string): boolean {
-    // Set para armazenar os IDs das tarefas já visitadas
-    const visited = new Set<string>();
+    // Criar um grafo de dependências
+    const graph = new Map<string, string[]>();
     
-    // Função auxiliar para fazer a busca em profundidade
-    function dfs(taskId: string, targetTaskId: string): boolean {
-      // Se encontrou a tarefa de destino, há um ciclo
-      if (taskId === targetTaskId) return true;
+    // Preencher o grafo com as dependências atuais
+    tasks.forEach(task => {
+      const successors: string[] = [];
+      tasks.forEach(potentialSuccessor => {
+        if (potentialSuccessor.dependencies?.includes(task.id)) {
+          successors.push(potentialSuccessor.id);
+        }
+      });
+      graph.set(task.id, successors);
+    });
+    
+    // Adicionar a nova dependência ao grafo
+    const targetSuccessors = graph.get(targetId) || [];
+    if (!targetSuccessors.includes(sourceId)) {
+      graph.set(targetId, [...targetSuccessors, sourceId]);
+    }
+    
+    // Função para detectar ciclos usando DFS
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+    
+    function detectCycle(nodeId: string): boolean {
+      // Se o nó não estiver no grafo, não há ciclo
+      if (!graph.has(nodeId)) return false;
       
-      // Marcar tarefa como visitada
-      visited.add(taskId);
+      // Marcar como visitado e adicionar à pilha de recursão
+      visited.add(nodeId);
+      recStack.add(nodeId);
       
-      // Encontrar a tarefa atual
-      const task = tasks.find(t => t.id === taskId);
-      if (!task || !task.dependencies) return false;
-      
-      // Verificar cada dependência da tarefa
-      for (const depId of task.dependencies) {
-        if (!visited.has(depId)) {
-          if (dfs(depId, targetTaskId)) return true;
+      // Verificar todos os vizinhos
+      const neighbors = graph.get(nodeId) || [];
+      for (const neighbor of neighbors) {
+        // Se o vizinho não foi visitado, continuar a DFS
+        if (!visited.has(neighbor)) {
+          if (detectCycle(neighbor)) return true;
+        }
+        // Se o vizinho está na pilha de recursão, há um ciclo
+        else if (recStack.has(neighbor)) {
+          return true;
         }
       }
       
+      // Remover da pilha de recursão
+      recStack.delete(nodeId);
       return false;
     }
     
-    // Começar a verificação com a tarefa de destino para ver 
-    // se eventualmente voltamos para a tarefa de origem
-    return dfs(targetId, sourceId);
+    // Iniciar a busca de ciclos a partir da origem da nova dependência
+    return detectCycle(sourceId);
   }
 
   // Função para modificar várias tarefas de uma vez (usado na importação)
