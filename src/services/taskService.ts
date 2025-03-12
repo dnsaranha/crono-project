@@ -22,7 +22,7 @@ export async function loadProjectTasks(projectId: string): Promise<TaskType[]> {
   const { data: dependencies, error: depError } = await supabase
     .from('task_dependencies')
     .select('predecessor_id, successor_id')
-    .eq('successor_project_id', projectId);
+    .in('successor_id', taskData.map(t => t.id));
   
   if (depError) {
     console.error("Erro ao carregar dependências:", depError);
@@ -331,13 +331,12 @@ export async function createTaskDependency(
     return true;
   }
   
-  // Insert the dependency
+  // Insert the dependency without the successor_project_id field
   const { data, error } = await supabase
     .from('task_dependencies')
     .insert({
       predecessor_id: sourceId,
-      successor_id: targetId,
-      successor_project_id: projectId
+      successor_id: targetId
     })
     .select();
   
