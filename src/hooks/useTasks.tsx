@@ -5,6 +5,7 @@ import { TaskType } from "@/components/Task";
 import { useToast } from "@/components/ui/use-toast";
 import { detectCyclicDependency } from "@/utils/cycleDetection";
 import * as taskService from "@/services/taskService";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useTasks() {
   const { projectId } = useParams<{ projectId: string }>();
