@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,6 +176,52 @@ export function useTasks() {
           }
         }
       }
+
+      // Handle dependencies separately
+      if (updatedTask.dependencies) {
+        // Get existing dependencies
+        const { data: existingDeps, error: depsError } = await supabase
+          .from('task_dependencies')
+          .select('predecessor_id')
+          .eq('successor_id', updatedTask.id);
+          
+        if (depsError) throw depsError;
+        
+        const existingDepIds = existingDeps?.map(d => d.predecessor_id) || [];
+        const newDepIds = updatedTask.dependencies || [];
+        
+        // Find dependencies to add and remove
+        const depsToAdd = newDepIds.filter(id => !existingDepIds.includes(id));
+        const depsToRemove = existingDepIds.filter(id => !newDepIds.includes(id));
+        
+        // Add new dependencies
+        if (depsToAdd.length > 0) {
+          const depsToInsert = depsToAdd.map(depId => ({
+            predecessor_id: depId,
+            successor_id: updatedTask.id,
+            successor_project_id: projectId
+          }));
+          
+          const { error: insertDepsError } = await supabase
+            .from('task_dependencies')
+            .insert(depsToInsert);
+            
+          if (insertDepsError) throw insertDepsError;
+        }
+        
+        // Remove old dependencies
+        if (depsToRemove.length > 0) {
+          for (const depId of depsToRemove) {
+            const { error: deleteDepsError } = await supabase
+              .from('task_dependencies')
+              .delete()
+              .eq('predecessor_id', depId)
+              .eq('successor_id', updatedTask.id);
+              
+            if (deleteDepsError) throw deleteDepsError;
+          }
+        }
+      }
       
       return true;
     } catch (error: any) {
@@ -232,14 +279,17 @@ export function useTasks() {
       
       // Adicionar dependências se houver
       if (newTask.dependencies && newTask.dependencies.length > 0) {
-        for (const depId of newTask.dependencies) {
-          await supabase
-            .from('task_dependencies')
-            .insert({
-              predecessor_id: depId,
-              successor_id: data.id
-            });
-        }
+        const depsToInsert = newTask.dependencies.map(depId => ({
+          predecessor_id: depId,
+          successor_id: data.id,
+          successor_project_id: projectId
+        }));
+        
+        const { error: depsError } = await supabase
+          .from('task_dependencies')
+          .insert(depsToInsert);
+          
+        if (depsError) throw depsError;
       }
       
       // Adicionar responsáveis se houver
@@ -297,9 +347,9 @@ export function useTasks() {
         .select('*')
         .eq('predecessor_id', sourceId)
         .eq('successor_id', targetId)
-        .single();
+        .maybeSingle();
         
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found, que é o esperado
+      if (checkError) {
         console.error("Erro ao verificar dependência existente:", checkError);
         throw checkError;
       }
@@ -326,10 +376,15 @@ export function useTasks() {
         return true;
       }
 
-      // Encontrar a tarefa de destino para obter o project_id
-      const targetTask = tasks.find(t => t.id === targetId);
-      if (!targetTask) {
-        throw new Error("Tarefa de destino não encontrada");
+      // Adicionada verificação para evitar ciclos
+      const hasCycle = checkDependencyCycle(sourceId, targetId);
+      if (hasCycle) {
+        toast({
+          title: "Erro ao criar dependência",
+          description: "Não é possível criar dependências circulares",
+          variant: "destructive",
+        });
+        return false;
       }
       
       // 2. Inserir a dependência
@@ -375,6 +430,38 @@ export function useTasks() {
       });
       return false;
     }
+  }
+
+  // Função para verificar se uma nova dependência vai criar um ciclo
+  function checkDependencyCycle(sourceId: string, targetId: string): boolean {
+    // Set para armazenar os IDs das tarefas já visitadas
+    const visited = new Set<string>();
+    
+    // Função auxiliar para fazer a busca em profundidade
+    function dfs(taskId: string, targetTaskId: string): boolean {
+      // Se encontrou a tarefa de destino, há um ciclo
+      if (taskId === targetTaskId) return true;
+      
+      // Marcar tarefa como visitada
+      visited.add(taskId);
+      
+      // Encontrar a tarefa atual
+      const task = tasks.find(t => t.id === taskId);
+      if (!task || !task.dependencies) return false;
+      
+      // Verificar cada dependência da tarefa
+      for (const depId of task.dependencies) {
+        if (!visited.has(depId)) {
+          if (dfs(depId, targetTaskId)) return true;
+        }
+      }
+      
+      return false;
+    }
+    
+    // Começar a verificação com a tarefa de destino para ver 
+    // se eventualmente voltamos para a tarefa de origem
+    return dfs(targetId, sourceId);
   }
 
   // Função para modificar várias tarefas de uma vez (usado na importação)
