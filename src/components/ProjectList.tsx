@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +16,7 @@ interface Project {
   owner_id: string;
 }
 
-export function ProjectList() {
+export function ProjectList({ ownerName, accessLevel }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -51,31 +50,21 @@ export function ProjectList() {
     try {
       setLoading(true);
       
-      console.log("Carregando projetos...");
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log("Usuário não autenticado");
         setProjects([]);
         return;
       }
       
-      console.log("User ID:", user.id);
-      
-      // Busca projetos que o usuário é dono
+      // Fetch owned projects
       const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
         .select('*')
         .eq('owner_id', user.id);
         
-      if (ownedError) {
-        console.error("Erro ao carregar projetos próprios:", ownedError);
-        throw ownedError;
-      }
+      if (ownedError) throw ownedError;
       
-      console.log("Projetos que é dono:", ownedProjects);
-      
-      // Busca projetos que o usuário é membro
+      // Fetch member projects
       const { data: memberProjects, error: memberError } = await supabase
         .from('project_members')
         .select(`
@@ -84,29 +73,22 @@ export function ProjectList() {
         `)
         .eq('user_id', user.id);
         
-      if (memberError) {
-        console.error("Erro ao carregar projetos como membro:", memberError);
-        throw memberError;
-      }
+      if (memberError) throw memberError;
       
-      console.log("Projetos como membro:", memberProjects);
-      
-      // Combina os resultados
+      // Combine results
       const memberProjectList = memberProjects
         .map(item => item.projects)
         .filter(Boolean) as Project[];
       
       const allProjects = [...(ownedProjects || []), ...memberProjectList];
       
-      // Remove duplicatas baseado no ID
+      // Remove duplicates based on ID
       const uniqueProjects = Array.from(
         new Map(allProjects.map(item => [item.id, item])).values()
       );
       
-      console.log("Projetos carregados:", uniqueProjects);
       setProjects(uniqueProjects);
     } catch (error: any) {
-      console.error('Erro ao carregar projetos:', error.message);
       toast({
         title: "Erro ao carregar projetos",
         description: error.message,
@@ -157,6 +139,12 @@ export function ProjectList() {
               <CardContent>
                 <p className="text-gray-600">
                   {project.description || "Sem descrição"}
+                </p>
+                <p className="text-gray-600">
+                  Projeto de <a href={`https://github.com/${ownerName}`}>{ownerName}</a>
+                </p>
+                <p className="text-gray-600">
+                  Nível de acesso: {accessLevel}
                 </p>
               </CardContent>
               
