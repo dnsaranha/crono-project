@@ -335,12 +335,67 @@ export function useTasks() {
     }
   }
   
-  // Entirely new implementation using an iterative approach with a dependency graph
+  // New non-recursive cycle detection implementation
+  function detectCycle(sourceId: string, targetId: string): boolean {
+    // Build adjacency list for graph traversal
+    const adjacencyList = new Map<string, string[]>();
+    
+    // Initialize with all tasks
+    tasks.forEach(task => {
+      adjacencyList.set(task.id, []);
+    });
+    
+    // Add all existing dependencies
+    tasks.forEach(task => {
+      if (task.dependencies) {
+        task.dependencies.forEach(depId => {
+          const successors = adjacencyList.get(depId) || [];
+          successors.push(task.id);
+          adjacencyList.set(depId, successors);
+        });
+      }
+    });
+    
+    // Add the potential new dependency
+    const successors = adjacencyList.get(sourceId) || [];
+    successors.push(targetId);
+    adjacencyList.set(sourceId, successors);
+    
+    // Use iterative DFS to check for cycles
+    const visited = new Set<string>();
+    const stack: string[] = [targetId];
+    
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      
+      if (current === sourceId) {
+        // We found a path back to the source - cycle detected
+        return true;
+      }
+      
+      if (!visited.has(current)) {
+        visited.add(current);
+        
+        // Add all unvisited successors to the stack
+        const currentSuccessors = adjacencyList.get(current) || [];
+        for (const successor of currentSuccessors) {
+          if (!visited.has(successor)) {
+            stack.push(successor);
+          }
+        }
+      }
+    }
+    
+    // No cycle detected
+    return false;
+  }
+
+  // Completely rewritten createDependency function
   async function createDependency(sourceId: string, targetId: string) {
     try {
       console.log("Criando dependência:", sourceId, "->", targetId);
       
-      // 1. Primeiro verificar se esta dependência já existe
+      // Check if this dependency already exists
       const { data: existingDep, error: checkError } = await supabase
         .from('task_dependencies')
         .select('*')
@@ -356,7 +411,7 @@ export function useTasks() {
       if (existingDep) {
         console.log("Dependência já existe:", existingDep);
         
-        // Atualizar tarefas localmente
+        // Update local tasks to ensure UI consistency
         setTasks(prevTasks => {
           return prevTasks.map(task => {
             if (task.id === targetId) {
@@ -375,8 +430,8 @@ export function useTasks() {
         return true;
       }
 
-      // Check for cycles using the iterative approach
-      const hasCycle = wouldCreateCycle(sourceId, targetId);
+      // Check for cycles using our iterative approach
+      const hasCycle = detectCycle(sourceId, targetId);
       if (hasCycle) {
         toast({
           title: "Erro ao criar dependência",
@@ -386,7 +441,7 @@ export function useTasks() {
         return false;
       }
       
-      // 2. Inserir a dependência
+      // Insert the dependency
       const { data, error } = await supabase
         .from('task_dependencies')
         .insert({
@@ -403,7 +458,7 @@ export function useTasks() {
       
       console.log("Dependência criada com sucesso:", data);
       
-      // 3. Atualizar tarefas localmente
+      // Update local tasks
       setTasks(prevTasks => {
         return prevTasks.map(task => {
           if (task.id === targetId) {
@@ -429,51 +484,6 @@ export function useTasks() {
       });
       return false;
     }
-  }
-
-  // Completely new non-recursive cycle detection function
-  function wouldCreateCycle(sourceId: string, targetId: string): boolean {
-    // Build a dependency map for easy traversal
-    const dependencyMap = new Map<string, string[]>();
-    
-    // Initialize the map with all tasks
-    tasks.forEach(task => {
-      dependencyMap.set(task.id, task.dependencies || []);
-    });
-    
-    // Add the potential new dependency to check if it would create a cycle
-    const targetDeps = dependencyMap.get(targetId) || [];
-    dependencyMap.set(targetId, [...targetDeps, sourceId]);
-    
-    // Use a stack for iterative DFS traversal
-    const stack: string[] = [sourceId];
-    const visited = new Set<string>();
-    
-    while (stack.length > 0) {
-      const currentId = stack.pop()!;
-      
-      // If we've reached the source again through some path, we have a cycle
-      if (currentId === targetId) {
-        return true;
-      }
-      
-      if (!visited.has(currentId)) {
-        visited.add(currentId);
-        
-        // Get dependencies of the current task
-        const dependencies = dependencyMap.get(currentId) || [];
-        
-        // Add unvisited dependencies to the stack
-        for (const depId of dependencies) {
-          if (!visited.has(depId)) {
-            stack.push(depId);
-          }
-        }
-      }
-    }
-    
-    // No cycle found
-    return false;
   }
 
   // Função para modificar várias tarefas de uma vez (usado na importação)
