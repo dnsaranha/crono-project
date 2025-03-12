@@ -335,50 +335,58 @@ export function useTasks() {
     }
   }
   
-  // Complete rewrite of cycle detection with iterative approach
+  // Completely rewritten cycle detection to avoid deep recursion
   function wouldCreateCycle(sourceId: string, targetId: string): boolean {
-    // Build a dependency map for all tasks
-    const dependencyMap = new Map<string, string[]>();
+    // Use an iterative approach to build the dependency graph
+    const graph = new Map<string, Set<string>>();
     
-    // Initialize the map with empty arrays for all tasks
+    // Initialize an empty graph
     tasks.forEach(task => {
-      dependencyMap.set(task.id, []);
+      graph.set(task.id, new Set<string>());
     });
     
-    // Populate the map with current dependencies
+    // Populate the graph with existing dependencies
     tasks.forEach(task => {
       if (task.dependencies && task.dependencies.length > 0) {
         task.dependencies.forEach(depId => {
-          const dependents = dependencyMap.get(depId) || [];
-          dependents.push(task.id);
-          dependencyMap.set(depId, dependents);
+          const dependents = graph.get(depId);
+          if (dependents) {
+            dependents.add(task.id);
+          }
         });
       }
     });
     
-    // Add the potential new dependency
-    const dependents = dependencyMap.get(sourceId) || [];
-    dependents.push(targetId);
-    dependencyMap.set(sourceId, dependents);
+    // Add the proposed new dependency to the graph
+    const sourceDependents = graph.get(sourceId);
+    if (sourceDependents) {
+      sourceDependents.add(targetId);
+    }
     
-    // Use a stack for DFS instead of recursion
+    // Use breadth-first search to detect cycles
+    const queue: string[] = [targetId];
     const visited = new Set<string>();
-    const stack: string[] = [targetId];
     
-    while (stack.length > 0) {
-      const current = stack.pop()!;
+    while (queue.length > 0) {
+      const current = queue.shift()!;
       
       if (current === sourceId) {
-        // Cycle detected - we found a path back to the source
+        // Found a path back to the source - cycle detected
         return true;
       }
       
       if (!visited.has(current)) {
         visited.add(current);
         
-        // Add all dependents of the current task to the stack
-        const currentDependents = dependencyMap.get(current) || [];
-        stack.push(...currentDependents);
+        // Add all dependents of the current task to the queue
+        const currentDependents = graph.get(current);
+        if (currentDependents) {
+          for (const dependent of currentDependents) {
+            if (!visited.has(dependent)) {
+              queue.push(dependent);
+            }
+          }
+        }
       }
     }
     
@@ -386,7 +394,7 @@ export function useTasks() {
     return false;
   }
 
-  // Modified createDependency function to use the new cycle detection
+  // Simplified createDependency function that uses the new cycle detection
   async function createDependency(sourceId: string, targetId: string) {
     try {
       console.log("Criando dependência:", sourceId, "->", targetId);
