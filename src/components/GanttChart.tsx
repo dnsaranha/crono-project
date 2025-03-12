@@ -501,7 +501,7 @@ const GanttChart = ({
                   <Task 
                     task={task}
                     style={getTaskStyle(task)}
-                    onClick={handleTaskClick}
+                    onClick={() => handleTaskClick(task)}
                     onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
                     onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
                     cellWidth={actualCellWidth}
