@@ -335,14 +335,14 @@ export function useTasks() {
     }
   }
   
-  // Completely rewrite cycle detection to use an iterative approach
+  // Completely rewrite cycle detection to use an iterative approach that avoids deep type instantiation
   function detectCyclicDependency(sourceId: string, targetId: string): boolean {
-    // Create a dependency map for efficient traversal
-    const dependencyMap: Record<string, string[]> = {};
+    // Create a dependency map to represent the graph
+    const dependencyMap = new Map<string, string[]>();
     
-    // Initialize the map
+    // Initialize the map for all tasks
     tasks.forEach(task => {
-      dependencyMap[task.id] = [];
+      dependencyMap.set(task.id, []);
     });
     
     // Fill the map with current dependencies (in reverse for easier traversal)
@@ -350,16 +350,18 @@ export function useTasks() {
     tasks.forEach(task => {
       if (task.dependencies) {
         task.dependencies.forEach(depId => {
-          if (dependencyMap[depId]) {
-            dependencyMap[depId].push(task.id);
+          const dependents = dependencyMap.get(depId);
+          if (dependents) {
+            dependents.push(task.id);
           }
         });
       }
     });
     
-    // Add the potential new dependency
-    if (dependencyMap[sourceId]) {
-      dependencyMap[sourceId].push(targetId);
+    // Add the potential new dependency for checking
+    const sourceDependents = dependencyMap.get(sourceId);
+    if (sourceDependents) {
+      sourceDependents.push(targetId);
     }
     
     // Use a stack-based DFS approach to detect cycles
@@ -378,7 +380,7 @@ export function useTasks() {
         visited.add(currentNode);
         
         // Add all direct dependents to the stack
-        const dependents = dependencyMap[currentNode] || [];
+        const dependents = dependencyMap.get(currentNode) || [];
         for (const dependent of dependents) {
           if (!visited.has(dependent)) {
             stack.push(dependent);
