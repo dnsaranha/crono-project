@@ -48,10 +48,6 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-8">
-        <h2 className="text-xl sm:text-2xl font-bold">Projeto de <a href="https://github.com/dnsaranha">dnsaranha</a></h2>
-        <p>Nível de acesso: {accessLevel}</p>
-      </div>
       {showProfile ? (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -74,7 +70,7 @@ export default function Dashboard() {
               Visualizar Perfil
             </Button>
           </div>
-          <ProjectList />
+          <ProjectList ownerName="dnsaranha" accessLevel={accessLevel} />
         </div>
       )}
     </div>
