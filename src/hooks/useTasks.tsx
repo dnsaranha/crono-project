@@ -20,21 +20,22 @@ export function useTasks() {
     try {
       setLoading(true);
       
-      // Buscar tarefas do projeto no Supabase
-      const { data, error } = await supabase
+      // Split the queries to avoid complex type instantiation
+      // First, fetch basic task data
+      const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (taskError) throw taskError;
       
-      if (!data || data.length === 0) {
+      if (!taskData || taskData.length === 0) {
         setTasks([]);
         return;
       }
       
-      // Buscar dependências de tarefas
+      // Separately fetch dependencies
       const { data: dependencies, error: depError } = await supabase
         .from('task_dependencies')
         .select('*')
@@ -44,27 +45,28 @@ export function useTasks() {
         console.error("Erro ao carregar dependências:", depError);
       }
       
-      // Buscar assignees para as tarefas
+      // Separately fetch assignees
       const { data: assignees, error: assigneeError } = await supabase
         .from('task_assignees')
         .select('task_id, user_id')
-        .in('task_id', data.map(t => t.id));
+        .in('task_id', taskData.map(t => t.id));
         
       if (assigneeError) {
         console.error("Erro ao carregar responsáveis:", assigneeError);
       }
       
-      // Mapear as tarefas para o formato esperado pelo componente
-      const mappedTasks: TaskType[] = data.map(task => {
-        // Encontrar todas as dependências para esta tarefa
-        const taskDeps = dependencies?.filter(dep => dep.successor_id === task.id) || [];
+      // Map tasks with simple object assignment to avoid deep type recursion
+      const mappedTasks: TaskType[] = taskData.map(task => {
+        // Find dependencies for this task using simple array methods
+        const taskDeps = dependencies ? dependencies.filter(dep => dep.successor_id === task.id) : [];
         
-        // Encontrar todos os responsáveis para esta tarefa
-        const taskAssignees = assignees?.filter(assign => assign.task_id === task.id) || [];
+        // Find assignees for this task using simple array methods
+        const taskAssignees = assignees ? assignees.filter(assign => assign.task_id === task.id) : [];
         
         // Cast priority to the correct type
         const priority = task.priority !== undefined ? (task.priority as 1 | 2 | 3 | 4 | 5) : 3;
         
+        // Create the task object with explicit typing
         return {
           id: task.id,
           name: task.name,
