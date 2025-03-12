@@ -335,33 +335,33 @@ export function useTasks() {
     }
   }
   
-  // New non-recursive cycle detection implementation
-  function detectCycle(sourceId: string, targetId: string): boolean {
-    // Build adjacency list for graph traversal
-    const adjacencyList = new Map<string, string[]>();
+  // Complete rewrite of cycle detection with iterative approach
+  function wouldCreateCycle(sourceId: string, targetId: string): boolean {
+    // Build a dependency map for all tasks
+    const dependencyMap = new Map<string, string[]>();
     
-    // Initialize with all tasks
+    // Initialize the map with empty arrays for all tasks
     tasks.forEach(task => {
-      adjacencyList.set(task.id, []);
+      dependencyMap.set(task.id, []);
     });
     
-    // Add all existing dependencies
+    // Populate the map with current dependencies
     tasks.forEach(task => {
-      if (task.dependencies) {
+      if (task.dependencies && task.dependencies.length > 0) {
         task.dependencies.forEach(depId => {
-          const successors = adjacencyList.get(depId) || [];
-          successors.push(task.id);
-          adjacencyList.set(depId, successors);
+          const dependents = dependencyMap.get(depId) || [];
+          dependents.push(task.id);
+          dependencyMap.set(depId, dependents);
         });
       }
     });
     
     // Add the potential new dependency
-    const successors = adjacencyList.get(sourceId) || [];
-    successors.push(targetId);
-    adjacencyList.set(sourceId, successors);
+    const dependents = dependencyMap.get(sourceId) || [];
+    dependents.push(targetId);
+    dependencyMap.set(sourceId, dependents);
     
-    // Use iterative DFS to check for cycles
+    // Use a stack for DFS instead of recursion
     const visited = new Set<string>();
     const stack: string[] = [targetId];
     
@@ -369,20 +369,16 @@ export function useTasks() {
       const current = stack.pop()!;
       
       if (current === sourceId) {
-        // We found a path back to the source - cycle detected
+        // Cycle detected - we found a path back to the source
         return true;
       }
       
       if (!visited.has(current)) {
         visited.add(current);
         
-        // Add all unvisited successors to the stack
-        const currentSuccessors = adjacencyList.get(current) || [];
-        for (const successor of currentSuccessors) {
-          if (!visited.has(successor)) {
-            stack.push(successor);
-          }
-        }
+        // Add all dependents of the current task to the stack
+        const currentDependents = dependencyMap.get(current) || [];
+        stack.push(...currentDependents);
       }
     }
     
@@ -390,7 +386,7 @@ export function useTasks() {
     return false;
   }
 
-  // Completely rewritten createDependency function
+  // Modified createDependency function to use the new cycle detection
   async function createDependency(sourceId: string, targetId: string) {
     try {
       console.log("Criando dependência:", sourceId, "->", targetId);
@@ -431,8 +427,7 @@ export function useTasks() {
       }
 
       // Check for cycles using our iterative approach
-      const hasCycle = detectCycle(sourceId, targetId);
-      if (hasCycle) {
+      if (wouldCreateCycle(sourceId, targetId)) {
         toast({
           title: "Erro ao criar dependência",
           description: "Não é possível criar dependências circulares",
