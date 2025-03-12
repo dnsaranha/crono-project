@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserProfile } from "@/components/UserProfile";
@@ -9,32 +8,35 @@ import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [accessLevel, setAccessLevel] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get current user
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
+
       if (!user) {
         navigate('/auth');
+      } else {
+        // Assuming you have a function to get the user's access level
+        const userAccessLevel = await getUserAccessLevel(user.id);
+        setAccessLevel(userAccessLevel);
       }
     };
-    
+
     getUser();
-    
-    // Listen for auth changes
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user || null);
-        
+
         if (event === 'SIGNED_OUT') {
           navigate('/auth');
         }
       }
     );
-    
+
     return () => {
       subscription.unsubscribe();
     };
@@ -46,6 +48,10 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      <div className="mb-8">
+        <h2 className="text-xl sm:text-2xl font-bold">Projeto de <a href="https://github.com/dnsaranha">dnsaranha</a></h2>
+        <p>Nível de acesso: {accessLevel}</p>
+      </div>
       {showProfile ? (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -73,4 +79,10 @@ export default function Dashboard() {
       )}
     </div>
   );
+}
+
+// Placeholder function to get user's access level
+async function getUserAccessLevel(userId) {
+  // Implement the logic to get the access level from GitHub or your backend
+  return "leitura";  // Example access level
 }
