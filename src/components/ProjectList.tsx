@@ -196,8 +196,7 @@ export function ProjectList() {
               <CardFooter className="flex justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center text-muted-foreground text-sm">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {formatDate(project.created_at)}
+                    
                   </div>
                 </div>
                 
