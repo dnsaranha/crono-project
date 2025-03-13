@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProjectPro - Gerenciamento de Projetos</title>
+    <title>CronoProject - Gerenciamento de Cronogramas</title>
     <meta name="description" content="Solução completa para gerenciamento de projetos com cronogramas, WBS e gráficos de Gantt" />
     <meta name="author" content="Denis Aranha" />
     <meta property="og:image" content="/og-image.png" />
@@ -15,12 +15,15 @@
     <header>
       <nav class="navbar">
         <div class="container">
-          <div class="logo">ProjectPro</div>
+          <div class="logo">
+            <img src="/src/assets/logo-cronoproject.png" alt="CronoProject Logo" class="logo-img">
+            <span>CronoProject</span>
+          </div>
           <ul class="nav-links">
             <li><a href="#recursos">Recursos</a></li>
             <li><a href="#planos">Planos</a></li>
             <li><a href="#contato">Contato</a></li>
-            <li><a href="/login" class="btn btn-outline">Entrar</a></li>
+            <li><button id="loginBtn" class="btn btn-outline">Entrar</button></li>
             <li><a href="/signup" class="btn btn-primary">Cadastrar</a></li>
           </ul>
           <div class="hamburger">
@@ -32,18 +35,119 @@
       </nav>
     </header>
 
+    <!-- Modal de Login -->
+    <div id="loginModal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <div class="login-container">
+          <h2>Acessar CronoProject</h2>
+          <ul class="tab-nav">
+            <li class="tab-item active" data-tab="login">Login</li>
+            <li class="tab-item" data-tab="register">Cadastro</li>
+          </ul>
+          
+          <div class="tab-content active" id="login-tab">
+            <form class="login-form">
+              <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required>
+              </div>
+              <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+              </div>
+              <div class="form-checkbox">
+                <input type="checkbox" id="remember">
+                <label for="remember">Lembrar-me</label>
+                <a href="#" class="forgot-link">Esqueceu a senha?</a>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+            </form>
+          </div>
+          
+          <div class="tab-content" id="register-tab">
+            <form class="register-form">
+              <div class="form-group">
+                <label for="name">Nome completo</label>
+                <input type="text" id="name" required>
+              </div>
+              <div class="form-group">
+                <label for="reg-email">E-mail</label>
+                <input type="email" id="reg-email" required>
+              </div>
+              <div class="form-group">
+                <label for="reg-password">Senha</label>
+                <input type="password" id="reg-password" required>
+              </div>
+              <div class="form-group">
+                <label for="confirm-password">Confirmar senha</label>
+                <input type="password" id="confirm-password" required>
+              </div>
+              <div class="form-checkbox">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">Concordo com os <a href="#">Termos de Uso</a></label>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <section class="hero">
       <div class="container">
         <div class="hero-content">
-          <h1>Gerencie seus projetos com eficiência</h1>
-          <p>Cronogramas, WBS e gráficos de Gantt em uma única plataforma intuitiva</p>
+          <h1>Gerencie seus cronogramas com eficiência</h1>
+          <p>Planejamento, WBS e gráficos de Gantt integrados em uma plataforma intuitiva</p>
           <div class="hero-buttons">
             <a href="/signup" class="btn btn-primary btn-lg">Comece Grátis</a>
             <a href="#demo" class="btn btn-outline btn-lg">Ver Demo</a>
           </div>
         </div>
         <div class="hero-image">
-          <img src="/src/assets/hero-dashboard.png" alt="Dashboard ProjectPro">
+          <img src="/src/assets/cronoproject-dashboard.png" alt="Dashboard CronoProject">
+        </div>
+      </div>
+    </section>
+
+    <section id="exemplos" class="examples">
+      <div class="container">
+        <h2 class="section-title">Exemplos de Uso</h2>
+        <p class="section-subtitle">Veja como o CronoProject transforma o gerenciamento de projetos</p>
+        
+        <div class="examples-slider">
+          <div class="slider-container">
+            <div class="slider-item">
+              <img src="/src/assets/exemplo-gantt.png" alt="Exemplo de Gráfico de Gantt">
+              <div class="slider-caption">
+                <h3>Gráfico de Gantt</h3>
+                <p>Visualize o cronograma completo com dependências e caminho crítico</p>
+              </div>
+            </div>
+            <div class="slider-item">
+              <img src="/src/assets/exemplo-wbs.png" alt="Exemplo de WBS">
+              <div class="slider-caption">
+                <h3>Estrutura Analítica do Projeto (WBS)</h3>
+                <p>Organize as entregas e pacotes de trabalho hierarquicamente</p>
+              </div>
+            </div>
+            <div class="slider-item">
+              <img src="/src/assets/exemplo-dashboard.png" alt="Exemplo de Dashboard">
+              <div class="slider-caption">
+                <h3>Dashboard de Projetos</h3>
+                <p>Acompanhe o progresso de todos os seus projetos em um só lugar</p>
+              </div>
+            </div>
+          </div>
+          <div class="slider-controls">
+            <button class="slider-prev"><i class="fas fa-chevron-left"></i></button>
+            <div class="slider-dots">
+              <span class="dot active"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <button class="slider-next"><i class="fas fa-chevron-right"></i></button>
+          </div>
         </div>
       </div>
     </section>
@@ -55,22 +159,22 @@
           <div class="feature-card">
             <i class="fas fa-chart-gantt"></i>
             <h3>Gráfico de Gantt</h3>
-            <p>Visualize seu projeto em uma linha do tempo intuitiva</p>
+            <p>Visualize seu projeto em uma linha do tempo intuitiva com dependências entre tarefas</p>
           </div>
           <div class="feature-card">
             <i class="fas fa-sitemap"></i>
             <h3>WBS</h3>
-            <p>Estruture seu trabalho em pacotes gerenciáveis</p>
+            <p>Estruture seu trabalho em pacotes gerenciáveis e mantenha tudo organizado</p>
           </div>
           <div class="feature-card">
             <i class="fas fa-users"></i>
             <h3>Colaboração</h3>
-            <p>Trabalhe em equipe em tempo real</p>
+            <p>Trabalhe em equipe em tempo real e distribua atividades</p>
           </div>
           <div class="feature-card">
             <i class="fas fa-chart-line"></i>
             <h3>Relatórios</h3>
-            <p>Visualize o progresso com relatórios personalizados</p>
+            <p>Visualize o progresso com relatórios personalizados e gráficos analíticos</p>
           </div>
         </div>
       </div>
@@ -95,7 +199,7 @@
                 <li><i class="fas fa-check"></i> 100MB de armazenamento por usuário</li>
                 <li><i class="fas fa-check"></i> Recursos básicos de cronograma</li>
                 <li><i class="fas fa-check"></i> WBS básico</li>
-                <li><i class="fas fa-check"></i> Gráfico de Gantt básico</li>
+                <li><i class="fas fa-check"></i> Gráfico de Gantt sem edição avançada</li>
               </ul>
             </div>
             <div class="pricing-cta">
@@ -183,10 +287,54 @@
       </div>
     </section>
 
+    <section class="testimonials">
+      <div class="container">
+        <h2 class="section-title">O que nossos clientes dizem</h2>
+        <div class="testimonial-grid">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"O CronoProject transformou completamente a forma como gerenciamos nossos projetos. A visualização clara do Gantt nos ajudou a identificar e resolver gargalos."</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="/src/assets/profile1.jpg" alt="Foto de perfil">
+              <div>
+                <h4>Mariana Silva</h4>
+                <p>Gerente de Projetos, TechBuild</p>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"A versão Premium vale cada centavo. As integrações com outras ferramentas que já usamos economizaram horas de trabalho para nossa equipe."</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="/src/assets/profile2.jpg" alt="Foto de perfil">
+              <div>
+                <h4>Carlos Mendes</h4>
+                <p>Diretor de Operações, Construx</p>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"Mesmo no plano gratuito, o CronoProject oferece mais funcionalidades do que outras ferramentas pagas que testamos. Interface excelente!"</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="/src/assets/profile3.jpg" alt="Foto de perfil">
+              <div>
+                <h4>Juliana Costa</h4>
+                <p>CEO, Startup Inovare</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="cta" class="cta-section">
       <div class="container">
-        <h2>Pronto para revolucionar seu gerenciamento de projetos?</h2>
-        <p>Junte-se a milhares de profissionais e equipes que já otimizaram sua produtividade</p>
+        <h2>Pronto para revolucionar seus cronogramas?</h2>
+        <p>Junte-se a milhares de profissionais que já otimizaram a gestão de seus projetos</p>
         <div class="cta-buttons">
           <a href="/signup" class="btn btn-primary btn-lg">Comece Grátis</a>
           <a href="#contato" class="btn btn-outline btn-lg">Fale com um Consultor</a>
@@ -198,8 +346,11 @@
       <div class="container">
         <div class="footer-grid">
           <div class="footer-col">
-            <div class="footer-logo">ProjectPro</div>
-            <p>Solução completa para gerenciamento de projetos e cronogramas.</p>
+            <div class="footer-logo">
+              <img src="/src/assets/logo-cronoproject-white.png" alt="CronoProject Logo" class="logo-img-small">
+              <span>CronoProject</span>
+            </div>
+            <p>Solução completa para gerenciamento de cronogramas de projetos.</p>
           </div>
           <div class="footer-col">
             <h4>Produto</h4>
@@ -214,7 +365,7 @@
             <ul>
               <li><a href="/sobre">Sobre nós</a></li>
               <li><a href="/blog">Blog</a></li>
-              <li><a href="/carreiras">Carreiras</a></li>
+              <li><a href="/cases">Casos de Sucesso</a></li>
             </ul>
           </div>
           <div class="footer-col">
@@ -227,7 +378,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; 2023 ProjectPro. Todos os direitos reservados.</p>
+          <p>&copy; 2023 CronoProject. Todos os direitos reservados.</p>
           <div class="footer-links">
             <a href="/termos">Termos de Uso</a>
             <a href="/privacidade">Política de Privacidade</a>
@@ -246,6 +397,70 @@
         document.querySelector('.nav-links').classList.toggle('active');
         this.classList.toggle('active');
       });
+      
+      // Script para o modal de login
+      const modal = document.getElementById('loginModal');
+      const loginBtn = document.getElementById('loginBtn');
+      const closeBtn = document.querySelector('.close-modal');
+      
+      loginBtn.addEventListener('click', function() {
+        modal.style.display = 'block';
+      });
+      
+      closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+      
+      window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+          modal.style.display = 'none';
+        }
+      });
+      
+      // Tabs para login/cadastro
+      const tabItems = document.querySelectorAll('.tab-item');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const tabId = this.getAttribute('data-tab');
+          
+          // Remove active class from all tabs
+          tabItems.forEach(tab => tab.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Add active class to current tab
+          this.classList.add('active');
+          document.getElementById(tabId + '-tab').classList.add('active');
+        });
+      });
+      
+      // Slider para exemplos
+      const slides = document.querySelectorAll('.slider-item');
+      const dots = document.querySelectorAll('.dot');
+      const prevBtn = document.querySelector('.slider-prev');
+      const nextBtn = document.querySelector('.slider-next');
+      let currentSlide = 0;
+      
+      function showSlide(n) {
+        slides.forEach(slide => slide.style.display = 'none');
+        dots.forEach(dot => dot.classList.remove('active'));
+        
+        currentSlide = (n + slides.length) % slides.length;
+        
+        slides[currentSlide].style.display = 'block';
+        dots[currentSlide].classList.add('active');
+      }
+      
+      prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+      nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
+      
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => showSlide(index));
+      });
+      
+      // Inicializa o slider
+      showSlide(0);
     </script>
   </body>
 </html>
