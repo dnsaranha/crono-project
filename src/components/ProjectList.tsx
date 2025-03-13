@@ -187,7 +187,7 @@ export function ProjectList() {
                   </p>
                   <p>
                     <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {getRoleLabel(project.role || 'viewer')}
+                       Seu acesso: {getRoleLabel(project.role || 'viewer')}
                     </span>
                   </p>
                 </div>
