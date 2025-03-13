@@ -14,9 +14,14 @@ interface Project {
   description: string;
   created_at: string;
   owner_id: string;
+  owner?: {
+    full_name: string | null;
+    email: string;
+  };
+  role?: string;
 }
 
-export function ProjectList({ ownerName, accessLevel }) {
+export function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -56,33 +61,53 @@ export function ProjectList({ ownerName, accessLevel }) {
         return;
       }
       
-      // Fetch owned projects
+      // Fetch owned projects with owner profile info
       const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          owner:profiles!projects_owner_id_fkey (
+            full_name,
+            email
+          )
+        `)
         .eq('owner_id', user.id);
         
       if (ownedError) throw ownedError;
       
-      // Fetch member projects
+      // Add role 'owner' to owned projects
+      const ownedProjectsWithRole = ownedProjects.map(project => ({
+        ...project,
+        role: 'owner'
+      }));
+      
+      // Fetch member projects with owner profile info and role
       const { data: memberProjects, error: memberError } = await supabase
         .from('project_members')
         .select(`
-          project_id,
-          projects:project_id (*)
+          role,
+          project:projects (
+            *,
+            owner:profiles!projects_owner_id_fkey (
+              full_name,
+              email
+            )
+          )
         `)
         .eq('user_id', user.id);
         
       if (memberError) throw memberError;
       
-      // Combine results
-      const memberProjectList = memberProjects
-        .map(item => item.projects)
-        .filter(Boolean) as Project[];
+      // Format member projects
+      const memberProjectsFormatted = memberProjects
+        .filter(item => item.project) // Filter out any null projects
+        .map(item => ({
+          ...item.project,
+          role: item.role
+        }));
       
-      const allProjects = [...(ownedProjects || []), ...memberProjectList];
-      
-      // Remove duplicates based on ID
+      // Combine and remove duplicates
+      const allProjects = [...ownedProjectsWithRole, ...memberProjectsFormatted];
       const uniqueProjects = Array.from(
         new Map(allProjects.map(item => [item.id, item])).values()
       );
@@ -102,6 +127,21 @@ export function ProjectList({ ownerName, accessLevel }) {
   function formatDate(dateString: string) {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
+  }
+  
+  function getRoleLabel(role: string) {
+    switch (role) {
+      case 'owner':
+        return 'Proprietário';
+      case 'admin':
+        return 'Administrador';
+      case 'editor':
+        return 'Editor';
+      case 'viewer':
+        return 'Visualizador';
+      default:
+        return 'Membro';
+    }
   }
 
   return (
@@ -137,20 +177,25 @@ export function ProjectList({ ownerName, accessLevel }) {
               </CardHeader>
               
               <CardContent>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground mb-4">
                   {project.description || "Sem descrição"}
                 </p>
-                <p className="text-gray-600">
-                  Projeto de <a href={`https://github.com/${ownerName}`}>{ownerName}</a>
-                </p>
-                <p className="text-gray-600">
-                  Nível de acesso: {accessLevel}
-                </p>
+                
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">
+                    Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+                  </p>
+                  <p>
+                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                      {getRoleLabel(project.role || 'viewer')}
+                    </span>
+                  </p>
+                </div>
               </CardContent>
               
               <CardFooter className="flex justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center text-gray-500 text-sm">
+                  <div className="flex items-center text-muted-foreground text-sm">
                     <Calendar className="h-4 w-4 mr-1" />
                     {formatDate(project.created_at)}
                   </div>
