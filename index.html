@@ -1,18 +1,251 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cronograma de Projetos</title>
-    <meta name="description" content="dnsaranha's" />
+    <title>ProjectPro - Gerenciamento de Projetos</title>
+    <meta name="description" content="Solução completa para gerenciamento de projetos com cronogramas, WBS e gráficos de Gantt" />
     <meta name="author" content="Denis Aranha" />
     <meta property="og:image" content="/og-image.png" />
+    <link rel="stylesheet" href="/src/styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   </head>
 
   <body>
+    <header>
+      <nav class="navbar">
+        <div class="container">
+          <div class="logo">ProjectPro</div>
+          <ul class="nav-links">
+            <li><a href="#recursos">Recursos</a></li>
+            <li><a href="#planos">Planos</a></li>
+            <li><a href="#contato">Contato</a></li>
+            <li><a href="/login" class="btn btn-outline">Entrar</a></li>
+            <li><a href="/signup" class="btn btn-primary">Cadastrar</a></li>
+          </ul>
+          <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>Gerencie seus projetos com eficiência</h1>
+          <p>Cronogramas, WBS e gráficos de Gantt em uma única plataforma intuitiva</p>
+          <div class="hero-buttons">
+            <a href="/signup" class="btn btn-primary btn-lg">Comece Grátis</a>
+            <a href="#demo" class="btn btn-outline btn-lg">Ver Demo</a>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img src="/src/assets/hero-dashboard.png" alt="Dashboard ProjectPro">
+        </div>
+      </div>
+    </section>
+
+    <section id="recursos" class="features">
+      <div class="container">
+        <h2 class="section-title">Recursos Principais</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <i class="fas fa-chart-gantt"></i>
+            <h3>Gráfico de Gantt</h3>
+            <p>Visualize seu projeto em uma linha do tempo intuitiva</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-sitemap"></i>
+            <h3>WBS</h3>
+            <p>Estruture seu trabalho em pacotes gerenciáveis</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-users"></i>
+            <h3>Colaboração</h3>
+            <p>Trabalhe em equipe em tempo real</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-chart-line"></i>
+            <h3>Relatórios</h3>
+            <p>Visualize o progresso com relatórios personalizados</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="planos" class="pricing">
+      <div class="container">
+        <h2 class="section-title">Nossos Planos</h2>
+        <p class="section-subtitle">Escolha o plano ideal para suas necessidades</p>
+        
+        <div class="pricing-cards">
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <h3>Free</h3>
+              <p class="price">R$ 0<span>/mês</span></p>
+              <p class="subtitle">Para pequenos times e projetos simples</p>
+            </div>
+            <div class="pricing-features">
+              <ul>
+                <li><i class="fas fa-check"></i> Máximo de 3 projetos ativos</li>
+                <li><i class="fas fa-check"></i> Até 5 usuários por projeto</li>
+                <li><i class="fas fa-check"></i> 100MB de armazenamento por usuário</li>
+                <li><i class="fas fa-check"></i> Recursos básicos de cronograma</li>
+                <li><i class="fas fa-check"></i> WBS básico</li>
+                <li><i class="fas fa-check"></i> Gráfico de Gantt básico</li>
+              </ul>
+            </div>
+            <div class="pricing-cta">
+              <a href="/signup" class="btn btn-outline btn-block">Começar Grátis</a>
+            </div>
+          </div>
+          
+          <div class="pricing-card featured">
+            <div class="pricing-badge">Popular</div>
+            <div class="pricing-header">
+              <h3>Premium</h3>
+              <p class="price">R$ 49<span>/mês</span></p>
+              <p class="subtitle">Para equipes e projetos complexos</p>
+            </div>
+            <div class="pricing-features">
+              <ul>
+                <li><i class="fas fa-check"></i> Projetos ilimitados</li>
+                <li><i class="fas fa-check"></i> Usuários ilimitados por projeto</li>
+                <li><i class="fas fa-check"></i> 5GB de armazenamento por usuário</li>
+                <li><i class="fas fa-check"></i> Personalização avançada do Gantt</li>
+                <li><i class="fas fa-check"></i> Integrações (Google Drive, Trello, Jira)</li>
+                <li><i class="fas fa-check"></i> Relatórios e dashboards avançados</li>
+                <li><i class="fas fa-check"></i> Suporte prioritário</li>
+              </ul>
+            </div>
+            <div class="pricing-cta">
+              <a href="/signup?plan=premium" class="btn btn-primary btn-block">Teste Grátis por 14 dias</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="comparativo" class="comparison">
+      <div class="container">
+        <h2 class="section-title">Comparativo de Planos</h2>
+        <div class="table-responsive">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Recursos</th>
+                <th>Free</th>
+                <th>Premium</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Projetos</td>
+                <td>3 máximo</td>
+                <td>Ilimitado</td>
+              </tr>
+              <tr>
+                <td>Usuários por projeto</td>
+                <td>5 máximo</td>
+                <td>Ilimitado</td>
+              </tr>
+              <tr>
+                <td>Armazenamento</td>
+                <td>100MB por usuário</td>
+                <td>5GB por usuário</td>
+              </tr>
+              <tr>
+                <td>Gráfico de Gantt avançado</td>
+                <td><i class="fas fa-times"></i></td>
+                <td><i class="fas fa-check"></i></td>
+              </tr>
+              <tr>
+                <td>Integrações</td>
+                <td><i class="fas fa-times"></i></td>
+                <td><i class="fas fa-check"></i></td>
+              </tr>
+              <tr>
+                <td>Relatórios avançados</td>
+                <td><i class="fas fa-times"></i></td>
+                <td><i class="fas fa-check"></i></td>
+              </tr>
+              <tr>
+                <td>Suporte prioritário</td>
+                <td><i class="fas fa-times"></i></td>
+                <td><i class="fas fa-check"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="cta" class="cta-section">
+      <div class="container">
+        <h2>Pronto para revolucionar seu gerenciamento de projetos?</h2>
+        <p>Junte-se a milhares de profissionais e equipes que já otimizaram sua produtividade</p>
+        <div class="cta-buttons">
+          <a href="/signup" class="btn btn-primary btn-lg">Comece Grátis</a>
+          <a href="#contato" class="btn btn-outline btn-lg">Fale com um Consultor</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="footer-logo">ProjectPro</div>
+            <p>Solução completa para gerenciamento de projetos e cronogramas.</p>
+          </div>
+          <div class="footer-col">
+            <h4>Produto</h4>
+            <ul>
+              <li><a href="#recursos">Recursos</a></li>
+              <li><a href="#planos">Planos e Preços</a></li>
+              <li><a href="/roadmap">Roadmap</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Empresa</h4>
+            <ul>
+              <li><a href="/sobre">Sobre nós</a></li>
+              <li><a href="/blog">Blog</a></li>
+              <li><a href="/carreiras">Carreiras</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Suporte</h4>
+            <ul>
+              <li><a href="/ajuda">Central de Ajuda</a></li>
+              <li><a href="/contato">Contato</a></li>
+              <li><a href="/status">Status</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2023 ProjectPro. Todos os direitos reservados.</p>
+          <div class="footer-links">
+            <a href="/termos">Termos de Uso</a>
+            <a href="/privacidade">Política de Privacidade</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Script para o menu hamburguer mobile
+      document.querySelector('.hamburger').addEventListener('click', function() {
+        document.querySelector('.nav-links').classList.toggle('active');
+        this.classList.toggle('active');
+      });
+    </script>
   </body>
 </html>
