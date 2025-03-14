@@ -153,52 +153,52 @@ export function ProjectList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <Card 
-                key={project.id} 
-                className="project-card overflow-hidden flex flex-col"
+              <Link 
+                to={`/project/${project.id}/gantt`} 
+                className="block hover:no-underline" 
+                key={project.id}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl text-foreground">
-                    <Link to={`/project/${project.id}/gantt`} className="hover:text-primary transition-colors">
+                <Card 
+                  className="project-card overflow-hidden flex flex-col h-full cursor-pointer hover:scale-[1.01] transition-all"
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xl text-foreground hover:text-primary transition-colors">
                       {project.name}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription className="flex items-center text-muted-foreground gap-2">
-                    <Calendar className="h-3.5 w-3.5" />
-                    Criado em {new Date(project.created_at).toLocaleDateString('pt-BR')}
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent className="pb-2 flex-grow">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {project.description || "Sem descrição."}
-                  </p>
+                    </CardTitle>
+                    <CardDescription className="flex items-center text-muted-foreground gap-2">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Criado em {new Date(project.created_at).toLocaleDateString('pt-BR')}
+                    </CardDescription>
+                  </CardHeader>
                   
-                  <div className="mt-4">
-                    <p className="text-sm mb-1">
-                      Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+                  <CardContent className="pb-2 flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {project.description || "Sem descrição."}
                     </p>
-                    <span className="access-tag inline-block px-2 py-1 rounded-full text-xs font-medium">
-                      Seu acesso: {project.role === 'owner' ? 'Proprietário' : 
-                                  project.role === 'admin' ? 'Administrador' : 
-                                  project.role === 'editor' ? 'Editor' : 'Visualizador'}
-                    </span>
-                  </div>
-                </CardContent>
-                
-                <CardFooter className="pt-2 border-t border-border">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="visualizar-btn ml-auto"
-                    asChild
-                  >
-                    <Link to={`/project/${project.id}/gantt`}>
+                    
+                    <div className="mt-4">
+                      <p className="text-sm mb-1">
+                        Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+                      </p>
+                      <span className="access-tag inline-block px-2 py-1 rounded-full text-xs font-medium">
+                        Seu acesso: {project.role === 'owner' ? 'Proprietário' : 
+                                    project.role === 'admin' ? 'Administrador' : 
+                                    project.role === 'editor' ? 'Editor' : 'Visualizador'}
+                      </span>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-2 border-t border-border">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="visualizar-btn ml-auto"
+                    >
                       Visualizar
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
