@@ -61,18 +61,18 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="border-b bg-background">
+      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-14 items-center justify-between">
           <Link to="/dashboard" className="flex items-center">
-            <CronoLogo size="sm" />
-            <span className="ml-2 font-bold text-primary">Project</span>
+            <CronoLogo size="sm" className="text-primary" />
+            <span className="ml-2 font-bold text-foreground">Project</span>
           </Link>
           
           <div className="flex items-center gap-4">
             {/* Seletor de Tema */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-foreground">
                   {theme === 'light' && <Sun className="h-5 w-5" />}
                   {theme === 'dark' && <Moon className="h-5 w-5" />}
                   {theme === 'system' && <MonitorSmartphone className="h-5 w-5" />}
@@ -100,7 +100,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.profile?.avatar_url} alt="Avatar do usuário" />
-                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                    <AvatarFallback className="text-foreground bg-primary/10">{getInitials()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
