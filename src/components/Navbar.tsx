@@ -24,10 +24,11 @@ const Navbar = () => {
   ];
 
   return (
-    <div className="border-b">
-      <div className="flex h-16 items-center px-4 container mx-auto">
-        <Link to="/" className="flex items-center">
+    <header className="border-b bg-background">
+      <div className="container flex h-14 items-center justify-between">
+        <Link to="/dashboard" className="flex items-center">
           <CronoLogo />
+          <span className="ml-2 font-bold">Project</span>
         </Link>
         
         <div className="flex space-x-1">
@@ -66,7 +67,7 @@ const Navbar = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 
