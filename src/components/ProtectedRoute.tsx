@@ -1,51 +1,60 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { LoadingState } from '@/components/LoadingState';
+import { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import LoadingState from "@/components/LoadingState";
 
 interface ProtectedRouteProps {
-  children: ReactNode;
-  redirectPath?: string;
+  children: React.ReactNode;
 }
 
 /**
  * Componente que protege rotas para usuários autenticados
  * Redireciona para a página de login se o usuário não estiver autenticado
  */
-const ProtectedRoute = ({ children, redirectPath = '/login' }: ProtectedRouteProps) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const location = useLocation();
-
+  
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      // Verificar se o usuário está autenticado
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      
+      if (session) {
+        setUser(session.user);
+      }
+      
+      setLoading(false);
     };
-
+    
     checkAuth();
-
-    // Inscrever para atualizações da sessão
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+    
+    // Listener para mudanças na autenticação
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
     });
-
+    
     return () => {
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
   }, []);
-
-  // Estado de carregamento enquanto verifica a autenticação
-  if (isAuthenticated === null) {
-    return <LoadingState message="Verificando autenticação..." />;
+  
+  if (loading) {
+    return <LoadingState />;
   }
-
-  // Redirecionar para login se não estiver autenticado
-  if (!isAuthenticated) {
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+  
+  // Se não estiver autenticado, redirecionar para o login
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  // Renderizar o conteúdo protegido se estiver autenticado
+  
+  // Se estiver autenticado, renderizar os filhos
   return <>{children}</>;
-};
-
-export default ProtectedRoute; 
+} 

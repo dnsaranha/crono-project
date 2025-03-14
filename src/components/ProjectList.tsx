@@ -153,10 +153,10 @@ export function ProjectList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <Link 
-                to={`/project/${project.id}/gantt`} 
-                className="block hover:no-underline" 
+              <div 
                 key={project.id}
+                className="project-card-container"
+                onClick={() => navigate(`/project/${project.id}/gantt`)}
               >
                 <Card 
                   className="project-card overflow-hidden flex flex-col h-full cursor-pointer hover:scale-[1.01] transition-all"
@@ -193,12 +193,16 @@ export function ProjectList() {
                       variant="outline" 
                       size="sm" 
                       className="visualizar-btn ml-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/project/${project.id}/gantt`);
+                      }}
                     >
                       Visualizar
                     </Button>
                   </CardFooter>
                 </Card>
-              </Link>
+              </div>
             ))}
           </div>
         )}
