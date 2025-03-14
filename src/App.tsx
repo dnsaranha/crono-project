@@ -1,6 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
+import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";

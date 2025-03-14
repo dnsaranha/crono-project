@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,11 @@ interface Project {
   description: string;
   created_at: string;
   owner_id: string;
+  owner?: {
+    full_name: string | null;
+    email: string;
+  };
+  role?: string;
 }
 
 export function ProjectList() {
@@ -51,62 +55,65 @@ export function ProjectList() {
     try {
       setLoading(true);
       
-      console.log("Carregando projetos...");
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log("Usuário não autenticado");
         setProjects([]);
         return;
       }
       
-      console.log("User ID:", user.id);
-      
-      // Busca projetos que o usuário é dono
+      // Fetch owned projects with owner profile info
       const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          owner:profiles!projects_owner_id_fkey (
+            full_name,
+            email
+          )
+        `)
         .eq('owner_id', user.id);
         
-      if (ownedError) {
-        console.error("Erro ao carregar projetos próprios:", ownedError);
-        throw ownedError;
-      }
+      if (ownedError) throw ownedError;
       
-      console.log("Projetos que é dono:", ownedProjects);
+      // Add role 'owner' to owned projects
+      const ownedProjectsWithRole = ownedProjects.map(project => ({
+        ...project,
+        role: 'owner'
+      }));
       
-      // Busca projetos que o usuário é membro
+      // Fetch member projects with owner profile info and role
       const { data: memberProjects, error: memberError } = await supabase
         .from('project_members')
         .select(`
-          project_id,
-          projects:project_id (*)
+          role,
+          project:projects (
+            *,
+            owner:profiles!projects_owner_id_fkey (
+              full_name,
+              email
+            )
+          )
         `)
         .eq('user_id', user.id);
         
-      if (memberError) {
-        console.error("Erro ao carregar projetos como membro:", memberError);
-        throw memberError;
-      }
+      if (memberError) throw memberError;
       
-      console.log("Projetos como membro:", memberProjects);
+      // Format member projects
+      const memberProjectsFormatted = memberProjects
+        .filter(item => item.project) // Filter out any null projects
+        .map(item => ({
+          ...item.project,
+          role: item.role
+        }));
       
-      // Combina os resultados
-      const memberProjectList = memberProjects
-        .map(item => item.projects)
-        .filter(Boolean) as Project[];
-      
-      const allProjects = [...(ownedProjects || []), ...memberProjectList];
-      
-      // Remove duplicatas baseado no ID
+      // Combine and remove duplicates
+      const allProjects = [...ownedProjectsWithRole, ...memberProjectsFormatted];
       const uniqueProjects = Array.from(
         new Map(allProjects.map(item => [item.id, item])).values()
       );
       
-      console.log("Projetos carregados:", uniqueProjects);
       setProjects(uniqueProjects);
     } catch (error: any) {
-      console.error('Erro ao carregar projetos:', error.message);
       toast({
         title: "Erro ao carregar projetos",
         description: error.message,
@@ -120,6 +127,21 @@ export function ProjectList() {
   function formatDate(dateString: string) {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
+  }
+  
+  function getRoleLabel(role: string) {
+    switch (role) {
+      case 'owner':
+        return 'Proprietário';
+      case 'admin':
+        return 'Administrador';
+      case 'editor':
+        return 'Editor';
+      case 'viewer':
+        return 'Visualizador';
+      default:
+        return 'Membro';
+    }
   }
 
   return (
@@ -155,16 +177,26 @@ export function ProjectList() {
               </CardHeader>
               
               <CardContent>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground mb-4">
                   {project.description || "Sem descrição"}
                 </p>
+                
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">
+                    Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+                  </p>
+                  <p>
+                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                       Seu acesso: {getRoleLabel(project.role || 'viewer')}
+                    </span>
+                  </p>
+                </div>
               </CardContent>
               
               <CardFooter className="flex justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center text-gray-500 text-sm">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    {formatDate(project.created_at)}
+                  <div className="flex items-center text-muted-foreground text-sm">
+                    
                   </div>
                 </div>
                 
