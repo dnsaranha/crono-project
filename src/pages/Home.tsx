@@ -38,38 +38,38 @@ const Home = () => {
   }, []);
 
   return (
-    <div>
-      <header>
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="border-b border-border">
         <nav className="navbar">
           <div className="container">
             <div className="logo">
               <img src="/logo-cronoproject.png" alt="CronoProject Logo" className="logo-img" />
-              <span>CronoProject</span>
+              <span className="text-foreground">CronoProject</span>
             </div>
             <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
-              <li><a href="#recursos">Recursos</a></li>
-              <li><a href="#planos">Planos</a></li>
-              <li><a href="#contato">Contato</a></li>
-              <li><button onClick={handleLoginClick} className="btn btn-outline">Entrar</button></li>
+              <li><a href="#recursos" className="text-foreground hover:text-primary">Recursos</a></li>
+              <li><a href="#planos" className="text-foreground hover:text-primary">Planos</a></li>
+              <li><a href="#contato" className="text-foreground hover:text-primary">Contato</a></li>
+              <li><button onClick={handleLoginClick} className="btn btn-outline text-foreground">Entrar</button></li>
               <li><Link to="/signup" className="btn btn-primary">Cadastrar</Link></li>
             </ul>
             <div className="hamburger" onClick={toggleMenu}>
-              <span></span>
-              <span></span>
-              <span></span>
+              <span className="bg-foreground"></span>
+              <span className="bg-foreground"></span>
+              <span className="bg-foreground"></span>
             </div>
           </div>
         </nav>
       </header>
 
-      <section className="hero">
+      <section className="hero bg-background">
         <div className="container">
           <div className="hero-content">
-            <h1>Gerencie seus cronogramas com eficiência</h1>
-            <p>Planejamento, WBS e gráficos de Gantt integrados em uma plataforma intuitiva</p>
+            <h1 className="text-foreground">Gerencie seus cronogramas com eficiência</h1>
+            <p className="text-muted-foreground">Planejamento, WBS e gráficos de Gantt integrados em uma plataforma intuitiva</p>
             <div className="hero-buttons">
               <Link to="/signup" className="btn btn-primary btn-lg">Comece Grátis</Link>
-              <a href="#demo" className="btn btn-outline btn-lg">Ver Demo</a>
+              <a href="#demo" className="btn btn-outline btn-lg text-foreground">Ver Demo</a>
             </div>
           </div>
           <div className="hero-image">
@@ -78,10 +78,10 @@ const Home = () => {
         </div>
       </section>
 
-      <section id="exemplos" className="examples">
+      <section id="exemplos" className="examples bg-background">
         <div className="container">
-          <h2 className="section-title">Exemplos de Uso</h2>
-          <p className="section-subtitle">Veja como o CronoProject transforma o gerenciamento de projetos</p>
+          <h2 className="section-title text-foreground">Exemplos de Uso</h2>
+          <p className="section-subtitle text-muted-foreground">Veja como o CronoProject transforma o gerenciamento de projetos</p>
           
           <div className="examples-slider">
             <div className="slider-container">
@@ -121,10 +121,10 @@ const Home = () => {
       </section>
 
       {/* Seção de Planos */}
-      <section id="planos" className="pricing">
+      <section id="planos" className="pricing bg-background">
         <div className="container">
-          <h2 className="section-title">Nossos Planos</h2>
-          <p className="section-subtitle">Escolha o plano ideal para suas necessidades</p>
+          <h2 className="section-title text-foreground">Nossos Planos</h2>
+          <p className="section-subtitle text-muted-foreground">Escolha o plano ideal para suas necessidades</p>
           
           <div className="pricing-cards">
             <div className="pricing-card">
@@ -175,9 +175,9 @@ const Home = () => {
       </section>
       
       {/* Seção de Comparação de Planos */}
-      <section id="comparativo" className="comparison">
+      <section id="comparativo" className="comparison bg-background">
         <div className="container">
-          <h2 className="section-title">Comparativo de Planos</h2>
+          <h2 className="section-title text-foreground">Comparativo de Planos</h2>
           <div className="table-responsive">
             <table className="comparison-table">
               <thead>
