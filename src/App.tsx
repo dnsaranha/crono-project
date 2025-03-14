@@ -13,6 +13,8 @@ import GridView from '@/pages/GridView';
 import TimelineView from '@/pages/TimelineView';
 import WBSView from '@/pages/WBSView';
 import NotFound from '@/pages/NotFound';
+import ProjectView from '@/pages/ProjectView';
+import CriticalPathView from '@/pages/CriticalPathView';
 
 // Componente de rota protegida
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -37,6 +39,26 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            {/* Rotas de projeto */}
+            <Route 
+              path="/project/:projectId" 
+              element={
+                <ProtectedRoute>
+                  <ProjectView />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="gantt" element={<GanttView />} />
+              <Route path="board" element={<BoardView />} />
+              <Route path="grid" element={<GridView />} />
+              <Route path="timeline" element={<TimelineView />} />
+              <Route path="wbs" element={<WBSView />} />
+              <Route path="critical-path" element={<CriticalPathView />} />
+              <Route index element={<GanttView />} />
+            </Route>
+            
+            {/* Rotas antigas para retrocompatibilidade */}
             <Route 
               path="/gantt" 
               element={

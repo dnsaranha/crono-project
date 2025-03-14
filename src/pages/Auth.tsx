@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthForm } from "@/components/AuthForm";
@@ -25,7 +24,7 @@ export default function Auth() {
       
       if (session?.user) {
         // User is already logged in, redirect to dashboard
-        navigate("/");
+        navigate("/dashboard");
       }
     };
     
@@ -34,7 +33,7 @@ export default function Auth() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
     

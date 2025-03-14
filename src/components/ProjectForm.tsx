@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from '@/hooks/useSubscription';
+import { useNavigate } from 'react-router-dom';
 
 interface ProjectFormProps {
   open: boolean;
@@ -26,6 +27,8 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectCount, setProjectCount] = useState(0);
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
   const subscription = useSubscription();
   const canCreateProject = subscription.canCreateProject(projectCount);
@@ -61,6 +64,86 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const onSubmit = async (data: typeof formData) => {
+    // Obter o usuário atual
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "É necessário estar logado para criar um projeto.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Se for atualização de projeto existente
+      if (initialData?.id) {
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            name: data.name,
+            description: data.description,
+            start_date: data.startDate,
+            end_date: data.endDate,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', initialData.id);
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Projeto atualizado",
+          description: "O projeto foi atualizado com sucesso."
+        });
+        
+        if (onProjectCreated) {
+          onProjectCreated(initialData.id);
+        }
+      } 
+      // Se for criação de novo projeto
+      else {
+        const { data: project, error } = await supabase
+          .from('projects')
+          .insert({
+            name: data.name,
+            description: data.description,
+            start_date: data.startDate,
+            end_date: data.endDate,
+            owner_id: user.id
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Projeto criado",
+          description: "O projeto foi criado com sucesso."
+        });
+        
+        if (onProjectCreated && project) {
+          onProjectCreated(project.id);
+        }
+        
+        // Navegar para o novo projeto
+        if (project) {
+          navigate(`/project/${project.id}/gantt`);
+        }
+      }
+      
+      // Fechar o modal
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Ocorreu um erro ao salvar o projeto.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -83,10 +166,10 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Novo Projeto</DialogTitle>
+          <DialogTitle>{initialData ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome do Projeto</Label>
             <Input 
@@ -154,19 +237,19 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
               )}
             </div>
           )}
-        </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || (!initialData && !canCreateProject)}
-          >
-            {isSubmitting ? 'Salvando...' : initialData ? 'Atualizar Projeto' : 'Criar Projeto'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isSubmitting || (!initialData && !canCreateProject)}
+            >
+              {isSubmitting ? 'Salvando...' : initialData ? 'Atualizar Projeto' : 'Criar Projeto'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

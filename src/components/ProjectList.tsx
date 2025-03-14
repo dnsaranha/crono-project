@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/ProjectForm";
@@ -26,6 +26,7 @@ export function ProjectList() {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadProjects();
@@ -98,124 +99,100 @@ export function ProjectList() {
         
       if (memberError) throw memberError;
       
-      // Format member projects
-      const memberProjectsFormatted = memberProjects
-        .filter(item => item.project) // Filter out any null projects
+      // Process member projects data
+      const processedMemberProjects = memberProjects
+        .filter(item => item.project) // Ensure project exists
         .map(item => ({
           ...item.project,
           role: item.role
         }));
       
-      // Combine and remove duplicates
-      const allProjects = [...ownedProjectsWithRole, ...memberProjectsFormatted];
-      const uniqueProjects = Array.from(
-        new Map(allProjects.map(item => [item.id, item])).values()
-      );
-      
-      setProjects(uniqueProjects);
-    } catch (error: any) {
+      // Combine owned and member projects
+      setProjects([...ownedProjectsWithRole, ...processedMemberProjects]);
+    } catch (error) {
+      console.error('Erro ao carregar projetos:', error);
       toast({
-        title: "Erro ao carregar projetos",
-        description: error.message,
-        variant: "destructive",
+        title: 'Erro ao carregar projetos',
+        description: 'Ocorreu um erro ao buscar seus projetos. Por favor, tente novamente.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   }
 
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  }
-  
-  function getRoleLabel(role: string) {
-    switch (role) {
-      case 'owner':
-        return 'Proprietário';
-      case 'admin':
-        return 'Administrador';
-      case 'editor':
-        return 'Editor';
-      case 'viewer':
-        return 'Visualizador';
-      default:
-        return 'Membro';
-    }
+  const handleProjectCreated = (projectId: string) => {
+    loadProjects();
+    // Navegar para o projeto recém-criado
+    navigate(`/project/${projectId}/gantt`);
+  };
+
+  if (loading) {
+    return <LoadingState />;
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Seus Projetos</h2>
-        
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
-      </div>
-      
-      {loading ? (
-        <LoadingState message="Carregando projetos..." />
-      ) : projects.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">Você ainda não tem projetos</p>
-          <Button onClick={() => setIsFormOpen(true)}>
+    <>
+      <div className="flex flex-col space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Seus Projetos</h3>
+          <Button onClick={() => setIsFormOpen(true)} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Criar seu primeiro projeto
+            Novo Projeto
           </Button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle>{project.name}</CardTitle>
-                <CardDescription>
-                  Criado em {formatDate(project.created_at)}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  {project.description || "Sem descrição"}
-                </p>
-                
-                <div className="space-y-2 text-sm">
-                  <p className="text-muted-foreground">
-                    Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+        
+        {projects.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">Você ainda não tem projetos.</p>
+            <Button onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Meu Primeiro Projeto
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project) => (
+              <Card key={project.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xl">
+                    <Link to={`/project/${project.id}/gantt`} className="hover:underline">
+                      {project.name}
+                    </Link>
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(project.created_at).toLocaleDateString('pt-BR')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {project.description || "Sem descrição."}
                   </p>
-                  <p>
-                    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                       Seu acesso: {getRoleLabel(project.role || 'viewer')}
-                    </span>
-                  </p>
-                </div>
-              </CardContent>
-              
-              <CardFooter className="flex justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center text-muted-foreground text-sm">
-                    
+                </CardContent>
+                <CardFooter className="pt-2 flex justify-between items-center">
+                  <div className="text-xs text-muted-foreground">
+                    {project.role === 'owner' ? 'Proprietário' : 
+                     project.role === 'admin' ? 'Administrador' : 
+                     project.role === 'editor' ? 'Editor' : 'Visualizador'}
                   </div>
-                </div>
-                
-                <Link to={`/project/${project.id}`}>
-                  <Button size="sm">Visualizar</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/project/${project.id}/gantt`}>
+                      Acessar
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
       
       <ProjectForm 
         open={isFormOpen} 
         onOpenChange={setIsFormOpen} 
-        onProjectCreated={(projectId) => {
-          loadProjects();
-        }}
+        onProjectCreated={handleProjectCreated} 
       />
-    </div>
+    </>
   );
 }
