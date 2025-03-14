@@ -8,7 +8,7 @@ const ProjectNavigation = () => {
 
   return (
     <Button 
-      variant={pathname.includes('/members') ? 'default' : 'ghost'} 
+      variant={pathname.includes('/members') || pathname.includes('/equipe') ? 'default' : 'ghost'} 
       className="justify-start" 
       asChild
     >

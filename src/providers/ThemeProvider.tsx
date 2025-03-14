@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 type Theme = "light" | "dark" | "system";
@@ -11,27 +10,22 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("theme") as Theme) || "system"
-  );
+  const [theme, setTheme] = useState<Theme>('system');
 
   useEffect(() => {
     const root = window.document.documentElement;
     
-    // Remove existing classes
-    root.classList.remove("light", "dark");
+    root.classList.remove('light', 'dark');
     
-    // Add the appropriate class based on theme
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
     }
     
-    // Save theme preference
     localStorage.setItem("theme", theme);
   }, [theme]);
 

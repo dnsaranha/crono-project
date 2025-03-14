@@ -17,6 +17,7 @@ import NotFound from '@/pages/NotFound';
 import ProjectView from '@/pages/ProjectView';
 import CriticalPathView from '@/pages/CriticalPathView';
 import MembersView from '@/pages/MembersView';
+import ProfilePage from '@/pages/ProfilePage';
 
 // Componente de rota protegida
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -49,6 +50,16 @@ function App() {
               element={
                 <ProtectedRouteWithLayout>
                   <Dashboard />
+                </ProtectedRouteWithLayout>
+              } 
+            />
+            
+            {/* Nova rota para o perfil */}
+            <Route 
+              path="/perfil" 
+              element={
+                <ProtectedRouteWithLayout>
+                  <ProfilePage />
                 </ProtectedRouteWithLayout>
               } 
             />

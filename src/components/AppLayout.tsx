@@ -13,6 +13,8 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/providers/ThemeProvider";
+import { Moon, Sun, MonitorSmartphone } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   
   useEffect(() => {
     async function loadUserProfile() {
@@ -57,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       <header className="border-b bg-background">
         <div className="container mx-auto flex h-14 items-center justify-between">
           <Link to="/dashboard" className="flex items-center">
@@ -65,7 +68,33 @@ export function AppLayout({ children }: AppLayoutProps) {
             <span className="ml-2 font-bold text-primary">Project</span>
           </Link>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            {/* Seletor de Tema */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  {theme === 'light' && <Sun className="h-5 w-5" />}
+                  {theme === 'dark' && <Moon className="h-5 w-5" />}
+                  {theme === 'system' && <MonitorSmartphone className="h-5 w-5" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  <Sun className="mr-2 h-4 w-4" />
+                  <span>Modo Claro</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <Moon className="mr-2 h-4 w-4" />
+                  <span>Modo Escuro</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <MonitorSmartphone className="mr-2 h-4 w-4" />
+                  <span>Sistema</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Menu do Usuário */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -99,7 +128,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </header>
       
-      <main className="flex-1">
+      <main className="flex-1 bg-background">
         {children}
       </main>
     </div>
