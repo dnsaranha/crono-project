@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLoginClick = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -15,23 +16,44 @@ const Home = () => {
     }
   };
 
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+
+  useEffect(() => {
+    // Iniciar slider automático
+    const interval = setInterval(() => {
+      const dots = document.querySelectorAll('.dot');
+      const activeDot = document.querySelector('.dot.active');
+      if (activeDot && dots.length > 0) {
+        const currentIndex = Array.from(dots).indexOf(activeDot);
+        const nextIndex = (currentIndex + 1) % dots.length;
+        
+        activeDot.classList.remove('active');
+        dots[nextIndex].classList.add('active');
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       <header>
         <nav className="navbar">
           <div className="container">
             <div className="logo">
-              <img src="/src/assets/logo-cronoproject.png" alt="CronoProject Logo" className="logo-img" />
+              <img src="/logo-cronoproject.png" alt="CronoProject Logo" className="logo-img" />
               <span>CronoProject</span>
             </div>
-            <ul className="nav-links">
+            <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
               <li><a href="#recursos">Recursos</a></li>
               <li><a href="#planos">Planos</a></li>
               <li><a href="#contato">Contato</a></li>
               <li><button onClick={handleLoginClick} className="btn btn-outline">Entrar</button></li>
               <li><Link to="/signup" className="btn btn-primary">Cadastrar</Link></li>
             </ul>
-            <div className="hamburger">
+            <div className="hamburger" onClick={toggleMenu}>
               <span></span>
               <span></span>
               <span></span>
@@ -51,7 +73,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-image">
-            <img src="/src/assets/cronoproject-dashboard.png" alt="Dashboard CronoProject" />
+            <img src="/cronoproject-dashboard.png" alt="Dashboard CronoProject" />
           </div>
         </div>
       </section>
@@ -64,21 +86,21 @@ const Home = () => {
           <div className="examples-slider">
             <div className="slider-container">
               <div className="slider-item">
-                <img src="/src/assets/exemplo-gantt.png" alt="Exemplo de Gráfico de Gantt" />
+                <img src="/exemplo-gantt.png" alt="Exemplo de Gráfico de Gantt" />
                 <div className="slider-caption">
                   <h3>Gráfico de Gantt</h3>
                   <p>Visualize o cronograma completo com dependências e caminho crítico</p>
                 </div>
               </div>
               <div className="slider-item">
-                <img src="/src/assets/exemplo-wbs.png" alt="Exemplo de WBS" />
+                <img src="/exemplo-wbs.png" alt="Exemplo de WBS" />
                 <div className="slider-caption">
                   <h3>Estrutura Analítica do Projeto (WBS)</h3>
                   <p>Organize as entregas e pacotes de trabalho hierarquicamente</p>
                 </div>
               </div>
               <div className="slider-item">
-                <img src="/src/assets/exemplo-dashboard.png" alt="Exemplo de Dashboard" />
+                <img src="/exemplo-dashboard.png" alt="Exemplo de Dashboard" />
                 <div className="slider-caption">
                   <h3>Dashboard de Projetos</h3>
                   <p>Acompanhe o progresso de todos os seus projetos em um só lugar</p>
