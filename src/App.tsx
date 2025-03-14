@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { SubscriptionProvider } from '@/providers/SubscriptionProvider';
+import { AppLayout } from '@/components/AppLayout';
 
 // Importações das páginas
 import Home from '@/pages/Home';
@@ -20,6 +21,17 @@ import MembersView from '@/pages/MembersView';
 // Componente de rota protegida
 import ProtectedRoute from '@/components/ProtectedRoute';
 
+// Componente de rota protegida com layout
+function ProtectedRouteWithLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <AppLayout>
+        {children}
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -31,23 +43,23 @@ function App() {
             <Route path="/login" element={<Auth />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
             
-            {/* Rotas protegidas - requerem autenticação */}
+            {/* Rotas protegidas com layout */}
             <Route 
               path="/dashboard" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <Dashboard />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
 
-            {/* Rotas de projeto */}
+            {/* Rotas de projeto com layout */}
             <Route 
               path="/project/:projectId" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <ProjectView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               }
             >
               <Route path="gantt" element={<GanttView />} />
@@ -56,49 +68,50 @@ function App() {
               <Route path="timeline" element={<TimelineView />} />
               <Route path="wbs" element={<WBSView />} />
               <Route path="critical-path" element={<CriticalPathView />} />
+              <Route path="members" element={<MembersView />} />
               <Route path="equipe" element={<MembersView />} />
               <Route index element={<GanttView />} />
             </Route>
             
-            {/* Rotas antigas para retrocompatibilidade */}
+            {/* Todas as outras rotas protegidas com layout */}
             <Route 
               path="/gantt" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <GanttView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
             <Route 
               path="/board" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <BoardView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
             <Route 
               path="/grid" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <GridView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
             <Route 
               path="/timeline" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <TimelineView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
             <Route 
               path="/wbs" 
               element={
-                <ProtectedRoute>
+                <ProtectedRouteWithLayout>
                   <WBSView />
-                </ProtectedRoute>
+                </ProtectedRouteWithLayout>
               } 
             />
             
