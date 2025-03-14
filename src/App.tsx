@@ -1,54 +1,92 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import Home from "@/pages/Home";
-import Auth from "@/pages/Auth";
-import Dashboard from "@/pages/Dashboard";
-import ProjectView from "@/pages/ProjectView";
-import NotFound from "@/pages/NotFound";
-import GanttView from "@/pages/GanttView";
-import GridView from "@/pages/GridView";
-import BoardView from "@/pages/BoardView";
-import TimelineView from "@/pages/TimelineView";
-import WBSView from "@/pages/WBSView";
-import CriticalPathView from "@/pages/CriticalPathView";
-import { Layout } from "@/components/Layout";
-import { ThemeProvider } from "@/providers/ThemeProvider";
+import { ThemeProvider } from '@/providers/ThemeProvider';
+import { SubscriptionProvider } from '@/providers/SubscriptionProvider';
 
-export default function App() {
+// Importações das páginas
+import Home from '@/pages/Home';
+import Auth from '@/pages/Auth';
+import Dashboard from '@/pages/Dashboard';
+import GanttView from '@/pages/GanttView';
+import BoardView from '@/pages/BoardView';
+import GridView from '@/pages/GridView';
+import TimelineView from '@/pages/TimelineView';
+import WBSView from '@/pages/WBSView';
+import NotFound from '@/pages/NotFound';
+
+// Componente de rota protegida
+import ProtectedRoute from '@/components/ProtectedRoute';
+
+function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } />
-          <Route path="/project/:projectId" element={
-            <Layout>
-              <ProjectView />
-            </Layout>
-          }>
-            <Route index element={<Navigate to="gantt" replace />} />
-            <Route path="gantt" element={<GanttView />} />
-            <Route path="grid" element={<GridView />} />
-            <Route path="board" element={<BoardView />} />
-            <Route path="timeline" element={<TimelineView />} />
-            <Route path="wbs" element={<WBSView />} />
-            <Route path="critical-path" element={<CriticalPathView />} />
-            <Route path="team" element={<ProjectView />} />
-          </Route>
-          <Route path="*" element={
-            <Layout>
-              <NotFound />
-            </Layout>
-          } />
-        </Routes>
-        
-        <Toaster />
-      </Router>
+      <SubscriptionProvider>
+        <Router>
+          <Routes>
+            {/* Rotas públicas */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Auth />} />
+            <Route path="/signup" element={<Auth mode="signup" />} />
+            
+            {/* Rotas protegidas - requerem autenticação */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/gantt" 
+              element={
+                <ProtectedRoute>
+                  <GanttView />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/board" 
+              element={
+                <ProtectedRoute>
+                  <BoardView />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/grid" 
+              element={
+                <ProtectedRoute>
+                  <GridView />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/timeline" 
+              element={
+                <ProtectedRoute>
+                  <TimelineView />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wbs" 
+              element={
+                <ProtectedRoute>
+                  <WBSView />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Rota 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          
+          <Toaster />
+        </Router>
+      </SubscriptionProvider>
     </ThemeProvider>
   );
 }
+
+export default App;

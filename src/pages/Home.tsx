@@ -98,6 +98,115 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Seção de Planos */}
+      <section id="planos" className="pricing">
+        <div className="container">
+          <h2 className="section-title">Nossos Planos</h2>
+          <p className="section-subtitle">Escolha o plano ideal para suas necessidades</p>
+          
+          <div className="pricing-cards">
+            <div className="pricing-card">
+              <div className="pricing-header">
+                <h3>Free</h3>
+                <p className="price">R$ 0<span>/mês</span></p>
+                <p className="subtitle">Para pequenos times e projetos simples</p>
+              </div>
+              <div className="pricing-features">
+                <ul>
+                  <li><i className="fas fa-check"></i> Máximo de 3 projetos ativos</li>
+                  <li><i className="fas fa-check"></i> Até 5 usuários por projeto</li>
+                  <li><i className="fas fa-check"></i> 100MB de armazenamento por usuário</li>
+                  <li><i className="fas fa-check"></i> Recursos básicos de cronograma</li>
+                  <li><i className="fas fa-check"></i> WBS básico</li>
+                  <li><i className="fas fa-check"></i> Gráfico de Gantt sem edição avançada</li>
+                </ul>
+              </div>
+              <div className="pricing-cta">
+                <Link to="/signup?plan=free" className="btn btn-outline btn-block">Começar Grátis</Link>
+              </div>
+            </div>
+            
+            <div className="pricing-card featured">
+              <div className="pricing-badge">Popular</div>
+              <div className="pricing-header">
+                <h3>Premium</h3>
+                <p className="price">R$ 49<span>/mês</span></p>
+                <p className="subtitle">Para equipes e projetos complexos</p>
+              </div>
+              <div className="pricing-features">
+                <ul>
+                  <li><i className="fas fa-check"></i> Projetos ilimitados</li>
+                  <li><i className="fas fa-check"></i> Usuários ilimitados por projeto</li>
+                  <li><i className="fas fa-check"></i> 5GB de armazenamento por usuário</li>
+                  <li><i className="fas fa-check"></i> Personalização avançada do Gantt</li>
+                  <li><i className="fas fa-check"></i> Integrações (Google Drive, Trello, Jira)</li>
+                  <li><i className="fas fa-check"></i> Relatórios e dashboards avançados</li>
+                  <li><i className="fas fa-check"></i> Suporte prioritário</li>
+                </ul>
+              </div>
+              <div className="pricing-cta">
+                <Link to="/signup?plan=premium" className="btn btn-primary btn-block">Teste Grátis por 14 dias</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Seção de Comparação de Planos */}
+      <section id="comparativo" className="comparison">
+        <div className="container">
+          <h2 className="section-title">Comparativo de Planos</h2>
+          <div className="table-responsive">
+            <table className="comparison-table">
+              <thead>
+                <tr>
+                  <th>Recursos</th>
+                  <th>Free</th>
+                  <th>Premium</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Projetos</td>
+                  <td>3 máximo</td>
+                  <td>Ilimitado</td>
+                </tr>
+                <tr>
+                  <td>Usuários por projeto</td>
+                  <td>5 máximo</td>
+                  <td>Ilimitado</td>
+                </tr>
+                <tr>
+                  <td>Armazenamento</td>
+                  <td>100MB por usuário</td>
+                  <td>5GB por usuário</td>
+                </tr>
+                <tr>
+                  <td>Gráfico de Gantt avançado</td>
+                  <td><i className="fas fa-times"></i></td>
+                  <td><i className="fas fa-check"></i></td>
+                </tr>
+                <tr>
+                  <td>Integrações</td>
+                  <td><i className="fas fa-times"></i></td>
+                  <td><i className="fas fa-check"></i></td>
+                </tr>
+                <tr>
+                  <td>Relatórios avançados</td>
+                  <td><i className="fas fa-times"></i></td>
+                  <td><i className="fas fa-check"></i></td>
+                </tr>
+                <tr>
+                  <td>Suporte prioritário</td>
+                  <td><i className="fas fa-times"></i></td>
+                  <td><i className="fas fa-check"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <footer>
         <div className="container">
           <div className="footer-grid">
