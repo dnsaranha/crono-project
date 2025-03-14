@@ -1,0 +1,10 @@
+Nota: Este arquivo é apenas um placeholder. No ambiente real, você deve substituir isto por imagens reais de logo.
+
+Arquivos necessários:
+1. logo-cronoproject.png - Logo do CronoProject para o cabeçalho (fundo claro)
+2. logo-cronoproject-white.png - Logo do CronoProject para o rodapé e área de login (fundo escuro)
+3. exemplo-gantt.png - Imagem exemplo do gráfico de Gantt
+4. exemplo-wbs.png - Imagem exemplo da WBS
+5. exemplo-dashboard.png - Imagem exemplo do dashboard
+6. cronoproject-dashboard.png - Imagem da tela principal para área de destaque
+7. profile1.jpg, profile2.jpg, profile3.jpg - Imagens de perfil para os depoimentos 
