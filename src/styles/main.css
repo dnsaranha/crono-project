@@ -644,25 +644,6 @@ body {
   gap: 15px;
 }
 
-.cta-section .btn-primary {
-  background-color: white;
-  color: var(--primary-color);
-}
-
-.cta-section .btn-primary:hover {
-  background-color: rgba(255, 255, 255, 0.9);
-}
-
-.cta-section .btn-outline {
-  border-color: white;
-  color: white;
-}
-
-.cta-section .btn-outline:hover {
-  background-color: white;
-  color: var(--primary-color);
-}
-
 /* Footer */
 footer {
   background-color: var(--dark-color);
@@ -681,8 +662,6 @@ footer {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 20px;
-  display: flex;
-  align-items: center;
 }
 
 .footer-col p {
