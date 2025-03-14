@@ -4,15 +4,12 @@ import { UserProfile } from "@/components/UserProfile";
 import { ProjectList } from "@/components/ProjectList";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { ProjectForm } from "@/components/ProjectForm";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [accessLevel, setAccessLevel] = useState<string>("");
   const navigate = useNavigate();
-  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -50,29 +47,36 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto px-4 py-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Bem Vindo ao seu Gerenciador de Projetos e Cronogramas!
-        </h1>
-        <div className="flex justify-between items-center">
-          <p className="text-muted-foreground">
-            Gerencie seus projetos e equipes em um só lugar.
-          </p>
+        <h2 className="text-xl sm:text-2xl font-bold">Projeto de <a href="https://github.com/dnsaranha">dnsaranha</a></h2>
+        <p>Nível de acesso: {accessLevel}</p>
+      </div>
+      {showProfile ? (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold">Seu Perfil</h2>
+            <Button variant="outline" onClick={() => setShowProfile(false)}>
+              Voltar para Projetos
+            </Button>
+          </div>
+          <UserProfile />
         </div>
-      </div>
-      
-      <div className="space-y-8">
-        <ProjectList />
-      </div>
-      
-      <ProjectForm 
-        open={formOpen} 
-        onOpenChange={setFormOpen} 
-        onProjectCreated={(projectId) => {
-          navigate(`/project/${projectId}/gantt`);
-        }}
-      />
+      ) : (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold">Bem Vindo ao seu Gerenciador de Projetos e Cronogramas!</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowProfile(true)}
+              className="text-sm"
+            >
+              Visualizar Perfil
+            </Button>
+          </div>
+          <ProjectList />
+        </div>
+      )}
     </div>
   );
 }

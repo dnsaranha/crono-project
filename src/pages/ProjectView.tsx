@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams, Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { useParams, Outlet, Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectMembers } from "@/components/ProjectMembers";
 import LoadingState from "@/components/LoadingState";
@@ -27,8 +27,6 @@ interface ProfileInfo {
 
 export default function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
-  const location = useLocation();
-  const { pathname } = location;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
@@ -172,70 +170,91 @@ export default function ProjectView() {
     : '';
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{project.name}</h1>
-            {project.description && (
-              <p className="text-muted-foreground mt-1">{project.description}</p>
-            )}
-            
-            <div className="flex items-center mt-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4 mr-1" />
-              <span>Criado por: {ownerProfile?.full_name || ownerProfile?.email || 'Usuário'}</span>
-              {formattedDate && <span className="ml-2">em {formattedDate}</span>}
-            </div>
-          </div>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+          {project.description && (
+            <p className="text-muted-foreground mt-1">{project.description}</p>
+          )}
           
-          <div className="flex flex-col md:flex-row gap-4 md:items-center">
-            <ProjectActions 
-              project={project} 
-              isOwnerOrAdmin={isOwnerOrAdmin}
-              onProjectUpdated={loadProject}
-            />
-            
-            {hasEditPermission && (
-              <ExcelExportImport 
-                tasks={tasks} 
-                projectId={projectId || ''} 
-                onImport={handleExcelImport}
-              />
-            )}
+          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4 mr-1" />
+            <span>Criado por: {ownerProfile?.full_name || ownerProfile?.email || 'Usuário'}</span>
+            {formattedDate && <span className="ml-2">em {formattedDate}</span>}
           </div>
         </div>
         
-        <div className="nav-tabs border-b bg-background flex">
-          <div className="container mx-auto flex overflow-x-auto">
-            <Link 
-              to={`/project/${projectId}/gantt`} 
-              className={`nav-item px-4 py-3 font-medium text-sm transition-colors 
-                ${pathname.includes('/gantt') ? 'active text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Gantt
-            </Link>
-            
-            <Link 
-              to={`/project/${projectId}/board`} 
-              className={`nav-item px-4 py-3 font-medium text-sm transition-colors 
-                ${pathname.includes('/board') ? 'active text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Quadro
-            </Link>
-            
-            <Link 
-              to={`/project/${projectId}/equipe`} 
-              className={`nav-item px-4 py-3 font-medium text-sm transition-colors 
-                ${pathname.includes('/equipe') ? 'active text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Equipe
-            </Link>
-          </div>
+        <div className="flex flex-col md:flex-row gap-4 md:items-center">
+          <ProjectActions 
+            project={project} 
+            isOwnerOrAdmin={isOwnerOrAdmin}
+            onProjectUpdated={loadProject}
+          />
+          
+          {hasEditPermission && (
+            <ExcelExportImport 
+              tasks={tasks} 
+              projectId={projectId || ''} 
+              onImport={handleExcelImport}
+            />
+          )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
-        <Outlet />
-      </div>
+      
+      <Tabs defaultValue="gantt" className="w-full">
+        <TabsList className="mb-6 flex overflow-x-auto touch-pan-x pb-1 scrollbar-none">
+          <TabsTrigger value="gantt" asChild>
+            <Link to={`/project/${projectId}/gantt`}>Gantt</Link>
+          </TabsTrigger>
+          <TabsTrigger value="grid" asChild>
+            <Link to={`/project/${projectId}/grid`}>Grade</Link>
+          </TabsTrigger>
+          <TabsTrigger value="board" asChild>
+            <Link to={`/project/${projectId}/board`}>Quadro</Link>
+          </TabsTrigger>
+          <TabsTrigger value="timeline" asChild>
+            <Link to={`/project/${projectId}/timeline`}>Linha do Tempo</Link>
+          </TabsTrigger>
+          <TabsTrigger value="wbs" asChild>
+            <Link to={`/project/${projectId}/wbs`}>EAP</Link>
+          </TabsTrigger>
+          <TabsTrigger value="critical-path" asChild>
+            <Link to={`/project/${projectId}/critical-path`}>Caminho Crítico</Link>
+          </TabsTrigger>
+          <TabsTrigger value="team" asChild>
+            <Link to={`/project/${projectId}/team`}>Equipe</Link>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="team" className="border-none p-0">
+          <ProjectMembers projectId={projectId || ''} isOwnerOrAdmin={isOwnerOrAdmin} />
+        </TabsContent>
+        
+        <TabsContent value="gantt" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="grid" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="board" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="timeline" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="wbs" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="critical-path" className="border-none p-0">
+          <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
