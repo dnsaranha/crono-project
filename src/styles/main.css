@@ -760,4 +760,48 @@ footer {
     flex-direction: column;
     text-align: center;
   }
+}
+
+/* Ajustes para modo escuro - tabelas e sliders */
+.dark .table-responsive {
+  background-color: transparent;
+}
+
+.dark .comparison-table {
+  color: var(--light-color);
+}
+
+.dark .slider-item {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.dark .slider-caption {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.dark .price, 
+.dark .subtitle,
+.dark .pricing-features li {
+  color: var(--light-color);
+}
+
+.dark .pricing-card {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark .pricing-card.featured {
+  background-color: rgba(40, 50, 70, 0.8);
+}
+
+.dark .pricing-badge {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.dark .fa-check {
+  color: var(--success-color);
+}
+
+.dark .fa-times {
+  color: var(--danger-color);
 } 

@@ -85,36 +85,36 @@ const Home = () => {
           
           <div className="examples-slider">
             <div className="slider-container">
-              <div className="slider-item">
+              <div className="slider-item bg-card">
                 <img src="/exemplo-gantt.png" alt="Exemplo de Gráfico de Gantt" />
                 <div className="slider-caption">
-                  <h3>Gráfico de Gantt</h3>
-                  <p>Visualize o cronograma completo com dependências e caminho crítico</p>
+                  <h3 className="text-foreground">Gráfico de Gantt</h3>
+                  <p className="text-muted-foreground">Visualize o cronograma completo com dependências e caminho crítico</p>
                 </div>
               </div>
-              <div className="slider-item">
+              <div className="slider-item bg-card">
                 <img src="/exemplo-wbs.png" alt="Exemplo de WBS" />
                 <div className="slider-caption">
-                  <h3>Estrutura Analítica do Projeto (WBS)</h3>
-                  <p>Organize as entregas e pacotes de trabalho hierarquicamente</p>
+                  <h3 className="text-foreground">Estrutura Analítica do Projeto (WBS)</h3>
+                  <p className="text-muted-foreground">Organize as entregas e pacotes de trabalho hierarquicamente</p>
                 </div>
               </div>
-              <div className="slider-item">
+              <div className="slider-item bg-card">
                 <img src="/exemplo-dashboard.png" alt="Exemplo de Dashboard" />
                 <div className="slider-caption">
-                  <h3>Dashboard de Projetos</h3>
-                  <p>Acompanhe o progresso de todos os seus projetos em um só lugar</p>
+                  <h3 className="text-foreground">Dashboard de Projetos</h3>
+                  <p className="text-muted-foreground">Acompanhe o progresso de todos os seus projetos em um só lugar</p>
                 </div>
               </div>
             </div>
             <div className="slider-controls">
-              <button className="slider-prev"><i className="fas fa-chevron-left"></i></button>
+              <button className="slider-prev text-foreground"><i className="fas fa-chevron-left"></i></button>
               <div className="slider-dots">
                 <span className="dot active"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
               </div>
-              <button className="slider-next"><i className="fas fa-chevron-right"></i></button>
+              <button className="slider-next text-foreground"><i className="fas fa-chevron-right"></i></button>
             </div>
           </div>
         </div>
@@ -127,43 +127,43 @@ const Home = () => {
           <p className="section-subtitle text-muted-foreground">Escolha o plano ideal para suas necessidades</p>
           
           <div className="pricing-cards">
-            <div className="pricing-card">
+            <div className="pricing-card bg-card border border-border">
               <div className="pricing-header">
-                <h3>Free</h3>
-                <p className="price">R$ 0<span>/mês</span></p>
-                <p className="subtitle">Para pequenos times e projetos simples</p>
+                <h3 className="text-foreground">Free</h3>
+                <p className="price text-foreground">R$ 0<span className="text-muted-foreground">/mês</span></p>
+                <p className="subtitle text-muted-foreground">Para pequenos times e projetos simples</p>
               </div>
               <div className="pricing-features">
                 <ul>
-                  <li><i className="fas fa-check"></i> Máximo de 3 projetos ativos</li>
-                  <li><i className="fas fa-check"></i> Até 5 usuários por projeto</li>
-                  <li><i className="fas fa-check"></i> 100MB de armazenamento por usuário</li>
-                  <li><i className="fas fa-check"></i> Recursos básicos de cronograma</li>
-                  <li><i className="fas fa-check"></i> WBS básico</li>
-                  <li><i className="fas fa-check"></i> Gráfico de Gantt sem edição avançada</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Máximo de 3 projetos ativos</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Até 5 usuários por projeto</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> 100MB de armazenamento por usuário</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Recursos básicos de cronograma</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> WBS básico</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Gráfico de Gantt sem edição avançada</li>
                 </ul>
               </div>
               <div className="pricing-cta">
-                <Link to="/signup?plan=free" className="btn btn-outline btn-block">Começar Grátis</Link>
+                <Link to="/signup?plan=free" className="btn btn-outline btn-block text-foreground">Começar Grátis</Link>
               </div>
             </div>
             
-            <div className="pricing-card featured">
+            <div className="pricing-card featured bg-card border border-primary">
               <div className="pricing-badge">Popular</div>
               <div className="pricing-header">
-                <h3>Premium</h3>
-                <p className="price">R$ 49<span>/mês</span></p>
-                <p className="subtitle">Para equipes e projetos complexos</p>
+                <h3 className="text-foreground">Premium</h3>
+                <p className="price text-foreground">R$ 49<span className="text-muted-foreground">/mês</span></p>
+                <p className="subtitle text-muted-foreground">Para equipes e projetos complexos</p>
               </div>
               <div className="pricing-features">
                 <ul>
-                  <li><i className="fas fa-check"></i> Projetos ilimitados</li>
-                  <li><i className="fas fa-check"></i> Usuários ilimitados por projeto</li>
-                  <li><i className="fas fa-check"></i> 5GB de armazenamento por usuário</li>
-                  <li><i className="fas fa-check"></i> Personalização avançada do Gantt</li>
-                  <li><i className="fas fa-check"></i> Integrações (Google Drive, Trello, Jira)</li>
-                  <li><i className="fas fa-check"></i> Relatórios e dashboards avançados</li>
-                  <li><i className="fas fa-check"></i> Suporte prioritário</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Projetos ilimitados</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Usuários ilimitados por projeto</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> 5GB de armazenamento por usuário</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Personalização avançada do Gantt</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Integrações (Google Drive, Trello, Jira)</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Relatórios e dashboards avançados</li>
+                  <li className="text-foreground"><i className="fas fa-check text-success-color"></i> Suporte prioritário</li>
                 </ul>
               </div>
               <div className="pricing-cta">
@@ -229,46 +229,46 @@ const Home = () => {
         </div>
       </section>
 
-      <footer>
+      <footer className="bg-background dark:bg-dark-color">
         <div className="container">
           <div className="footer-grid">
             <div className="footer-col">
               <div className="footer-logo">
                 <img src="/src/assets/logo-cronoproject-white.png" alt="CronoProject Logo" className="logo-img-small" />
-                <span>CronoProject</span>
+                <span className="text-foreground">CronoProject</span>
               </div>
-              <p>Solução completa para gerenciamento de cronogramas de projetos.</p>
+              <p className="text-muted-foreground">Solução completa para gerenciamento de cronogramas de projetos.</p>
             </div>
             <div className="footer-col">
-              <h4>Produto</h4>
+              <h4 className="text-foreground">Produto</h4>
               <ul>
-                <li><a href="#recursos">Recursos</a></li>
-                <li><a href="#planos">Planos e Preços</a></li>
-                <li><a href="/roadmap">Roadmap</a></li>
+                <li><a href="#recursos" className="text-muted-foreground hover:text-foreground">Recursos</a></li>
+                <li><a href="#planos" className="text-muted-foreground hover:text-foreground">Planos e Preços</a></li>
+                <li><a href="/roadmap" className="text-muted-foreground hover:text-foreground">Roadmap</a></li>
               </ul>
             </div>
             <div className="footer-col">
-              <h4>Empresa</h4>
+              <h4 className="text-foreground">Empresa</h4>
               <ul>
-                <li><a href="/sobre">Sobre nós</a></li>
-                <li><a href="/blog">Blog</a></li>
-                <li><a href="/cases">Casos de Sucesso</a></li>
+                <li><a href="/sobre" className="text-muted-foreground hover:text-foreground">Sobre nós</a></li>
+                <li><a href="/blog" className="text-muted-foreground hover:text-foreground">Blog</a></li>
+                <li><a href="/cases" className="text-muted-foreground hover:text-foreground">Casos de Sucesso</a></li>
               </ul>
             </div>
             <div className="footer-col">
-              <h4>Suporte</h4>
+              <h4 className="text-foreground">Suporte</h4>
               <ul>
-                <li><a href="/ajuda">Central de Ajuda</a></li>
-                <li><a href="/contato">Contato</a></li>
-                <li><a href="/status">Status</a></li>
+                <li><a href="/ajuda" className="text-muted-foreground hover:text-foreground">Central de Ajuda</a></li>
+                <li><a href="/contato" className="text-muted-foreground hover:text-foreground">Contato</a></li>
+                <li><a href="/status" className="text-muted-foreground hover:text-foreground">Status</a></li>
               </ul>
             </div>
           </div>
-          <div className="footer-bottom">
-            <p>&copy; 2023 CronoProject. Todos os direitos reservados.</p>
+          <div className="footer-bottom border-t border-border">
+            <p className="text-muted-foreground">&copy; 2023 CronoProject. Todos os direitos reservados.</p>
             <div className="footer-links">
-              <a href="/termos">Termos de Uso</a>
-              <a href="/privacidade">Política de Privacidade</a>
+              <a href="/termos" className="text-muted-foreground hover:text-foreground">Termos de Uso</a>
+              <a href="/privacidade" className="text-muted-foreground hover:text-foreground">Política de Privacidade</a>
             </div>
           </div>
         </div>

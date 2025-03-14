@@ -77,14 +77,37 @@
   border-color: var(--border-color);
 }
 
+.dark .pricing-card h3,
+.dark .pricing-card .price,
+.dark .pricing-header .subtitle {
+  color: var(--light-color);
+}
+
+.dark .pricing-features ul li {
+  color: var(--light-color);
+}
+
+.dark .pricing-features ul li i {
+  color: var(--primary-color);
+}
+
 .dark .comparison-table {
   background-color: var(--dark-color);
+  border-color: var(--border-color);
 }
 
 .dark .comparison-table th,
 .dark .comparison-table td {
-  border-color: var(--border-color);
+  border-color: rgba(255, 255, 255, 0.1);
   color: var(--light-color);
+}
+
+.dark .comparison-table th {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.dark .comparison-table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .dark footer {
@@ -92,6 +115,86 @@
   color: var(--light-color);
 }
 
+.dark .footer-logo span {
+  color: var(--light-color);
+}
+
+.dark .footer-col h4 {
+  color: var(--light-color);
+}
+
 .dark .footer-col a {
   color: var(--gray-color);
+}
+
+.dark .footer-col a:hover {
+  color: var(--light-color);
+}
+
+.dark .footer-bottom {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .footer-bottom p,
+.dark .footer-links a {
+  color: var(--gray-color);
+}
+
+.dark .footer-links a:hover {
+  color: var(--light-color);
+}
+
+/* Estilizando os sliders e controles no modo escuro */
+.dark .slider-item {
+  background-color: var(--dark-color);
+  border: 1px solid var(--border-color);
+}
+
+.dark .slider-caption {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.dark .slider-caption h3,
+.dark .slider-caption p {
+  color: var(--light-color);
+}
+
+.dark .slider-controls button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--light-color);
+}
+
+.dark .slider-controls button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .dot {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark .dot.active {
+  background-color: var(--primary-color);
+}
+
+/* Botões e links no modo escuro */
+.dark .btn-outline {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.dark .btn-outline:hover {
+  background-color: var(--primary-color);
+  color: var(--light-color);
+}
+
+.dark .nav-links {
+  background-color: var(--background-dark);
+}
+
+/* Garantir que no modo responsivo o menu mobile também seja escuro */
+@media (max-width: 768px) {
+  .dark .nav-links {
+    background-color: var(--background-dark);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+  }
 } 
