@@ -86,7 +86,6 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
             name: data.name,
             description: data.description,
             start_date: data.startDate,
-            end_date: data.endDate,
             updated_at: new Date().toISOString()
           })
           .eq('id', initialData.id);
@@ -110,7 +109,6 @@ export function ProjectForm({ open, onOpenChange, onProjectCreated, initialData 
             name: data.name,
             description: data.description,
             start_date: data.startDate,
-            end_date: data.endDate,
             owner_id: user.id
           })
           .select()

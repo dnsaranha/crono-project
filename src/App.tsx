@@ -15,6 +15,7 @@ import WBSView from '@/pages/WBSView';
 import NotFound from '@/pages/NotFound';
 import ProjectView from '@/pages/ProjectView';
 import CriticalPathView from '@/pages/CriticalPathView';
+import MembersView from '@/pages/MembersView';
 
 // Componente de rota protegida
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -55,6 +56,7 @@ function App() {
               <Route path="timeline" element={<TimelineView />} />
               <Route path="wbs" element={<WBSView />} />
               <Route path="critical-path" element={<CriticalPathView />} />
+              <Route path="equipe" element={<MembersView />} />
               <Route index element={<GanttView />} />
             </Route>
             
