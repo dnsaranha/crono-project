@@ -1,0 +1,30 @@
+.btn-new-project {
+  background: linear-gradient(to right, #1a91c7, #26afd4);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(26, 145, 199, 0.4);
+}
+
+.btn-new-project:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(26, 145, 199, 0.5);
+}
+
+.dark .dashboard-heading {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark .visualize-profile-btn {
+  border: 1px solid rgba(78, 93, 120, 0.5);
+  background-color: rgba(20, 30, 50, 0.3);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.dark .visualize-profile-btn:hover {
+  background-color: rgba(30, 40, 60, 0.5);
+  border-color: rgba(78, 93, 120, 0.8);
+} 

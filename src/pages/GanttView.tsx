@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
 import GanttChart from "@/components/GanttChart";
@@ -10,6 +9,9 @@ import NewTaskButton from "@/components/NewTaskButton";
 import LoadingState from "@/components/LoadingState";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import ViewHeader from "@/components/ViewHeader";
+import { Button } from "@/components/ui/button";
+import { Download, ChevronLeftSquare } from "lucide-react";
+import html2canvas from "html2canvas";
 
 type ContextType = { hasEditPermission: boolean };
 
@@ -26,6 +28,7 @@ const GanttView = () => {
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
   const tasksLoadedRef = useRef(false);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // Carregar membros do projeto
   useEffect(() => {
@@ -193,22 +196,77 @@ const GanttView = () => {
     setSidebarVisible(!sidebarVisible);
   };
 
+  const exportToImage = async () => {
+    if (!chartRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `gantt-chart-${projectId || 'export'}-${new Date().toISOString().slice(0, 10)}.png`;
+      link.click();
+      
+      toast({
+        title: "Exportado com sucesso",
+        description: "O gráfico Gantt foi exportado como imagem.",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar imagem:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível exportar o gráfico como imagem.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Generate extra actions for ViewHeader
+  const extraActions = (
+    <Button 
+      variant="outline"
+      size="sm"
+      onClick={exportToImage}
+      className="flex items-center"
+    >
+      <Download className="h-4 w-4 mr-1" />
+      Exportar
+    </Button>
+  );
+
   return (
     <div className="flex flex-col">
       <ViewHeader 
         title="Gráfico de Gantt" 
         onAddItem={handleAddTask}
         buttonText="Nova Tarefa"
-        extraActions={null}
+        extraActions={extraActions}
         hideAddButton={!hasEditPermission}
       />
+      
+      <div className="flex items-center mb-4 mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSidebar}
+          className="text-muted-foreground"
+          title={sidebarVisible ? "Esconder barra lateral" : "Mostrar barra lateral"}
+        >
+          <ChevronLeftSquare className="h-5 w-5" />
+        </Button>
+      </div>
       
       {loading ? (
         <LoadingState />
       ) : tasks.length === 0 ? (
         <EmptyTaskState onAddTask={handleAddTask} hideAddButton={!hasEditPermission} />
       ) : (
-        <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow">
+        <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow" ref={chartRef}>
           <GanttChart 
             tasks={tasks} 
             onTaskClick={hasEditPermission ? handleEditTask : undefined}

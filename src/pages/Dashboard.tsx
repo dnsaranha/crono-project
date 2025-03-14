@@ -59,7 +59,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">
             Gerencie seus projetos e equipes em um só lugar.
           </p>
-          <Button onClick={() => navigate('/perfil')} variant="outline">
+          <Button onClick={() => navigate('/perfil')} variant="outline" className="visualize-profile-btn">
             Visualizar Perfil
           </Button>
         </div>

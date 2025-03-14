@@ -634,18 +634,6 @@ const GanttChart = ({
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
-          
-          {/* Botão para exportar como imagem */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-2"
-            onClick={exportToImage}
-            title="Exportar como imagem"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
         </div>
         
         {!createDependencyMode?.active && onAddTask && hasEditPermission && (

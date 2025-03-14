@@ -136,7 +136,7 @@ export function ProjectList() {
       <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Seus Projetos</h3>
-          <Button onClick={() => setIsFormOpen(true)} size="sm">
+          <Button onClick={() => setIsFormOpen(true)} size="sm" className="btn-new-project">
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
@@ -145,40 +145,56 @@ export function ProjectList() {
         {projects.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">Você ainda não tem projetos.</p>
-            <Button onClick={() => setIsFormOpen(true)}>
+            <Button onClick={() => setIsFormOpen(true)} className="btn-new-project">
               <Plus className="h-4 w-4 mr-2" />
               Criar Meu Primeiro Projeto
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <Card key={project.id} className="overflow-hidden">
+              <Card 
+                key={project.id} 
+                className="project-card overflow-hidden flex flex-col"
+              >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xl">
-                    <Link to={`/project/${project.id}/gantt`} className="hover:underline">
+                  <CardTitle className="text-xl text-foreground">
+                    <Link to={`/project/${project.id}/gantt`} className="hover:text-primary transition-colors">
                       {project.name}
                     </Link>
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-2">
+                  <CardDescription className="flex items-center text-muted-foreground gap-2">
                     <Calendar className="h-3.5 w-3.5" />
-                    {new Date(project.created_at).toLocaleDateString('pt-BR')}
+                    Criado em {new Date(project.created_at).toLocaleDateString('pt-BR')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="pb-2">
+                
+                <CardContent className="pb-2 flex-grow">
                   <p className="text-sm text-muted-foreground line-clamp-3">
                     {project.description || "Sem descrição."}
                   </p>
-                </CardContent>
-                <CardFooter className="pt-2 flex justify-between items-center">
-                  <div className="text-xs text-muted-foreground">
-                    {project.role === 'owner' ? 'Proprietário' : 
-                     project.role === 'admin' ? 'Administrador' : 
-                     project.role === 'editor' ? 'Editor' : 'Visualizador'}
+                  
+                  <div className="mt-4">
+                    <p className="text-sm mb-1">
+                      Criado por: {project.owner?.full_name || project.owner?.email || 'Usuário'}
+                    </p>
+                    <span className="access-tag inline-block px-2 py-1 rounded-full text-xs font-medium">
+                      Seu acesso: {project.role === 'owner' ? 'Proprietário' : 
+                                  project.role === 'admin' ? 'Administrador' : 
+                                  project.role === 'editor' ? 'Editor' : 'Visualizador'}
+                    </span>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                </CardContent>
+                
+                <CardFooter className="pt-2 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="visualizar-btn ml-auto"
+                    asChild
+                  >
                     <Link to={`/project/${project.id}/gantt`}>
-                      Acessar
+                      Visualizar
                     </Link>
                   </Button>
                 </CardFooter>
