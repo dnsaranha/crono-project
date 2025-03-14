@@ -59,21 +59,10 @@ export default function Dashboard() {
           <p className="text-muted-foreground">
             Gerencie seus projetos e equipes em um só lugar.
           </p>
-          <Button onClick={() => navigate('/perfil')} variant="outline" className="visualize-profile-btn">
-            Visualizar Perfil
-          </Button>
         </div>
       </div>
       
       <div className="space-y-8">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-semibold text-foreground">Seus Projetos</h2>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Projeto
-          </Button>
-        </div>
-        
         <ProjectList />
       </div>
       
