@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
@@ -12,6 +11,7 @@ import BoardView from "@/pages/BoardView";
 import TimelineView from "@/pages/TimelineView";
 import WBSView from "@/pages/WBSView";
 import CriticalPathView from "@/pages/CriticalPathView";
+import ResetPassword from "@/pages/ResetPassword"; // Importe a nova página de redefinição de senha
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -21,6 +21,7 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} /> {/* Nova rota */}
           <Route path="/" element={
             <Layout>
               <Dashboard />
