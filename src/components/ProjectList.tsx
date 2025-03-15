@@ -100,9 +100,15 @@ export function ProjectList() {
       if (memberError) throw memberError;
       
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       // Format member projects
       const memberProjectsFormatted = memberProjects
         .filter(item => item.project) // Filter out any null projects
+=======
+      // Process member projects data
+      const processedMemberProjects = memberProjects
+        .filter(item => item.project) // Ensure project exists
+>>>>>>> Stashed changes
 =======
       // Process member projects data
       const processedMemberProjects = memberProjects
@@ -114,6 +120,7 @@ export function ProjectList() {
         }));
       
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       // Combine and remove duplicates
       const allProjects = [...ownedProjectsWithRole, ...memberProjectsFormatted];
       const uniqueProjects = Array.from(
@@ -123,10 +130,15 @@ export function ProjectList() {
       setProjects(uniqueProjects);
     } catch (error: any) {
 =======
+=======
+>>>>>>> Stashed changes
       // Combine owned and member projects
       setProjects([...ownedProjectsWithRole, ...processedMemberProjects]);
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
       toast({
         title: 'Erro ao carregar projetos',
@@ -146,6 +158,7 @@ export function ProjectList() {
 
   if (loading) {
     return <LoadingState />;
+<<<<<<< Updated upstream
   }
   
   function getRoleLabel(role: string) {
@@ -161,6 +174,8 @@ export function ProjectList() {
       default:
         return 'Membro';
     }
+=======
+>>>>>>> Stashed changes
   }
 
   return (
@@ -173,6 +188,7 @@ export function ProjectList() {
             Novo Projeto
           </Button>
         </div>
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -218,6 +234,8 @@ export function ProjectList() {
         </div>
       )}
 =======
+=======
+>>>>>>> Stashed changes
         
         {projects.length === 0 ? (
           <div className="text-center py-8">
@@ -284,6 +302,9 @@ export function ProjectList() {
           </div>
         )}
       </div>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
       
       <ProjectForm 

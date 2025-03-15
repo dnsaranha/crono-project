@@ -1,5 +1,9 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import React from 'react';
+=======
+import React, { useState, useEffect } from 'react';
+>>>>>>> Stashed changes
 =======
 import React, { useState, useEffect } from 'react';
 >>>>>>> Stashed changes
@@ -10,6 +14,10 @@ import { useNavigate } from 'react-router-dom';
 const Home = () => {
   const navigate = useNavigate();
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+  const [menuOpen, setMenuOpen] = useState(false);
+>>>>>>> Stashed changes
 =======
   const [menuOpen, setMenuOpen] = useState(false);
 >>>>>>> Stashed changes
@@ -23,6 +31,7 @@ const Home = () => {
     }
   };
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   return (
     <div>
@@ -45,6 +54,8 @@ const Home = () => {
               <span></span>
               <span></span>
 =======
+=======
+>>>>>>> Stashed changes
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
@@ -86,12 +97,16 @@ const Home = () => {
               <span className="bg-foreground"></span>
               <span className="bg-foreground"></span>
               <span className="bg-foreground"></span>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             </div>
           </div>
         </nav>
       </header>
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
       <section className="hero">
         <div className="container">
@@ -106,6 +121,8 @@ const Home = () => {
           <div className="hero-image">
             <img src="/src/assets/cronoproject-dashboard.png" alt="Dashboard CronoProject" />
 =======
+=======
+>>>>>>> Stashed changes
       <section className="hero bg-background">
         <div className="container">
           <div className="hero-content">
@@ -118,11 +135,15 @@ const Home = () => {
           </div>
           <div className="hero-image">
             <img src="/cronoproject-dashboard.png" alt="Dashboard CronoProject" />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
           </div>
         </div>
       </section>
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
       <section id="exemplos" className="examples">
         <div className="container">
@@ -151,6 +172,8 @@ const Home = () => {
                   <h3>Dashboard de Projetos</h3>
                   <p>Acompanhe o progresso de todos os seus projetos em um só lugar</p>
 =======
+=======
+>>>>>>> Stashed changes
       <section id="exemplos" className="examples bg-background">
         <div className="container">
           <h2 className="section-title text-foreground">Exemplos de Uso</h2>
@@ -177,13 +200,20 @@ const Home = () => {
                 <div className="slider-caption">
                   <h3 className="text-foreground">Dashboard de Projetos</h3>
                   <p className="text-muted-foreground">Acompanhe o progresso de todos os seus projetos em um só lugar</p>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                 </div>
               </div>
             </div>
             <div className="slider-controls">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               <button className="slider-prev"><i className="fas fa-chevron-left"></i></button>
+=======
+              <button className="slider-prev text-foreground"><i className="fas fa-chevron-left"></i></button>
+>>>>>>> Stashed changes
 =======
               <button className="slider-prev text-foreground"><i className="fas fa-chevron-left"></i></button>
 >>>>>>> Stashed changes
@@ -193,7 +223,11 @@ const Home = () => {
                 <span className="dot"></span>
               </div>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               <button className="slider-next"><i className="fas fa-chevron-right"></i></button>
+=======
+              <button className="slider-next text-foreground"><i className="fas fa-chevron-right"></i></button>
+>>>>>>> Stashed changes
 =======
               <button className="slider-next text-foreground"><i className="fas fa-chevron-right"></i></button>
 >>>>>>> Stashed changes
@@ -203,8 +237,11 @@ const Home = () => {
       </section>
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       <footer>
 =======
+=======
+>>>>>>> Stashed changes
       {/* Seção de Planos */}
       <section id="planos" className="pricing bg-background">
         <div className="container">
@@ -315,12 +352,16 @@ const Home = () => {
       </section>
 
       <footer className="bg-background dark:bg-dark-color">
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         <div className="container">
           <div className="footer-grid">
             <div className="footer-col">
               <div className="footer-logo">
                 <img src="/src/assets/logo-cronoproject-white.png" alt="CronoProject Logo" className="logo-img-small" />
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 <span>CronoProject</span>
               </div>
@@ -357,6 +398,8 @@ const Home = () => {
               <a href="/termos">Termos de Uso</a>
               <a href="/privacidade">Política de Privacidade</a>
 =======
+=======
+>>>>>>> Stashed changes
                 <span className="text-foreground">CronoProject</span>
               </div>
               <p className="text-muted-foreground">Solução completa para gerenciamento de cronogramas de projetos.</p>
@@ -391,6 +434,9 @@ const Home = () => {
             <div className="footer-links">
               <a href="/termos" className="text-muted-foreground hover:text-foreground">Termos de Uso</a>
               <a href="/privacidade" className="text-muted-foreground hover:text-foreground">Política de Privacidade</a>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             </div>
           </div>

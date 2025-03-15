@@ -10,6 +10,12 @@ import LoadingState from "@/components/LoadingState";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import ViewHeader from "@/components/ViewHeader";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+import { Button } from "@/components/ui/button";
+import { Download, ChevronLeftSquare } from "lucide-react";
+import html2canvas from "html2canvas";
+>>>>>>> Stashed changes
 =======
 import { Button } from "@/components/ui/button";
 import { Download, ChevronLeftSquare } from "lucide-react";
@@ -32,6 +38,10 @@ const GanttView = () => {
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
   const tasksLoadedRef = useRef(false);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+  const chartRef = useRef<HTMLDivElement>(null);
+>>>>>>> Stashed changes
 =======
   const chartRef = useRef<HTMLDivElement>(null);
 >>>>>>> Stashed changes
@@ -203,7 +213,10 @@ const GanttView = () => {
   };
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
   const exportToImage = async () => {
     if (!chartRef.current) return;
     
@@ -247,6 +260,9 @@ const GanttView = () => {
     </Button>
   );
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   return (
     <div className="flex flex-col">
@@ -255,7 +271,11 @@ const GanttView = () => {
         onAddItem={handleAddTask}
         buttonText="Nova Tarefa"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         extraActions={null}
+=======
+        extraActions={extraActions}
+>>>>>>> Stashed changes
 =======
         extraActions={extraActions}
 >>>>>>> Stashed changes
@@ -280,7 +300,11 @@ const GanttView = () => {
         <EmptyTaskState onAddTask={handleAddTask} hideAddButton={!hasEditPermission} />
       ) : (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow">
+=======
+        <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow" ref={chartRef}>
+>>>>>>> Stashed changes
 =======
         <div className="gantt-container flex-1 min-h-[500px] overflow-auto bg-white dark:bg-gray-800 rounded-md shadow" ref={chartRef}>
 >>>>>>> Stashed changes

@@ -614,6 +614,7 @@ const GanttChart = ({
                 ))}
               </div>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             </div>
           )}
           
@@ -696,6 +697,8 @@ const GanttChart = ({
               ))}
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
               
               <div className="flex items-center space-x-1">
                 <Button
@@ -745,6 +748,7 @@ const GanttChart = ({
               </Button>
             )}
           </div>
+<<<<<<< Updated upstream
           
           {/* Botão para exportar como imagem */}
           <Button
@@ -757,6 +761,8 @@ const GanttChart = ({
             <Download className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
+=======
+>>>>>>> Stashed changes
         </div>
       </>
     </div>

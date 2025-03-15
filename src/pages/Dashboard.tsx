@@ -61,6 +61,7 @@ export default function Dashboard() {
           </p>
         </div>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       ) : (
         <div>
           <div className="flex items-center justify-between mb-6">
@@ -77,6 +78,8 @@ export default function Dashboard() {
         </div>
       )}
 =======
+=======
+>>>>>>> Stashed changes
       </div>
       
       <div className="space-y-8">
@@ -90,6 +93,9 @@ export default function Dashboard() {
           navigate(`/project/${projectId}/gantt`);
         }}
       />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     </div>
   );

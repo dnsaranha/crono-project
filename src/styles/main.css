@@ -761,7 +761,10 @@ footer {
     text-align: center;
   }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 }
 
 /* Ajustes para modo escuro - tabelas e sliders */
@@ -806,5 +809,8 @@ footer {
 
 .dark .fa-times {
   color: var(--danger-color);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 } 

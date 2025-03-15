@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
@@ -14,6 +15,11 @@ import WBSView from "@/pages/WBSView";
 import CriticalPathView from "@/pages/CriticalPathView";
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+=======
+import { ThemeProvider } from '@/providers/ThemeProvider';
+import { SubscriptionProvider } from '@/providers/SubscriptionProvider';
+import { AppLayout } from '@/components/AppLayout';
+>>>>>>> Stashed changes
 =======
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { SubscriptionProvider } from '@/providers/SubscriptionProvider';
