@@ -1,3 +1,5 @@
+
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthForm } from "@/components/AuthForm";
 import { CronoLogo } from "@/components/CronoLogo";
@@ -15,42 +17,38 @@ import {
 export default function Auth() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-
+  
   useEffect(() => {
     // Check if user is already signed in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-
+      
       if (session?.user) {
         // User is already logged in, redirect to dashboard
         navigate("/");
       }
     };
-
+    
     checkUser();
-
+    
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate("/");
       }
     });
-
+    
     return () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const handlePasswordReset = () => {
-    navigate("/reset-password");
-  };
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background">
       <header className="bg-background px-4 py-3 border-b">
         <div className="container mx-auto flex justify-between items-center">
           <CronoLogo size="md" />
-
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -76,7 +74,7 @@ export default function Auth() {
           </DropdownMenu>
         </div>
       </header>
-
+      
       <div className="flex flex-col items-center justify-center flex-1 px-4 py-8">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col space-y-2 text-center mb-6">
@@ -87,12 +85,8 @@ export default function Auth() {
               Entre com seu email e senha para acessar sua conta
             </p>
           </div>
-
+          
           <AuthForm />
-
-          <Button onClick={handlePasswordReset} variant="link">
-            Esqueceu a senha?
-          </Button>
         </div>
       </div>
     </div>
