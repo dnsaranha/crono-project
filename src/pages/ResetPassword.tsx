@@ -8,7 +8,7 @@ export default function ResetPassword() {
   const [message, setMessage] = useState("");
 
   const handlePasswordReset = async () => {
-    const { data, error } = await supabase.auth.api.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.api.resetPasswordForEmail(email);
 
     if (error) {
       setMessage("Erro ao solicitar redefinição de senha. Por favor, tente novamente.");
