@@ -1,5 +1,5 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ export function AuthForm() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   async function handleSignUp() {
     try {
@@ -103,13 +102,6 @@ export function AuthForm() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <Button 
-                  variant="link" 
-                  className="px-0 font-normal"
-                  onClick={() => navigate("/reset-password")}
-                >
-                  Esqueceu a senha?
-                </Button>
               </div>
               <Input 
                 id="password" 
