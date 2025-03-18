@@ -23,7 +23,7 @@ export default function App() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/update-password" element={<UpdatePassword />} /> {/* Movido para o nível correto */}
+          <Route path="/auth/update-password" element={<UpdatePassword />} /> {/* Movido para o nível correto */}
           <Route path="/" element={
             <Layout>
               <Dashboard />
@@ -54,4 +54,4 @@ export default function App() {
       </Router>
     </ThemeProvider>
   );
-}
+} nu
