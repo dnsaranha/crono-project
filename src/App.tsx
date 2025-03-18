@@ -32,7 +32,7 @@ export default function App() {
               <ProjectView />
             </Layout>
           }>
-          
+          <Route path="/update-password" element={<UpdatePassword />} />
             <Route index element={<Navigate to="gantt" replace />} />
             <Route path="gantt" element={<GanttView />} />
             <Route path="grid" element={<GridView />} />
