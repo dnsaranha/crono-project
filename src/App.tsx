@@ -11,7 +11,8 @@ import BoardView from "@/pages/BoardView";
 import TimelineView from "@/pages/TimelineView";
 import WBSView from "@/pages/WBSView";
 import CriticalPathView from "@/pages/CriticalPathView";
-import ResetPassword from "@/pages/ResetPassword"; // Importe a nova página de redefinição de senha
+import ResetPassword from "@/pages/ResetPassword";
+import UpdatePassword from "@/pages/UpdatePassword"; // Adicionando importação do componente
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -21,7 +22,8 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/reset-password" element={<ResetPassword />} /> {/* Nova rota */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} /> {/* Movido para o nível correto */}
           <Route path="/" element={
             <Layout>
               <Dashboard />
@@ -32,7 +34,6 @@ export default function App() {
               <ProjectView />
             </Layout>
           }>
-          <Route path="/update-password" element={<UpdatePassword />} />
             <Route index element={<Navigate to="gantt" replace />} />
             <Route path="gantt" element={<GanttView />} />
             <Route path="grid" element={<GridView />} />
