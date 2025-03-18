@@ -54,4 +54,4 @@ export default function App() {
       </Router>
     </ThemeProvider>
   );
-} nu
+}
