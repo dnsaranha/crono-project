@@ -1,1 +1,24 @@
- 
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#f3f4f6"/>
+  <rect x="50" y="50" width="700" height="350" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <rect x="70" y="70" width="250" height="30" rx="4" fill="#3F51B5"/>
+  <text x="190" y="90" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Gráfico de Gantt</text>
+  
+  <!-- Barras do Gantt -->
+  <rect x="200" y="120" width="150" height="20" rx="4" fill="#3F51B5" opacity="0.8"/>
+  <rect x="250" y="150" width="200" height="20" rx="4" fill="#3F51B5" opacity="0.7"/>
+  <rect x="180" y="180" width="250" height="20" rx="4" fill="#3F51B5" opacity="0.6"/>
+  <rect x="300" y="210" width="120" height="20" rx="4" fill="#3F51B5" opacity="0.5"/>
+  <rect x="220" y="240" width="300" height="20" rx="4" fill="#3F51B5" opacity="0.8"/>
+  <rect x="350" y="270" width="150" height="20" rx="4" fill="#3F51B5" opacity="0.7"/>
+  <rect x="280" y="300" width="180" height="20" rx="4" fill="#3F51B5" opacity="0.6"/>
+  
+  <!-- Textos -->
+  <text x="170" y="135" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 1</text>
+  <text x="170" y="165" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 2</text>
+  <text x="170" y="195" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 3</text>
+  <text x="170" y="225" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 4</text>
+  <text x="170" y="255" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 5</text>
+  <text x="170" y="285" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 6</text>
+  <text x="170" y="315" font-family="Arial" font-size="12" text-anchor="end" fill="#1f2937">Tarefa 7</text>
+</svg> 

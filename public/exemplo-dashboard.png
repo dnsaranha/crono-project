@@ -1,1 +1,38 @@
- 
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#f3f4f6"/>
+  <rect x="50" y="50" width="700" height="350" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <rect x="70" y="70" width="250" height="30" rx="4" fill="#3F51B5"/>
+  <text x="190" y="90" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Dashboard de Projetos</text>
+  
+  <!-- Gráfico de Barra -->
+  <rect x="70" y="120" width="250" height="130" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="190" y="140" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Progresso dos Projetos</text>
+  <rect x="90" y="160" width="180" height="20" rx="2" fill="#3F51B5" opacity="0.8"/>
+  <rect x="90" y="190" width="120" height="20" rx="2" fill="#3F51B5" opacity="0.7"/>
+  <rect x="90" y="220" width="200" height="20" rx="2" fill="#3F51B5" opacity="0.6"/>
+  
+  <!-- Gráfico de Pizza -->
+  <circle cx="480" cy="185" r="75" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="480" y="140" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Status dos Projetos</text>
+  <path d="M480,185 L480,110 A75,75 0 0,1 541.75,146.75 z" fill="#3F51B5" opacity="0.8"/>
+  <path d="M480,185 L541.75,146.75 A75,75 0 0,1 530.09,223.09 z" fill="#FF5722" opacity="0.8"/>
+  <path d="M480,185 L530.09,223.09 A75,75 0 0,1 430.09,223.09 z" fill="#10B981" opacity="0.8"/>
+  <path d="M480,185 L430.09,223.09 A75,75 0 0,1 480,110 z" fill="#EF4444" opacity="0.6"/>
+  
+  <!-- Cards Inferiores -->
+  <rect x="70" y="270" width="150" height="110" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="145" y="290" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Projetos Ativos</text>
+  <text x="145" y="330" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#3F51B5">12</text>
+  
+  <rect x="240" y="270" width="150" height="110" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="315" y="290" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Tarefas Pendentes</text>
+  <text x="315" y="330" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#FF5722">48</text>
+  
+  <rect x="410" y="270" width="150" height="110" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="485" y="290" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Projetos Concluídos</text>
+  <text x="485" y="330" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#10B981">7</text>
+  
+  <rect x="580" y="270" width="150" height="110" rx="4" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="655" y="290" font-family="Arial" font-size="12" text-anchor="middle" fill="#1f2937">Equipes Ativas</text>
+  <text x="655" y="330" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#3F51B5">5</text>
+</svg> 
