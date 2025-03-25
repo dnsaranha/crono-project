@@ -222,7 +222,8 @@ const GanttChart = ({
             ...prev,
             [dragOverTask.id]: true
           }));
-        } else {
+        } 
+        else {
           newParentId = dragOverTask.parentId;
         }
         
@@ -231,7 +232,9 @@ const GanttChart = ({
           onTaskUpdate(updatedTask);
         }
       }
-    } else if (dragOverCell && onTaskUpdate) {
+    }
+    
+    else if (dragOverCell && onTaskUpdate) {
       const { weekIndex } = dragOverCell;
       
       const newStartDate = new Date(startDate);
@@ -363,14 +366,9 @@ const GanttChart = ({
     { level: 5, label: "Muito Alta", color: "bg-red-400" }
   ];
   
+  // Importe o hook useToast
   const { toast } = useToast();
-
-  // Calcular a posição da linha de hoje
-  const today = new Date();
-  const todayDiffTime = Math.abs(today.getTime() - startDate.getTime());
-  const todayDiffDays = Math.ceil(todayDiffTime / (1000 * 60 * 60 * 24));
-  const todayPosition = (todayDiffDays / 7) * actualCellWidth;
-
+  
   return (
     <div className="rounded-md border overflow-hidden" ref={containerRef}>
       <div className="overflow-auto">
@@ -470,15 +468,7 @@ const GanttChart = ({
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
-              {/* Renderizar linha tracejada indicando a data de hoje */}
-              <div
-                className="absolute top-0 h-full border-l border-dashed border-red-500"
-                style={{ left: `${todayPosition}px` }}
-              />
-
               {visibleTasks.map((task, rowIndex) => (
-                <div  
-                {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
                   className={`absolute h-10 w-full ${
