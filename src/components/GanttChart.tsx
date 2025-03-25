@@ -356,6 +356,23 @@ const GanttChart = ({
         variant: "destructive",
       });
     }
+   const calculateDateLine = () => {
+    const today = new Date();
+    
+    // Check if today is within the date range of the chart
+    if (today < startDate || today > endDate) {
+      return null;
+    }
+
+    // Calculate the position of today's line
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const position = (diffDays / 7) * actualCellWidth;
+
+    return position;
+   };
+
+   const todayLinePosition = calculateDateLine(); 
   };
   
   const priorityLegend = [
@@ -468,24 +485,18 @@ const GanttChart = ({
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
-            <div
-              const calculateDateLine = () => {
-                const today = new Date();
-              // Check if today is within the date range of the chart
-                if (today < startDate || today > endDate) {
-                return null;
-              }
-
-              // Calculate the position of today's line
-              const diffTime = Math.abs(today.getTime() - startDate.getTime());
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              const position = (diffDays / 7) * actualCellWidth;
-
-             return position;
-            };
-
-             const todayLinePosition = calculateDateLine();
-            >
+              {/* Today line */}
+              {todayLinePosition !== null && (
+                <div
+                  className="absolute h-full border-l-2 border-blue-500 border-dashed z-10"
+                  style={{ 
+                   left: `${todayLinePosition}px`, 
+                   top: 0,
+                   pointerEvents: 'none'
+                 }}
+                 title="Hoje"
+               />
+             )}
               {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
