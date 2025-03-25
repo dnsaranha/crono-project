@@ -468,6 +468,24 @@ const GanttChart = ({
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
+            <div
+              const calculateDateLine = () => {
+                const today = new Date();
+              // Check if today is within the date range of the chart
+                if (today < startDate || today > endDate) {
+                return null;
+              }
+
+              // Calculate the position of today's line
+              const diffTime = Math.abs(today.getTime() - startDate.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              const position = (diffDays / 7) * actualCellWidth;
+
+             return position;
+            };
+
+             const todayLinePosition = calculateDateLine();
+            >
               {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
