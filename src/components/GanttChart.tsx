@@ -489,7 +489,7 @@ const GanttChart = ({
                 {/* Marcador de "hoje" */}
                 <text
                   x={getCurrentDateLinePosition() + 5}
-                  y="15"
+                  y="5"
                   fill="#2697c0"  // Cor do texto
                   className="text-sm font-semibold bg-white px-1"
                 >
