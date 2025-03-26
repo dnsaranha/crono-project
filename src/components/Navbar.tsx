@@ -30,7 +30,7 @@ const Navbar = () => {
           <CronoLogo />
         </Link>
         
-        <div className="flex space-x-1">
+        <div className="flex space-x-1 overflow-x-auto">
           {navItems.map((item) => (
             <Button
               key={item.path}
