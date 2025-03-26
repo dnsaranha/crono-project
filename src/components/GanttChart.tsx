@@ -475,7 +475,7 @@ const GanttChart = ({
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
-              <svg className="absolute inset-0 h-full w-full pointer-events-none">
+              <svg className="absolute inset-0 h-full w-full pointer-events-none z-10">
                 {/* Linha tracejada da data atual */}
                 <line
                   x1={getCurrentDateLinePosition()}
@@ -491,7 +491,7 @@ const GanttChart = ({
                   x={getCurrentDateLinePosition() + 5}
                   y="20"
                   fill="blue"  // Cor do texto
-                  className="text-sm font-semibold"
+                  className="text-sm font-semibold bg-white px-1"
                 >
                   hoje
                 </text>
