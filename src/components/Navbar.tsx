@@ -25,12 +25,12 @@ const Navbar = () => {
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-4 container mx-auto">
+      <div className="flex h-16 items-center px-4 container overflow-x-auto">
         <Link to="/" className="flex items-center">
           <CronoLogo />
         </Link>
         
-        <div className="flex space-x-1 overflow-x-auto">
+        <div className="flex space-x-1">
           {navItems.map((item) => (
             <Button
               key={item.path}
