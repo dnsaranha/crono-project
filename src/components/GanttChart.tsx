@@ -148,6 +148,13 @@ const GanttChart = ({
     };
   };
 
+  const getCurrentDateLinePosition = () => {
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return (diffDays / 7) * actualCellWidth;
+  };
+  
   const isTaskVisible = (task: TaskType) => {
     if (!task.parentId) return true;
     
@@ -468,6 +475,73 @@ const GanttChart = ({
               style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
               onClick={handleGridClick}
             >
+              <svg className="absolute inset-0 h-full w-full pointer-events-none z-20">
+                {/* Linha tracejada da data atual */}
+                <line
+                  x1={getCurrentDateLinePosition()}
+                  y1="0"
+                  x2={getCurrentDateLinePosition()}
+                  y2="100%"
+                  stroke="#2697c0"  // Cor alterada para azul
+                  strokeWidth="2"
+                  strokeDasharray="4"
+                />
+                {/* Marcador de "hoje" */}
+                <text
+                  x={getCurrentDateLinePosition() + 5}
+                  y="10"
+                  fill="#2697c0"  // Cor do texto
+                  className="text-sm font-semibold bg-white px-1"
+                >
+                  hoje
+                </text>
+                {visibleTasks.map(task => {
+                  if (!task.dependencies?.length) return null;
+              
+                  return task.dependencies.map(depId => {
+                    const dependencyTask = visibleTasks.find(t => t.id === depId);
+                    if (!dependencyTask || !isTaskVisible(dependencyTask)) return null;
+              
+                    const fromIndex = visibleTasks.findIndex(t => t.id === depId);
+                    const toIndex = visibleTasks.findIndex(t => t.id === task.id);
+              
+                    if (fromIndex === -1 || toIndex === -1) return null;
+              
+                    const fromStyle = getTaskStyle(dependencyTask);
+                    const toStyle = getTaskStyle(task);
+              
+                    const fromX = parseInt(fromStyle.marginLeft) + parseInt(fromStyle.width);
+                    const fromY = fromIndex * 40 + 20;
+              
+                    const toX = parseInt(toStyle.marginLeft);
+                    const toY = toIndex * 40 + 20;
+              
+                    const midX = (fromX + toX) / 2;
+              
+                    return (
+                      <path
+                        key={`${depId}-${task.id}`}
+                        className="gantt-connection"
+                        d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  });
+                })}
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#FFB236" />
+                  </marker>
+                </defs>
+              </svg>
+              
               {visibleTasks.map((task, rowIndex) => (
                 <div 
                   key={task.id} 
