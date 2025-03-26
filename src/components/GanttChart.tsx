@@ -482,10 +482,19 @@ const GanttChart = ({
                   y1="0"
                   x2={getCurrentDateLinePosition()}
                   y2="100%"
-                  stroke="blue"
+                  stroke="blue"  // Cor alterada para azul
                   strokeWidth="2"
                   strokeDasharray="4"
                 />
+                {/* Marcador de "hoje" */}
+                <text
+                  x={getCurrentDateLinePosition() + 5}
+                  y="20"
+                  fill="blue"  // Cor do texto
+                  className="text-sm font-semibold"
+                >
+                  hoje
+                </text>
                 {visibleTasks.map(task => {
                   if (!task.dependencies?.length) return null;
               
