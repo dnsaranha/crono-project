@@ -482,7 +482,7 @@ const GanttChart = ({
                   y1="0"
                   x2={getCurrentDateLinePosition()}
                   y2="100%"
-                  stroke="red"
+                  stroke="blue"
                   strokeWidth="2"
                   strokeDasharray="4"
                 />
