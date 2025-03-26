@@ -482,7 +482,7 @@ const GanttChart = ({
                   y1="0"
                   x2={getCurrentDateLinePosition()}
                   y2="100%"
-                  stroke="blue"  // Cor alterada para azul
+                  stroke="#2697c0"  // Cor alterada para azul
                   strokeWidth="2"
                   strokeDasharray="4"
                 />
@@ -490,7 +490,7 @@ const GanttChart = ({
                 <text
                   x={getCurrentDateLinePosition() + 5}
                   y="20"
-                  fill="196 67 45"  // Cor do texto
+                  fill="#2697c0"  // Cor do texto
                   className="text-sm font-semibold bg-white px-1"
                 >
                   hoje
