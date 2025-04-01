@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
@@ -12,7 +13,7 @@ import TimelineView from "@/pages/TimelineView";
 import WBSView from "@/pages/WBSView";
 import CriticalPathView from "@/pages/CriticalPathView";
 import ResetPassword from "@/pages/ResetPassword";
-import UpdatePassword from "@/pages/UpdatePassword"; // Adicionando importação do componente
+import UpdatePassword from "@/pages/UpdatePassword";
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -23,7 +24,7 @@ export default function App() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/auth/update-password" element={<UpdatePassword />} /> {/* Movido para o nível correto */}
+          <Route path="/auth/reset-password" element={<UpdatePassword />} />
           <Route path="/" element={
             <Layout>
               <Dashboard />
