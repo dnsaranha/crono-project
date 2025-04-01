@@ -17,6 +17,8 @@ import { TaskType } from './Task';
 import { TaskNodeData, TaskNode } from './TaskNode';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { Button } from './ui/button';
+import { Edit, X } from 'lucide-react';
 
 interface EnhancedTaskType extends TaskType {
   earlyStart: number;
@@ -37,6 +39,10 @@ interface CriticalPathDiagramProps {
   nonCriticalTasks: EnhancedTaskType[];
   connections: ConnectionType[];
   hasEditPermission: boolean;
+  onUpdateDependency?: (taskId: string, dependencyId: string, action: 'add' | 'remove') => void;
+  editingTask?: string | null;
+  setEditingTask?: (taskId: string | null) => void;
+  allTasks?: TaskType[];
 }
 
 // Define node types for the flow
@@ -48,7 +54,11 @@ export default function CriticalPathDiagram({
   criticalTasks, 
   nonCriticalTasks,
   connections,
-  hasEditPermission
+  hasEditPermission,
+  onUpdateDependency,
+  editingTask,
+  setEditingTask,
+  allTasks = []
 }: CriticalPathDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -63,12 +73,12 @@ export default function CriticalPathDiagram({
     setIsLayouting(true);
     
     // Calculate positions - horizontal layout
-    const allTasks = [...criticalTasks, ...nonCriticalTasks];
+    const allEnhancedTasks = [...criticalTasks, ...nonCriticalTasks];
     
     // Organize tasks by their early start time for horizontal positioning
     // We need to group tasks by earlyStart manually since Object.groupBy might not be available
     const tasksByEarlyStart: Record<number, EnhancedTaskType[]> = {};
-    allTasks.forEach(task => {
+    allEnhancedTasks.forEach(task => {
       const earlyStart = task.earlyStart;
       if (!tasksByEarlyStart[earlyStart]) {
         tasksByEarlyStart[earlyStart] = [];
@@ -102,6 +112,11 @@ export default function CriticalPathDiagram({
           lateFinish: task.lateFinish,
           float: task.float,
           hasEditPermission,
+          isEditing: editingTask === task.id,
+          onStartEdit: setEditingTask ? () => setEditingTask(task.id) : undefined,
+          onCancelEdit: setEditingTask ? () => setEditingTask(null) : undefined,
+          onUpdateDependency,
+          allTasks: allTasks.filter(t => t.id !== task.id), // Exclude current task from dependency options
         };
         
         // Create the node
@@ -139,11 +154,11 @@ export default function CriticalPathDiagram({
     setNodes(flowNodes);
     setEdges(flowEdges);
     setIsLayouting(false);
-  }, [criticalTasks, nonCriticalTasks, connections, hasEditPermission, setNodes, setEdges]);
+  }, [criticalTasks, nonCriticalTasks, connections, hasEditPermission, setNodes, setEdges, editingTask, setEditingTask, onUpdateDependency, allTasks]);
 
   // Handle node click to navigate to task edit
   const handleNodeClick = (event: React.MouseEvent, node: Node) => {
-    if (!hasEditPermission) return;
+    if (!hasEditPermission || editingTask) return;
     
     const taskId = node.id;
     
@@ -173,10 +188,25 @@ export default function CriticalPathDiagram({
       >
         <Background />
         <Controls />
-        <Panel position="top-left" className="bg-transparent">
-          {isLayouting && (
+        <Panel position="top-left" className="bg-background shadow-sm rounded p-2">
+          {isLayouting ? (
             <div className="text-sm text-muted-foreground">
               Organizando diagrama...
+            </div>
+          ) : (
+            <div className="text-sm flex gap-2 items-center">
+              {editingTask ? (
+                <>
+                  <span className="text-primary font-medium">Modo de edição</span>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingTask?.(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : hasEditPermission && (
+                <div className="text-sm text-muted-foreground">
+                  Clique nos pinos <Edit className="inline h-3 w-3" /> para editar dependências
+                </div>
+              )}
             </div>
           )}
         </Panel>

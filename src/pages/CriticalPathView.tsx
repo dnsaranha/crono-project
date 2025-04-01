@@ -17,10 +17,11 @@ interface ContextType {
 }
 
 export default function CriticalPathView() {
-  const { tasks, loading, createTask } = useTasks();
+  const { tasks, loading, createTask, updateTask } = useTasks();
   const { hasEditPermission } = useOutletContext<ContextType>();
   const [calculatingPath, setCalculatingPath] = useState(false);
   const { toast } = useToast();
+  const [editingTask, setEditingTask] = useState<string | null>(null);
 
   // Calculate critical path data when tasks change
   const { 
@@ -221,6 +222,42 @@ export default function CriticalPathView() {
     }
   }, [tasks, toast]);
 
+  // Add ability to edit task dependencies
+  const handleUpdateDependency = (taskId: string, dependencyId: string, action: 'add' | 'remove') => {
+    if (!hasEditPermission) return;
+    
+    const taskToUpdate = tasks.find(t => t.id === taskId);
+    if (!taskToUpdate) return;
+    
+    let updatedDependencies: string[] = [...(taskToUpdate.dependencies || [])];
+    
+    if (action === 'add' && !updatedDependencies.includes(dependencyId)) {
+      updatedDependencies.push(dependencyId);
+    } else if (action === 'remove') {
+      updatedDependencies = updatedDependencies.filter(id => id !== dependencyId);
+    }
+    
+    const updatedTask = {
+      ...taskToUpdate,
+      dependencies: updatedDependencies
+    };
+    
+    updateTask(updatedTask).then(success => {
+      if (success) {
+        toast({
+          title: action === 'add' ? "Dependência adicionada" : "Dependência removida",
+          description: "As relações entre tarefas foram atualizadas.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar as dependências.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
   // Handle exporting the diagram as an image
   const handleExportDiagram = async () => {
     const diagramElement = document.getElementById('critical-path-diagram');
@@ -340,6 +377,10 @@ export default function CriticalPathView() {
               nonCriticalTasks={nonCriticalTasks}
               connections={edgeConnections}
               hasEditPermission={hasEditPermission}
+              onUpdateDependency={handleUpdateDependency}
+              editingTask={editingTask}
+              setEditingTask={setEditingTask}
+              allTasks={tasks}
             />
           </div>
         </div>

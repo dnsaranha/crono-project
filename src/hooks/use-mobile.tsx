@@ -23,4 +23,4 @@ export function useMobile() {
   return { isMobile };
 }
 
-export const useIsMobile = useMobile; // Alias para compatibilidade
+export const useIsMobile = useMobile; // Alias for compatibility

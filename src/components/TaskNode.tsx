@@ -1,14 +1,16 @@
 
-import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { TaskType } from './Task';
+import { Edit, Save, X, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { Clock, CalendarDays, ArrowRight } from 'lucide-react';
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 export interface TaskNodeData {
   task: TaskType;
@@ -19,126 +21,165 @@ export interface TaskNodeData {
   lateFinish: number;
   float: number;
   hasEditPermission: boolean;
+  isEditing?: boolean;
+  onStartEdit?: (taskId: string) => void;
+  onCancelEdit?: () => void;
+  onUpdateDependency?: (taskId: string, dependencyId: string, action: 'add' | 'remove') => void;
+  allTasks?: TaskType[];
 }
 
-interface TaskNodeProps {
-  data: TaskNodeData;
-}
-
-export const TaskNode = memo(({ data }: TaskNodeProps) => {
-  const { 
-    task, 
-    isCritical, 
-    earlyStart, 
-    earlyFinish, 
-    lateStart, 
+export function TaskNode({ data }: { data: TaskNodeData }) {
+  const {
+    task,
+    isCritical,
+    earlyStart,
+    earlyFinish,
+    lateStart,
     lateFinish, 
-    float, 
-    hasEditPermission 
+    float,
+    hasEditPermission,
+    isEditing,
+    onStartEdit,
+    onCancelEdit,
+    onUpdateDependency,
+    allTasks = []
   } = data;
-
-  // Create a simple ID label (e.g., A, B, C) based on task name
-  const idLabel = task.name.charAt(0).toUpperCase();
-
+  
+  const [newDependency, setNewDependency] = useState<string>('');
+  
+  const bgColor = isCritical ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30';
+  const borderColor = isCritical ? 'border-red-500' : 'border-blue-500';
+  const textColor = isCritical ? 'text-red-800 dark:text-red-300' : 'text-blue-800 dark:text-blue-300';
+  
+  const handleAddDependency = () => {
+    if (newDependency && onUpdateDependency) {
+      onUpdateDependency(task.id, newDependency, 'add');
+      setNewDependency('');
+    }
+  };
+  
+  const handleRemoveDependency = (dependencyId: string) => {
+    if (onUpdateDependency) {
+      onUpdateDependency(task.id, dependencyId, 'remove');
+    }
+  };
+  
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div 
-            className={`px-4 py-3 rounded-md shadow-md w-60 border-2 ${
-              isCritical 
-                ? 'bg-red-50 dark:bg-red-950/30 border-red-500 dark:border-red-600' 
-                : 'bg-blue-50 dark:bg-blue-950/30 border-blue-500 dark:border-blue-600'
-            } ${hasEditPermission ? 'cursor-pointer' : 'cursor-default'}`}
+    <div className={`px-4 py-3 shadow-md rounded-md min-w-[200px] border-2 ${borderColor} ${bgColor}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="in"
+        className={`w-3 h-3 ${isCritical ? 'bg-red-500' : 'bg-blue-500'}`}
+      />
+      
+      <div className="flex justify-between items-start">
+        <div className={`font-bold ${textColor} text-sm`}>{task.name}</div>
+        
+        {hasEditPermission && !isEditing && onStartEdit && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-5 w-5 -mt-1 -mr-1" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartEdit(task.id);
+            }}
           >
-            <Handle
-              type="target"
-              position={Position.Left}
-              className={`w-3 h-3 ${isCritical ? 'bg-red-500' : 'bg-blue-500'}`}
-            />
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        
+        {isEditing && onCancelEdit && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-5 w-5 -mt-1 -mr-1" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancelEdit();
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+      
+      <div className="flex mt-2 gap-x-4 text-xs">
+        <div>
+          <div className="text-muted-foreground">Duração</div>
+          <div className="font-medium">{task.duration} dias</div>
+        </div>
+        
+        <div>
+          <div className="text-muted-foreground">Folga</div>
+          <div className="font-medium">{float} dias</div>
+        </div>
+      </div>
+      
+      {isEditing && (
+        <div className="mt-3 border-t pt-2 border-dashed border-gray-300 dark:border-gray-600">
+          <div className="font-medium text-xs mb-1">Dependências</div>
+          
+          {task.dependencies && task.dependencies.length > 0 ? (
+            <ul className="space-y-1 mb-2">
+              {task.dependencies.map(depId => {
+                const depTask = allTasks.find(t => t.id === depId) || { name: 'Tarefa desconhecida' };
+                return (
+                  <li key={depId} className="flex items-center justify-between text-xs">
+                    <span className="truncate">{depTask.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-5 w-5" 
+                      onClick={() => handleRemoveDependency(depId)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="text-xs text-muted-foreground mb-2">Sem dependências</div>
+          )}
+          
+          <div className="flex items-center gap-1 mt-2">
+            <Select value={newDependency} onValueChange={setNewDependency}>
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue placeholder="Adicionar dependência" />
+              </SelectTrigger>
+              <SelectContent>
+                {allTasks
+                  .filter(t => !task.dependencies?.includes(t.id))
+                  .map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-xs">
+                      {t.name}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
             
-            <div className="flex items-start gap-3">
-              <div className={`flex-shrink-0 flex items-center justify-center text-xl font-bold w-10 h-10 rounded-full ${
-                isCritical 
-                  ? 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200' 
-                  : 'bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-200'
-              }`}>
-                {idLabel}
-              </div>
-              
-              <div className="flex-1 overflow-hidden">
-                <div className="font-semibold truncate mb-1">{task.name}</div>
-                
-                <div className="flex items-center text-xs gap-1 mb-1">
-                  <Clock className="h-3 w-3" />
-                  <span>Duração: {task.duration} dias</span>
-                </div>
-                
-                <div className={`text-xs px-1.5 py-0.5 rounded-sm inline-flex items-center ${
-                  isCritical 
-                    ? 'bg-red-200 dark:bg-red-800/50 text-red-700 dark:text-red-200' 
-                    : 'bg-blue-200 dark:bg-blue-800/50 text-blue-700 dark:text-blue-200'
-                }`}>
-                  Folga: {float} dias
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
-              <div className="border dark:border-gray-700 rounded px-1.5 py-1 bg-white dark:bg-gray-900">
-                <div className="font-medium">ID</div>
-                <div>{earlyStart}/{earlyFinish}</div>
-              </div>
-              <div className="border dark:border-gray-700 rounded px-1.5 py-1 bg-white dark:bg-gray-900">
-                <div className="font-medium">IT</div>
-                <div>{lateStart}/{lateFinish}</div>
-              </div>
-            </div>
-            
-            <Handle
-              type="source"
-              position={Position.Right}
-              className={`w-3 h-3 ${isCritical ? 'bg-red-500' : 'bg-blue-500'}`}
-            />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-7 w-7" 
+              onClick={handleAddDependency}
+              disabled={!newDependency}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-sm">
-          <div className="space-y-2 p-1">
-            <div className="font-semibold">{task.name}</div>
-            {task.description && <p className="text-sm">{task.description}</p>}
-            
-            <div className="text-xs space-y-1">
-              <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Duração: {task.duration} dias</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-3.5 w-3.5" />
-                <span>Início: {new Date(task.startDate).toLocaleDateString('pt-BR')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ArrowRight className="h-3.5 w-3.5" />
-                <span>Progresso: {task.progress}%</span>
-              </div>
-            </div>
-            
-            <div className="text-xs mt-1">
-              {isCritical 
-                ? "Esta é uma tarefa crítica. Qualquer atraso impactará o projeto."
-                : `Esta tarefa tem ${float} dias de folga.`
-              }
-            </div>
-            
-            {hasEditPermission && (
-              <div className="text-xs italic mt-1">
-                Clique para editar esta tarefa no gráfico de Gantt
-              </div>
-            )}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      )}
+      
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="out"
+        className={`w-3 h-3 ${isCritical ? 'bg-red-500' : 'bg-blue-500'}`}
+      />
+    </div>
   );
-});
-
-TaskNode.displayName = 'TaskNode';
+}

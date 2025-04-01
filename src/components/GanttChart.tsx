@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useMemo, TouchEvent } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
@@ -343,7 +342,7 @@ const GanttChart = ({
     setDraggingTask(task);
   };
   
-  const handleTaskDragEnd = (e: React.DragEvent | React.TouchEvent, task: TaskType) => {
+  const handleTaskDragEnd = (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>, task: TaskType) => {
     if (dragOverTask && dragOverPosition && onTaskUpdate) {
       const siblingTasks = tasks.filter(t => 
         t.parentId === (task.parentId || null) && t.id !== task.id
@@ -809,7 +808,7 @@ const GanttChart = ({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-background dark:bg-gray-800"
               onClick={handleZoomOut}
               title="Diminuir Zoom"
             >
@@ -821,7 +820,7 @@ const GanttChart = ({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-background dark:bg-gray-800"
               onClick={handleZoomIn}
               title="Aumentar Zoom"
             >
@@ -838,36 +837,3 @@ const GanttChart = ({
             title="Exportar como imagem"
           >
             <Download className="h-4 w-4 mr-0 sm:mr-1" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
-        </div>
-        
-        {!createDependencyMode?.active && onAddTask && hasEditPermission && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-primary"
-            onClick={onAddTask}
-          >
-            <Plus className="h-4 w-4 mr-0 sm:mr-1" />
-            <span className="hidden sm:inline">Adicionar Tarefa</span>
-          </Button>
-        )}
-        
-        {createDependencyMode?.active && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-yellow-600 border-yellow-300"
-            onClick={() => setCreateDependencyMode(null)}
-          >
-            <span className="hidden sm:inline">Cancelar</span> 
-            <span className="sm:hidden">✕</span>
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default GanttChart;

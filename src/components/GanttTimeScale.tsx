@@ -45,7 +45,7 @@ export function GanttTimeScale({ startDate, endDate, timeScale, cellWidth }: Gan
         while (current <= endDate) {
           units.push({
             date: new Date(current),
-            label: format(current, "MMM")
+            label: ""  // Empty label for month scale to avoid duplication
           });
           current = addMonths(current, 1);
         }
@@ -119,10 +119,13 @@ export function GanttTimeScale({ startDate, endDate, timeScale, cellWidth }: Gan
     return groups;
   }, [timeUnits]);
 
+  // Determine if we should show the day labels based on time scale
+  const showDayLabels = timeScale !== "month";
+
   return (
     <div className="border-b">
       {/* Linha do Ano */}
-      <div className="flex h-8 border-b">
+      <div className="flex h-6 border-b">
         {yearGroups.map((group, idx) => (
           <div 
             key={`year-${idx}`} 
@@ -140,7 +143,7 @@ export function GanttTimeScale({ startDate, endDate, timeScale, cellWidth }: Gan
       </div>
       
       {/* Linha do Mês */}
-      <div className="flex h-8 border-b">
+      <div className="flex h-6 border-b">
         {monthGroups.map((group, idx) => (
           <div 
             key={`month-${idx}`} 
@@ -157,23 +160,25 @@ export function GanttTimeScale({ startDate, endDate, timeScale, cellWidth }: Gan
         ))}
       </div>
       
-      {/* Linha do Dia */}
-      <div className="flex h-8">
-        {timeUnits.map((unit, idx) => (
-          <div 
-            key={`day-${idx}`}
-            className="border-r flex items-center justify-center"
-            style={{ 
-              width: `${cellWidth}px`,
-              minWidth: `${cellWidth}px` 
-            }}
-          >
-            <div className="text-xs font-medium text-foreground truncate px-1">
-              {unit.label}
+      {/* Linha do Dia - Only show if not in month scale */}
+      {showDayLabels && (
+        <div className="flex h-6">
+          {timeUnits.map((unit, idx) => (
+            <div 
+              key={`day-${idx}`}
+              className="border-r flex items-center justify-center"
+              style={{ 
+                width: `${cellWidth}px`,
+                minWidth: `${cellWidth}px` 
+              }}
+            >
+              <div className="text-xs font-medium text-foreground truncate px-1">
+                {unit.label}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
