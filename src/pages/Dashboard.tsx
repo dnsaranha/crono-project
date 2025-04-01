@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserProfile } from "@/components/UserProfile";
@@ -8,7 +9,6 @@ import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [accessLevel, setAccessLevel] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,10 +18,6 @@ export default function Dashboard() {
 
       if (!user) {
         navigate('/auth');
-      } else {
-        // Assuming you have a function to get the user's access level
-        const userAccessLevel = await getUserAccessLevel(user.id);
-        setAccessLevel(userAccessLevel);
       }
     };
 
@@ -70,15 +66,9 @@ export default function Dashboard() {
               Visualizar Perfil
             </Button>
           </div>
-          <ProjectList ownerName="dnsaranha" accessLevel={accessLevel} />
+          <ProjectList />
         </div>
       )}
     </div>
   );
-}
-
-// Placeholder function to get user's access level
-async function getUserAccessLevel(userId) {
-  // Implement the logic to get the access level from GitHub or your backend
-  return "leitura";  // Example access level
 }
