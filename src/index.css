@@ -104,13 +104,19 @@
 /* Custom styles for Gantt chart */
 .gantt-task {
   transform-origin: left;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
 }
 
 .gantt-task:hover {
   filter: brightness(1.05);
   transform: scaleY(1.05);
+}
+
+.gantt-task:active {
+  transform: scaleY(1.1);
 }
 
 .gantt-grid {
@@ -138,10 +144,27 @@
 
 .gantt-milestone {
   transition: all 0.2s ease;
+  touch-action: none;
 }
 
 .gantt-milestone:hover {
   transform: scale(1.1);
+}
+
+/* Mobile-friendly touch styles */
+@media (pointer: coarse) {
+  .gantt-task, .gantt-milestone {
+    min-height: 30px;
+    min-width: 4px;
+  }
+  
+  .gantt-task:hover {
+    transform: none;
+  }
+  
+  .gantt-task:active {
+    transform: scaleY(1.1);
+  }
 }
 
 .nav-item {
@@ -310,4 +333,3 @@
   color: hsl(var(--foreground));
   background-color: hsl(var(--card));
 }
-

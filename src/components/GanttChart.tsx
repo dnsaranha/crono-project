@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useRef, useEffect, useMemo, TouchEvent } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut, Download } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut, Download, PanelLeft } from "lucide-react";
 import html2canvas from "html2canvas";
 import { useToast } from "@/components/ui/use-toast";
+import { useMobile } from "@/hooks/use-mobile";
+import { format, isWithinInterval, addDays, addWeeks, addMonths, differenceInDays } from "date-fns";
 
 interface GanttChartProps {
   tasks: TaskType[];
@@ -15,6 +18,8 @@ interface GanttChartProps {
   onToggleSidebar?: () => void;
   hasEditPermission?: boolean;
 }
+
+type TimeScale = "day" | "week" | "month" | "quarter" | "year";
 
 const GanttChart = ({ 
   tasks, 
@@ -35,8 +40,13 @@ const GanttChart = ({
   const ganttGridRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [createDependencyMode, setCreateDependencyMode] = useState<{active: boolean, sourceId: string} | null>(null);
-  const [cellWidth, setCellWidth] = useState(100); // Base cell width
-  const [zoomLevel, setZoomLevel] = useState(1); // Default zoom level
+  const [baseZoomLevel, setBaseZoomLevel] = useState(1); // Base zoom level (1-5)
+  const [timeScale, setTimeScale] = useState<TimeScale>("week");
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [resizingTask, setResizingTask] = useState<{task: TaskType, startX: number, startDuration: number} | null>(null);
+  const [isTodayVisible, setIsTodayVisible] = useState(false);
+  const { isMobile } = useMobile();
   
   const calculateDateRange = () => {
     if (!tasks || tasks.length === 0) {
@@ -68,9 +78,22 @@ const GanttChart = ({
       }
     });
     
-    earliestStart.setDate(1);
-    latestEnd.setMonth(latestEnd.getMonth() + 1);
-    latestEnd = new Date(latestEnd.getFullYear(), latestEnd.getMonth() + 1, 0);
+    // Adjust start date to beginning of month/week based on timeScale
+    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
+      earliestStart.setDate(1); // Start of month
+    } else {
+      // Start of week (Sunday)
+      const day = earliestStart.getDay();
+      earliestStart.setDate(earliestStart.getDate() - day);
+    }
+    
+    // Add buffer to end date
+    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
+      latestEnd.setMonth(latestEnd.getMonth() + 1);
+      latestEnd = new Date(latestEnd.getFullYear(), latestEnd.getMonth() + 1, 0); // End of month
+    } else {
+      latestEnd.setDate(latestEnd.getDate() + 14); // Add two weeks buffer
+    }
     
     return { startDate: earliestStart, endDate: latestEnd };
   };
@@ -79,14 +102,99 @@ const GanttChart = ({
   const startDate = dateRange.startDate;
   const endDate = dateRange.endDate;
   
-  const getMonthDifference = (start: Date, end: Date) => {
-    return (end.getFullYear() - start.getFullYear()) * 12 + 
-           (end.getMonth() - start.getMonth()) + 1;
+  // Check if today is within the date range
+  useEffect(() => {
+    const today = new Date();
+    setIsTodayVisible(
+      today >= startDate && today <= endDate
+    );
+  }, [startDate, endDate]);
+  
+  // Dynamically determine time scale units based on zoom level
+  const determineTimeScaleFromZoom = (zoom: number) => {
+    if (zoom <= 0.6) return "month";
+    if (zoom <= 0.8) return "week";
+    return "day";
   };
   
-  const monthsToShow = getMonthDifference(startDate, endDate);
-  const weeksPerMonth = 4;
-  const totalCells = monthsToShow * weeksPerMonth;
+  // Update time scale when zoom changes
+  useEffect(() => {
+    const newTimeScale = determineTimeScaleFromZoom(baseZoomLevel);
+    setTimeScale(newTimeScale);
+  }, [baseZoomLevel]);
+  
+  const getTimeUnitCount = () => {
+    switch (timeScale) {
+      case "day":
+        return differenceInDays(endDate, startDate) + 1;
+      case "week":
+        return Math.ceil(differenceInDays(endDate, startDate) / 7);
+      case "month":
+        return (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+               (endDate.getMonth() - startDate.getMonth()) + 1;
+      default:
+        return Math.ceil(differenceInDays(endDate, startDate) / 7);
+    }
+  };
+  
+  const timeUnits = useMemo(() => {
+    const units = [];
+    let current = new Date(startDate);
+    
+    switch (timeScale) {
+      case "day":
+        while (current <= endDate) {
+          units.push({
+            date: new Date(current),
+            label: format(current, "dd/MM")
+          });
+          current = addDays(current, 1);
+        }
+        break;
+      case "week":
+        while (current <= endDate) {
+          units.push({
+            date: new Date(current),
+            label: `${format(current, "dd/MM")} - ${format(addDays(current, 6), "dd/MM")}`
+          });
+          current = addDays(current, 7);
+        }
+        break;
+      case "month":
+        while (current <= endDate) {
+          units.push({
+            date: new Date(current),
+            label: format(current, "MMM yyyy")
+          });
+          current = addMonths(current, 1);
+        }
+        break;
+      default:
+        while (current <= endDate) {
+          units.push({
+            date: new Date(current),
+            label: `Semana ${format(current, "dd/MM")}`
+          });
+          current = addDays(current, 7);
+        }
+    }
+    
+    return units;
+  }, [startDate, endDate, timeScale]);
+  
+  // Calculate cell width based on zoom level and screen size
+  const getCellWidth = () => {
+    const baseWidth = timeScale === "day" ? 40 : timeScale === "week" ? 100 : 160;
+    const zoomFactor = baseZoomLevel;
+    
+    // Adjust for mobile
+    const mobileAdjust = isMobile ? 0.8 : 1;
+    
+    return Math.max(30, baseWidth * zoomFactor * mobileAdjust);
+  };
+  
+  const cellWidth = getCellWidth();
+  const tableWidth = cellWidth * timeUnits.length;
   
   useEffect(() => {
     const updateWidth = () => {
@@ -114,45 +222,53 @@ const GanttChart = ({
     }));
   };
   
-  const months = [];
-  for (let i = 0; i < monthsToShow; i++) {
-    const month = new Date(startDate);
-    month.setMonth(month.getMonth() + i);
-    months.push({
-      name: month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-      weeks: weeksPerMonth
-    });
-  }
-  
-  const weeks = [];
-  for (let i = 0; i < totalCells; i++) {
-    const weekDate = new Date(startDate);
-    weekDate.setDate(weekDate.getDate() + (i * 7));
-    weeks.push(`Semana ${weekDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'numeric' })}`);
-  }
-  
-  const actualCellWidth = cellWidth * zoomLevel;
-  const tableWidth = actualCellWidth * totalCells;
-  
   const getTaskStyle = (task: TaskType) => {
     const taskStart = new Date(task.startDate);
-    const diffTime = Math.abs(taskStart.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    let position = 0;
+    let width = 0;
     
-    const position = (diffDays / 7) * actualCellWidth;
-    const width = (task.duration / 7) * actualCellWidth;
+    switch (timeScale) {
+      case "day":
+        position = differenceInDays(taskStart, startDate) * cellWidth;
+        width = task.duration * cellWidth / 1;
+        break;
+      case "week":
+        position = Math.floor(differenceInDays(taskStart, startDate) / 7) * cellWidth;
+        width = Math.ceil(task.duration / 7) * cellWidth;
+        break;
+      case "month":
+        const monthDiff = (taskStart.getFullYear() - startDate.getFullYear()) * 12 + 
+                          (taskStart.getMonth() - startDate.getMonth());
+        position = monthDiff * cellWidth;
+        width = Math.ceil(task.duration / 30) * cellWidth;
+        break;
+      default:
+        position = differenceInDays(taskStart, startDate) / 7 * cellWidth;
+        width = task.duration / 7 * cellWidth;
+    }
     
     return {
       marginLeft: `${position}px`,
-      width: `${width}px`,
+      width: `${Math.max(width, 4)}px`, // Ensure minimum width
     };
   };
 
   const getCurrentDateLinePosition = () => {
     const today = new Date();
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return (diffDays / 7) * actualCellWidth;
+    
+    switch (timeScale) {
+      case "day":
+        return differenceInDays(today, startDate) * cellWidth;
+      case "week":
+        return differenceInDays(today, startDate) / 7 * cellWidth;
+      case "month":
+        const monthDiff = (today.getFullYear() - startDate.getFullYear()) * 12 + 
+                          (today.getMonth() - startDate.getMonth());
+        const daysIntoMonth = today.getDate() / new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        return (monthDiff + daysIntoMonth) * cellWidth;
+      default:
+        return differenceInDays(today, startDate) / 7 * cellWidth;
+    }
   };
   
   const isTaskVisible = (task: TaskType) => {
@@ -192,27 +308,40 @@ const GanttChart = ({
   const visibleTasks = processedTasks.filter(isTaskVisible);
   
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 2));
+    setBaseZoomLevel(prev => Math.min(prev + 0.2, 2));
   };
   
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+    setBaseZoomLevel(prev => Math.max(prev - 0.2, 0.5));
   };
   
-  const handleTaskDragStart = (e: React.DragEvent, task: TaskType) => {
+  // Helper function to get date from position
+  const getDateFromPosition = (xPosition: number) => {
+    const cellIndex = Math.floor(xPosition / cellWidth);
+    
+    if (cellIndex < 0 || cellIndex >= timeUnits.length) {
+      return null;
+    }
+    
+    return timeUnits[cellIndex].date;
+  };
+  
+  const handleTaskDragStart = (e: React.DragEvent | React.TouchEvent, task: TaskType) => {
     if (createDependencyMode) {
-      e.preventDefault();
+      if ('preventDefault' in e) e.preventDefault();
       return;
     }
     
-    e.dataTransfer.setData("application/x-task-reorder", task.id);
-    e.dataTransfer.setData("task-id", task.id);
-    e.dataTransfer.effectAllowed = "move";
+    if ('dataTransfer' in e) {
+      e.dataTransfer.setData("application/x-task-reorder", task.id);
+      e.dataTransfer.setData("task-id", task.id);
+      e.dataTransfer.effectAllowed = "move";
+    }
     
     setDraggingTask(task);
   };
   
-  const handleTaskDragEnd = (e: React.DragEvent, task: TaskType) => {
+  const handleTaskDragEnd = (e: React.DragEvent | React.TouchEvent, task: TaskType) => {
     if (dragOverTask && dragOverPosition && onTaskUpdate) {
       const siblingTasks = tasks.filter(t => 
         t.parentId === (task.parentId || null) && t.id !== task.id
@@ -244,13 +373,13 @@ const GanttChart = ({
     else if (dragOverCell && onTaskUpdate) {
       const { weekIndex } = dragOverCell;
       
-      const newStartDate = new Date(startDate);
-      newStartDate.setDate(newStartDate.getDate() + (weekIndex * 7));
-      
-      const formattedDate = newStartDate.toISOString().split('T')[0];
-      
-      const updatedTask = { ...task, startDate: formattedDate };
-      onTaskUpdate(updatedTask);
+      if (weekIndex >= 0 && weekIndex < timeUnits.length) {
+        const newStartDate = timeUnits[weekIndex].date;
+        const formattedDate = newStartDate.toISOString().split('T')[0];
+        
+        const updatedTask = { ...task, startDate: formattedDate };
+        onTaskUpdate(updatedTask);
+      }
     }
     
     setDraggingTask(null);
@@ -289,10 +418,175 @@ const GanttChart = ({
     setDragOverCell(null);
   };
   
+  // Touch event handlers for mobile
+  const handleTouchStart = (e: TouchEvent, task: TaskType) => {
+    if (!hasEditPermission) return;
+    
+    const touch = e.touches[0];
+    setTouchStartX(touch.clientX);
+    setTouchStartY(touch.clientY);
+    setDraggingTask(task);
+  };
+  
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!draggingTask || !touchStartX || !hasEditPermission) return;
+    
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    
+    // If the user is moving horizontally (changing date)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      // Calculate cell movement
+      const cellsMoved = Math.round(deltaX / cellWidth);
+      
+      if (cellsMoved !== 0 && ganttGridRef.current) {
+        const taskElement = e.currentTarget as HTMLElement;
+        const taskRect = taskElement.getBoundingClientRect();
+        const gridRect = ganttGridRef.current.getBoundingClientRect();
+        
+        // Calculate the position within the grid
+        const posX = taskRect.left - gridRect.left + deltaX;
+        const timeIndex = Math.floor(posX / cellWidth);
+        
+        if (timeIndex >= 0 && timeIndex < timeUnits.length) {
+          setDragOverCell({ 
+            weekIndex: timeIndex, 
+            rowIndex: processedTasks.findIndex(t => t.id === draggingTask.id) 
+          });
+        }
+      }
+      
+      e.preventDefault(); // Prevent scrolling
+    }
+  };
+  
+  const handleTouchEnd = (e: TouchEvent, task: TaskType) => {
+    if (!hasEditPermission) return;
+    
+    if (dragOverCell && onTaskUpdate) {
+      const { weekIndex } = dragOverCell;
+      
+      if (weekIndex >= 0 && weekIndex < timeUnits.length) {
+        const newStartDate = timeUnits[weekIndex].date;
+        const formattedDate = newStartDate.toISOString().split('T')[0];
+        
+        const updatedTask = { ...task, startDate: formattedDate };
+        onTaskUpdate(updatedTask);
+      }
+    }
+    
+    setTouchStartX(null);
+    setTouchStartY(null);
+    setDraggingTask(null);
+    setDragOverCell(null);
+  };
+  
+  // Task resize handler with day precision
   const handleTaskResize = (task: TaskType, newDuration: number) => {
     if (onTaskUpdate) {
-      const updatedTask = { ...task, duration: newDuration };
+      // Ensure minimum duration is 1 day
+      const updatedTask = { ...task, duration: Math.max(1, newDuration) };
       onTaskUpdate(updatedTask);
+    }
+  };
+  
+  const handleTaskResizeStart = (e: React.MouseEvent | React.TouchEvent, task: TaskType) => {
+    if (!onTaskUpdate || !hasEditPermission) return;
+    
+    e.stopPropagation();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    
+    setResizingTask({
+      task,
+      startX: clientX,
+      startDuration: task.duration
+    });
+    
+    const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
+      if (!resizingTask) return;
+      
+      const moveClientX = 'touches' in moveEvent 
+        ? moveEvent.touches[0].clientX 
+        : moveEvent.clientX;
+      
+      const diff = moveClientX - resizingTask.startX;
+      
+      // Calculate how many days to add/remove based on timeScale and diff
+      let daysChange = 0;
+      
+      switch (timeScale) {
+        case "day":
+          daysChange = Math.round(diff / cellWidth);
+          break;
+        case "week":
+          daysChange = Math.round((diff / cellWidth) * 7);
+          break;
+        case "month":
+          daysChange = Math.round((diff / cellWidth) * 30);
+          break;
+        default:
+          daysChange = Math.round((diff / cellWidth) * 7);
+      }
+      
+      const newDuration = Math.max(1, resizingTask.startDuration + daysChange);
+      
+      if (moveEvent.target instanceof HTMLElement && moveEvent.target.parentElement) {
+        const width = Math.max(4, getTaskDurationWidth(newDuration));
+        moveEvent.target.parentElement.style.width = `${width}px`;
+      }
+    };
+    
+    const handleEnd = () => {
+      if (!resizingTask) return;
+      
+      const newDuration = parseInt(
+        resizingTask.task.parentElement?.style.width || '0'
+      );
+      
+      // Convert pixels back to days based on timeScale
+      let finalDuration = 0;
+      
+      switch (timeScale) {
+        case "day":
+          finalDuration = Math.max(1, Math.round(newDuration / cellWidth));
+          break;
+        case "week":
+          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 7));
+          break;
+        case "month":
+          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 30));
+          break;
+        default:
+          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 7));
+      }
+      
+      handleTaskResize(resizingTask.task, finalDuration);
+      setResizingTask(null);
+      
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchend', handleEnd);
+    };
+    
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchend', handleEnd);
+  };
+  
+  // Helper to calculate width based on duration
+  const getTaskDurationWidth = (duration: number) => {
+    switch (timeScale) {
+      case "day":
+        return duration * cellWidth / 1;
+      case "week":
+        return Math.ceil(duration / 7) * cellWidth;
+      case "month":
+        return Math.ceil(duration / 30) * cellWidth;
+      default:
+        return duration / 7 * cellWidth;
     }
   };
   
@@ -381,7 +675,7 @@ const GanttChart = ({
       <div className="overflow-auto">
         <div className="flex">
           {sidebarVisible && (
-            <div className="min-w-64 w-64 border-r bg-card flex-shrink-0">
+            <div className="min-w-48 w-48 border-r bg-card flex-shrink-0 sm:min-w-64 sm:w-64">
               <div className="h-24 px-4 flex items-end border-b">
                 <div className="text-sm font-medium text-muted-foreground pb-2">Nome da Tarefa</div>
               </div>
@@ -390,7 +684,7 @@ const GanttChart = ({
                 {visibleTasks.map((task, rowIndex) => (
                   <div 
                     key={task.id} 
-                    className={`h-10 flex items-center px-4 border-b ${
+                    className={`h-10 flex items-center px-2 sm:px-4 border-b ${
                       task.isGroup ? 'bg-gantt-gray' : 'bg-card'
                     } ${
                       dragOverTask?.id === task.id && dragOverPosition === 'above' 
@@ -420,7 +714,7 @@ const GanttChart = ({
                         )}
                       </div>
                       <div 
-                        className={`ml-1 text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
+                        className={`ml-1 text-xs sm:text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
                         style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
                       >
                         {task.name}
@@ -446,25 +740,18 @@ const GanttChart = ({
           
           <div className="overflow-auto flex-grow" style={{ minWidth: `${tableWidth}px` }}>
             <div className="flex h-12 border-b">
-              {months.map((month, idx) => (
+              {timeUnits.map((unit, idx) => (
                 <div 
                   key={idx} 
                   className="border-r flex items-center justify-center"
-                  style={{ width: `${month.weeks * actualCellWidth}px` }}
+                  style={{ 
+                    width: `${cellWidth}px`,
+                    minWidth: `${cellWidth}px` 
+                  }}
                 >
-                  <div className="text-sm font-medium text-foreground">{month.name}</div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex h-12 border-b">
-              {weeks.map((week, idx) => (
-                <div 
-                  key={idx} 
-                  className="border-r flex items-center justify-center"
-                  style={{ width: `${actualCellWidth}px` }}
-                >
-                  <div className="text-xs text-muted-foreground">{week}</div>
+                  <div className="text-xs sm:text-sm font-medium text-foreground truncate px-1">
+                    {unit.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -476,25 +763,40 @@ const GanttChart = ({
               onClick={handleGridClick}
             >
               <svg className="absolute inset-0 h-full w-full pointer-events-none z-20">
-                {/* Linha tracejada da data atual */}
-                <line
-                  x1={getCurrentDateLinePosition()}
-                  y1="0"
-                  x2={getCurrentDateLinePosition()}
-                  y2="100%"
-                  stroke="#2697c0"  // Cor alterada para azul
-                  strokeWidth="2"
-                  strokeDasharray="4"
-                />
-                {/* Marcador de "hoje" */}
-                <text
-                  x={getCurrentDateLinePosition() + 5}
-                  y="10"
-                  fill="#2697c0"  // Cor do texto
-                  className="text-sm font-semibold bg-white px-1"
-                >
-                  hoje
-                </text>
+                {/* Linha tracejada da data atual - apenas visível se a data estiver no intervalo */}
+                {isTodayVisible && (
+                  <>
+                    <line
+                      x1={getCurrentDateLinePosition()}
+                      y1="0"
+                      x2={getCurrentDateLinePosition()}
+                      y2="100%"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="2"
+                      strokeDasharray="4"
+                    />
+                    {/* Marcador de "hoje" */}
+                    <rect 
+                      x={getCurrentDateLinePosition() - 20} 
+                      y="4" 
+                      width="40" 
+                      height="18" 
+                      rx="4" 
+                      fill="hsl(var(--primary))" 
+                    />
+                    <text
+                      x={getCurrentDateLinePosition()}
+                      y="16"
+                      fill="hsl(var(--primary-foreground))"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="text-xs font-medium"
+                    >
+                      Hoje
+                    </text>
+                  </>
+                )}
+                
                 {visibleTasks.map(task => {
                   if (!task.dependencies?.length) return null;
               
@@ -557,17 +859,20 @@ const GanttChart = ({
                   onDragLeave={handleTaskDragLeave}
                 >
                   <div className="absolute inset-0 flex">
-                    {Array.from({ length: totalCells }).map((_, weekIndex) => (
+                    {timeUnits.map((unit, timeIndex) => (
                       <div
-                        key={weekIndex}
+                        key={timeIndex}
                         className={`h-full ${
-                          dragOverCell?.weekIndex === weekIndex && dragOverCell?.rowIndex === rowIndex
+                          dragOverCell?.weekIndex === timeIndex && dragOverCell?.rowIndex === rowIndex
                             ? 'bg-blue-100 dark:bg-blue-900/20'
                             : ''
                         }`}
-                        style={{ width: `${actualCellWidth}px` }}
-                        onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, weekIndex, rowIndex) : null}
-                        onDrop={(e) => hasEditPermission ? handleCellDrop(e, weekIndex, rowIndex) : null}
+                        style={{ 
+                          width: `${cellWidth}px`,
+                          minWidth: `${cellWidth}px`
+                        }}
+                        onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, timeIndex, rowIndex) : null}
+                        onDrop={(e) => hasEditPermission ? handleCellDrop(e, timeIndex, rowIndex) : null}
                       />
                     ))}
                   </div>
@@ -578,69 +883,25 @@ const GanttChart = ({
                     onClick={() => handleTaskClick(task)}
                     onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
                     onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
-                    cellWidth={actualCellWidth}
+                    onTouchStart={hasEditPermission ? (e) => handleTouchStart(e, task) : undefined}
+                    onTouchMove={hasEditPermission ? handleTouchMove : undefined}
+                    onTouchEnd={hasEditPermission ? (e) => handleTouchEnd(e, task) : undefined}
+                    cellWidth={cellWidth}
                     onResize={hasEditPermission ? (newDuration) => handleTaskResize(task, newDuration) : undefined}
+                    onResizeStart={hasEditPermission ? (e) => handleTaskResizeStart(e, task) : undefined}
                     className={createDependencyMode?.active ? 
                       createDependencyMode.sourceId === task.id ? 
                         'dependency-source' : 'dependency-target-candidate' 
                       : ''}
+                    timeScale={timeScale}
                     draggable={hasEditPermission}
                   />
                 </div>
               ))}
               
-              <svg className="absolute inset-0 h-full w-full pointer-events-none">
-                {visibleTasks.map(task => {
-                  if (!task.dependencies?.length) return null;
-                  
-                  return task.dependencies.map(depId => {
-                    const dependencyTask = visibleTasks.find(t => t.id === depId);
-                    if (!dependencyTask || !isTaskVisible(dependencyTask)) return null;
-                    
-                    const fromIndex = visibleTasks.findIndex(t => t.id === depId);
-                    const toIndex = visibleTasks.findIndex(t => t.id === task.id);
-                    
-                    if (fromIndex === -1 || toIndex === -1) return null;
-                    
-                    const fromStyle = getTaskStyle(dependencyTask);
-                    const toStyle = getTaskStyle(task);
-                    
-                    const fromX = parseInt(fromStyle.marginLeft) + parseInt(fromStyle.width);
-                    const fromY = fromIndex * 40 + 20;
-                    
-                    const toX = parseInt(toStyle.marginLeft);
-                    const toY = toIndex * 40 + 20;
-                    
-                    const midX = (fromX + toX) / 2;
-                    
-                    return (
-                      <path
-                        key={`${depId}-${task.id}`}
-                        className="gantt-connection"
-                        d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
-                        markerEnd="url(#arrowhead)"
-                      />
-                    );
-                  });
-                })}
-                
-                <defs>
-                  <marker
-                    id="arrowhead"
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="9"
-                    refY="3.5"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#FFB236" />
-                  </marker>
-                </defs>
-              </svg>
-              
               {createDependencyMode?.active && (
-                <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
-                  <div className="absolute text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded shadow-sm">
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-auto z-50 pointer-events-none">
+                  <div className="text-xs bg-yellow-100 text-yellow-800 px-3 py-2 rounded-md shadow-md">
                     Clique em uma tarefa para criar dependência
                   </div>
                 </div>
@@ -648,8 +909,8 @@ const GanttChart = ({
             </div>
           </div>
           
-          {/* Toggle sidebar button */}
-          <div className="absolute left-0 top-1/2 z-10">
+          {/* Toggle sidebar button - better placement for mobile */}
+          <div className="absolute left-0 top-24 z-10">
             <Button
               variant="ghost"
               size="icon"
@@ -660,7 +921,7 @@ const GanttChart = ({
               {sidebarVisible ? (
                 <ChevronLeftSquare className="h-5 w-5" />
               ) : (
-                <ChevronRightSquare className="h-5 w-5" />
+                <PanelLeft className="h-5 w-5" />
               )}
             </Button>
           </div>
@@ -668,15 +929,15 @@ const GanttChart = ({
       </div>
       
       <div className="p-2 bg-card border-t flex flex-wrap justify-between items-center gap-2">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-yellow-400 rounded-full mr-1"></div>
               <span>Dependências</span>
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-4">
             {priorityLegend.map(priority => (
               <div key={priority.level} className="flex items-center">
                 <div className={`w-3 h-3 rounded-full ${priority.color} mr-1`}></div>
@@ -696,7 +957,7 @@ const GanttChart = ({
               <ZoomOut className="h-4 w-4" />
             </Button>
             <span className="text-xs text-muted-foreground min-w-10 text-center">
-              {Math.round(zoomLevel * 100)}%
+              {timeScale === "day" ? "Dias" : timeScale === "week" ? "Semanas" : "Meses"}
             </span>
             <Button
               variant="outline"
@@ -713,11 +974,11 @@ const GanttChart = ({
           <Button
             variant="outline"
             size="sm"
-            className="ml-2"
+            className="ml-0 sm:ml-2"
             onClick={exportToImage}
             title="Exportar como imagem"
           >
-            <Download className="h-4 w-4 mr-1" />
+            <Download className="h-4 w-4 mr-0 sm:mr-1" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
         </div>
@@ -729,8 +990,8 @@ const GanttChart = ({
             className="text-primary"
             onClick={onAddTask}
           >
-            <Plus className="h-4 w-4 mr-1" />
-            <span>Adicionar Tarefa</span>
+            <Plus className="h-4 w-4 mr-0 sm:mr-1" />
+            <span className="hidden sm:inline">Adicionar Tarefa</span>
           </Button>
         )}
         
@@ -741,7 +1002,8 @@ const GanttChart = ({
             className="text-yellow-600 border-yellow-300"
             onClick={() => setCreateDependencyMode(null)}
           >
-            Cancelar criação de dependência
+            <span className="hidden sm:inline">Cancelar</span> 
+            <span className="sm:hidden">✕</span>
           </Button>
         )}
       </div>

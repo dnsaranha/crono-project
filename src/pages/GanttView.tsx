@@ -10,6 +10,7 @@ import NewTaskButton from "@/components/NewTaskButton";
 import LoadingState from "@/components/LoadingState";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import ViewHeader from "@/components/ViewHeader";
+import { useMobile } from "@/hooks/use-mobile";
 
 type ContextType = { hasEditPermission: boolean };
 
@@ -23,6 +24,7 @@ const GanttView = () => {
   const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [searchParams] = useSearchParams();
+  const { isMobile } = useMobile();
   
   const { tasks, loading, updateTask, createTask, createDependency, getProjectMembers } = useTasks();
   const tasksLoadedRef = useRef(false);
@@ -36,6 +38,11 @@ const GanttView = () => {
     
     loadMembers();
   }, []);
+
+  // Set sidebar visibility based on device type
+  useEffect(() => {
+    setSidebarVisible(!isMobile);
+  }, [isMobile]);
 
   // Verificar se há um taskId na URL para abrir automaticamente
   useEffect(() => {
@@ -194,7 +201,7 @@ const GanttView = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full">
       <ViewHeader 
         title="Gráfico de Gantt" 
         onAddItem={handleAddTask}
@@ -212,10 +219,12 @@ const GanttView = () => {
           <GanttChart 
             tasks={tasks} 
             onTaskClick={hasEditPermission ? handleEditTask : undefined}
+            onTaskUpdate={hasEditPermission ? updateTask : undefined}
             onCreateDependency={hasEditPermission ? handleDependencyCreated : undefined}
             sidebarVisible={sidebarVisible}
             onToggleSidebar={toggleSidebar}
             hasEditPermission={hasEditPermission}
+            onAddTask={handleAddTask}
           />
         </div>
       )}
