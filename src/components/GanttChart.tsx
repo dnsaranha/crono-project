@@ -2,10 +2,14 @@
 import { useState, useRef, useEffect, useMemo, TouchEvent } from "react";
 import Task, { TaskType } from "./Task";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ChevronLeftSquare, ChevronRightSquare, Plus, ZoomIn, ZoomOut, Download, PanelLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeftSquare, PanelLeft, 
+         ZoomIn, ZoomOut, Download, Plus } from "lucide-react";
 import html2canvas from "html2canvas";
 import { useToast } from "@/components/ui/use-toast";
 import { useMobile } from "@/hooks/use-mobile";
+import { useTaskResize } from "@/hooks/use-task-resize";
+import GanttTimeScale from "./GanttTimeScale";
+import TodayMarker from "./TodayMarker";
 import { format, isWithinInterval, addDays, addWeeks, addMonths, differenceInDays } from "date-fns";
 
 interface GanttChartProps {
@@ -44,8 +48,6 @@ const GanttChart = ({
   const [timeScale, setTimeScale] = useState<TimeScale>("week");
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [resizingTask, setResizingTask] = useState<{task: TaskType, startX: number, startDuration: number} | null>(null);
-  const [isTodayVisible, setIsTodayVisible] = useState(false);
   const { isMobile } = useMobile();
   
   const calculateDateRange = () => {
@@ -101,14 +103,6 @@ const GanttChart = ({
   const dateRange = calculateDateRange();
   const startDate = dateRange.startDate;
   const endDate = dateRange.endDate;
-  
-  // Check if today is within the date range
-  useEffect(() => {
-    const today = new Date();
-    setIsTodayVisible(
-      today >= startDate && today <= endDate
-    );
-  }, [startDate, endDate]);
   
   // Dynamically determine time scale units based on zoom level
   const determineTimeScaleFromZoom = (zoom: number) => {
@@ -195,6 +189,14 @@ const GanttChart = ({
   
   const cellWidth = getCellWidth();
   const tableWidth = cellWidth * timeUnits.length;
+  
+  // Adicionar o hook useTaskResize
+  const { handleTaskResizeStart } = useTaskResize({
+    onTaskResize: onTaskUpdate,
+    timeScale,
+    cellWidth,
+    hasEditPermission: Boolean(hasEditPermission)
+  });
   
   useEffect(() => {
     const updateWidth = () => {
@@ -482,114 +484,6 @@ const GanttChart = ({
     setDragOverCell(null);
   };
   
-  // Task resize handler with day precision
-  const handleTaskResize = (task: TaskType, newDuration: number) => {
-    if (onTaskUpdate) {
-      // Ensure minimum duration is 1 day
-      const updatedTask = { ...task, duration: Math.max(1, newDuration) };
-      onTaskUpdate(updatedTask);
-    }
-  };
-  
-  const handleTaskResizeStart = (e: React.MouseEvent | React.TouchEvent, task: TaskType) => {
-    if (!onTaskUpdate || !hasEditPermission) return;
-    
-    e.stopPropagation();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    
-    setResizingTask({
-      task,
-      startX: clientX,
-      startDuration: task.duration
-    });
-    
-    const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
-      if (!resizingTask) return;
-      
-      const moveClientX = 'touches' in moveEvent 
-        ? moveEvent.touches[0].clientX 
-        : moveEvent.clientX;
-      
-      const diff = moveClientX - resizingTask.startX;
-      
-      // Calculate how many days to add/remove based on timeScale and diff
-      let daysChange = 0;
-      
-      switch (timeScale) {
-        case "day":
-          daysChange = Math.round(diff / cellWidth);
-          break;
-        case "week":
-          daysChange = Math.round((diff / cellWidth) * 7);
-          break;
-        case "month":
-          daysChange = Math.round((diff / cellWidth) * 30);
-          break;
-        default:
-          daysChange = Math.round((diff / cellWidth) * 7);
-      }
-      
-      const newDuration = Math.max(1, resizingTask.startDuration + daysChange);
-      
-      if (moveEvent.target instanceof HTMLElement && moveEvent.target.parentElement) {
-        const width = Math.max(4, getTaskDurationWidth(newDuration));
-        moveEvent.target.parentElement.style.width = `${width}px`;
-      }
-    };
-    
-    const handleEnd = () => {
-      if (!resizingTask) return;
-      
-      const newDuration = parseInt(
-        resizingTask.task.parentElement?.style.width || '0'
-      );
-      
-      // Convert pixels back to days based on timeScale
-      let finalDuration = 0;
-      
-      switch (timeScale) {
-        case "day":
-          finalDuration = Math.max(1, Math.round(newDuration / cellWidth));
-          break;
-        case "week":
-          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 7));
-          break;
-        case "month":
-          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 30));
-          break;
-        default:
-          finalDuration = Math.max(1, Math.round((newDuration / cellWidth) * 7));
-      }
-      
-      handleTaskResize(resizingTask.task, finalDuration);
-      setResizingTask(null);
-      
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchend', handleEnd);
-    };
-    
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('touchmove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchend', handleEnd);
-  };
-  
-  // Helper to calculate width based on duration
-  const getTaskDurationWidth = (duration: number) => {
-    switch (timeScale) {
-      case "day":
-        return duration * cellWidth / 1;
-      case "week":
-        return Math.ceil(duration / 7) * cellWidth;
-      case "month":
-        return Math.ceil(duration / 30) * cellWidth;
-      default:
-        return duration / 7 * cellWidth;
-    }
-  };
-  
   const handleDependencyStartClick = (taskId: string) => {
     setCreateDependencyMode({
       active: true,
@@ -739,22 +633,13 @@ const GanttChart = ({
           )}
           
           <div className="overflow-auto flex-grow" style={{ minWidth: `${tableWidth}px` }}>
-            <div className="flex h-12 border-b">
-              {timeUnits.map((unit, idx) => (
-                <div 
-                  key={idx} 
-                  className="border-r flex items-center justify-center"
-                  style={{ 
-                    width: `${cellWidth}px`,
-                    minWidth: `${cellWidth}px` 
-                  }}
-                >
-                  <div className="text-xs sm:text-sm font-medium text-foreground truncate px-1">
-                    {unit.label}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Usar o novo componente GanttTimeScale */}
+            <GanttTimeScale 
+              startDate={startDate}
+              endDate={endDate}
+              timeScale={timeScale}
+              cellWidth={cellWidth}
+            />
             
             <div 
               ref={ganttGridRef}
@@ -763,39 +648,12 @@ const GanttChart = ({
               onClick={handleGridClick}
             >
               <svg className="absolute inset-0 h-full w-full pointer-events-none z-20">
-                {/* Linha tracejada da data atual - apenas visível se a data estiver no intervalo */}
-                {isTodayVisible && (
-                  <>
-                    <line
-                      x1={getCurrentDateLinePosition()}
-                      y1="0"
-                      x2={getCurrentDateLinePosition()}
-                      y2="100%"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="2"
-                      strokeDasharray="4"
-                    />
-                    {/* Marcador de "hoje" */}
-                    <rect 
-                      x={getCurrentDateLinePosition() - 20} 
-                      y="4" 
-                      width="40" 
-                      height="18" 
-                      rx="4" 
-                      fill="hsl(var(--primary))" 
-                    />
-                    <text
-                      x={getCurrentDateLinePosition()}
-                      y="16"
-                      fill="hsl(var(--primary-foreground))"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      className="text-xs font-medium"
-                    >
-                      Hoje
-                    </text>
-                  </>
-                )}
+                {/* Usar o novo componente TodayMarker */}
+                <TodayMarker 
+                  startDate={startDate}
+                  endDate={endDate}
+                  position={getCurrentDateLinePosition()}
+                />
                 
                 {visibleTasks.map(task => {
                   if (!task.dependencies?.length) return null;
@@ -887,7 +745,8 @@ const GanttChart = ({
                     onTouchMove={hasEditPermission ? handleTouchMove : undefined}
                     onTouchEnd={hasEditPermission ? (e) => handleTouchEnd(e, task) : undefined}
                     cellWidth={cellWidth}
-                    onResize={hasEditPermission ? (newDuration) => handleTaskResize(task, newDuration) : undefined}
+                    onResize={hasEditPermission ? (newDuration) => 
+                      onTaskUpdate?.({ ...task, duration: newDuration }) : undefined}
                     onResizeStart={hasEditPermission ? (e) => handleTaskResizeStart(e, task) : undefined}
                     className={createDependencyMode?.active ? 
                       createDependencyMode.sourceId === task.id ? 
