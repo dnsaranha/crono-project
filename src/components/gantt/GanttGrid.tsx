@@ -97,20 +97,33 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
             const fromStyle = getTaskStyle(dependencyTask);
             const toStyle = getTaskStyle(task);
       
-            const fromX = parseInt(fromStyle.marginLeft.toString()) + parseInt(fromStyle.width.toString());
+            // Convert the style values to numbers with proper error handling
+            const fromLeft = typeof fromStyle.marginLeft === 'string' 
+              ? parseInt(fromStyle.marginLeft, 10) || 0 
+              : 0;
+              
+            const fromWidth = typeof fromStyle.width === 'string' 
+              ? parseInt(fromStyle.width, 10) || 0 
+              : 0;
+              
+            const toLeft = typeof toStyle.marginLeft === 'string' 
+              ? parseInt(toStyle.marginLeft, 10) || 0 
+              : 0;
+      
+            const fromX = fromLeft + fromWidth;
             const fromY = fromIndex * 40 + 20;
-      
-            const toX = parseInt(toStyle.marginLeft.toString());
+            const toX = toLeft;
             const toY = toIndex * 40 + 20;
-      
             const midX = (fromX + toX) / 2;
       
-            // Fix: Use string concatenation instead of template literals for SVG path
+            // Build the SVG path as a string without template literals for the Bezier curve
+            const pathD = "M " + fromX + " " + fromY + " C " + midX + " " + fromY + ", " + midX + " " + toY + ", " + toX + " " + toY;
+      
             return (
               <path
                 key={`${depId}-${task.id}`}
                 className="gantt-connection"
-                d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                d={pathD}
                 stroke="#FFB236"
                 strokeWidth="2"
                 fill="none"
