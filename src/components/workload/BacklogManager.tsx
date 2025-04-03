@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, CardContent, CardDescription, 
@@ -37,21 +36,22 @@ import { format } from "date-fns";
 
 interface BacklogManagerProps {
   projects: any[];
+  onItemConverted?: () => void;
 }
 
 interface BacklogItem {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   priority: number;
   status: 'pending' | 'in_progress' | 'done' | 'converted';
   created_at: string;
-  target_project_id?: string;
+  target_project_id?: string | null;
   creator_id: string;
   creator_name?: string;
 }
 
-export function BacklogManager({ projects }: BacklogManagerProps) {
+export function BacklogManager({ projects, onItemConverted }: BacklogManagerProps) {
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -79,8 +79,6 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
     try {
       setLoading(true);
       
-      // We will query the "backlog_items" table
-      // For now, we'll simulate it with a mock approach until we create the table
       const { data, error } = await supabase
         .from('backlog_items')
         .select(`
@@ -90,21 +88,16 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
         .order(sortField, { ascending: sortDirection === 'asc' });
         
       if (error) {
-        if (error.code === '42P01') { // Relation does not exist error code
-          console.log("Backlog table doesn't exist yet, showing empty state");
-          setBacklogItems([]);
-        } else {
-          throw error;
-        }
-      } else {
-        // Map the data to include creator name
-        const itemsWithCreatorNames = data.map((item: any) => ({
-          ...item,
-          creator_name: item.profiles?.full_name || item.profiles?.email || "Usuário"
-        }));
-        
-        setBacklogItems(itemsWithCreatorNames);
+        throw error;
       }
+      
+      // Map the data to include creator name
+      const itemsWithCreatorNames = data.map((item: any) => ({
+        ...item,
+        creator_name: item.profiles?.full_name || item.profiles?.email || "Usuário"
+      }));
+      
+      setBacklogItems(itemsWithCreatorNames);
     } catch (error: any) {
       console.error("Error loading backlog items:", error.message);
       toast({
@@ -140,15 +133,19 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
         return;
       }
       
+      const itemToCreate = {
+        title: newItem.title,
+        description: newItem.description || null,
+        priority: newItem.priority || 3,
+        status: newItem.status || "pending",
+        creator_id: user.id
+      };
+      
+      console.log("Creating item:", itemToCreate);
+      
       const { data, error } = await supabase
         .from('backlog_items')
-        .insert({
-          title: newItem.title,
-          description: newItem.description || "",
-          priority: newItem.priority || 3,
-          status: newItem.status || "pending",
-          creator_id: user.id
-        })
+        .insert(itemToCreate)
         .select();
         
       if (error) throw error;
@@ -309,6 +306,11 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
       
       // Reload items
       loadBacklogItems();
+      
+      // Notify parent about conversion if callback provided
+      if (onItemConverted) {
+        onItemConverted();
+      }
       
       toast({
         title: "Convertido para tarefa",
@@ -746,7 +748,7 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                 value={filterStatus} 
                 onValueChange={setFilterStatus}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -770,7 +772,7 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                   loadBacklogItems();
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Ordenar por" />
                 </SelectTrigger>
                 <SelectContent>
@@ -790,7 +792,7 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Título do item"
-                  className="pl-8"
+                  className="pl-8 h-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -803,10 +805,76 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
               {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'itens'}
             </Badge>
             
-            {renderCreateItemModal()}
+            {/* Create item button/dialog */}
+            {isMobile ? (
+              <Drawer open={isCreatingDialogOpen} onOpenChange={setIsCreatingDialogOpen}>
+                <DrawerTrigger asChild>
+                  <Button className="flex items-center gap-1" onClick={() => setIsCreatingDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Novo Item
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle>Adicionar Novo Item</DrawerTitle>
+                    <DrawerDescription>
+                      Preencha os detalhes para adicionar um novo item ao backlog
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-4">
+                    <CreateItemForm 
+                      newItem={newItem}
+                      setNewItem={setNewItem}
+                      onCancel={() => {
+                        setNewItem({
+                          title: "",
+                          description: "",
+                          priority: 3,
+                          status: "pending"
+                        });
+                        setIsCreatingDialogOpen(false);
+                      }}
+                      onSubmit={createBacklogItem}
+                    />
+                  </div>
+                  <DrawerFooter className="pt-0" />
+                </DrawerContent>
+              </Drawer>
+            ) : (
+              <Dialog open={isCreatingDialogOpen} onOpenChange={setIsCreatingDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-1" onClick={() => setIsCreatingDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Novo Item
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Novo Item</DialogTitle>
+                    <DialogDescription>
+                      Preencha os detalhes para adicionar um novo item ao backlog
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreateItemForm 
+                    newItem={newItem}
+                    setNewItem={setNewItem}
+                    onCancel={() => {
+                      setNewItem({
+                        title: "",
+                        description: "",
+                        priority: 3,
+                        status: "pending"
+                      });
+                      setIsCreatingDialogOpen(false);
+                    }}
+                    onSubmit={createBacklogItem}
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
           
-          <div className="rounded-md border overflow-auto max-h-[500px]">
+          <div className="rounded-md border overflow-hidden max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -872,6 +940,7 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                                   <Button 
                                     variant="ghost" 
                                     size="icon"
+                                    className="h-8 w-8"
                                     onClick={() => {
                                       setSelectedItem(item);
                                       setIsEditingDialogOpen(true);
@@ -893,6 +962,7 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
+                                      className="h-8 w-8"
                                       onClick={() => {
                                         setSelectedItem(item);
                                         setIsPromotingDialogOpen(true);
@@ -914,31 +984,5 @@ export function BacklogManager({ projects }: BacklogManagerProps) {
                                   <Button 
                                     variant="ghost" 
                                     size="icon"
-                                    onClick={() => deleteBacklogItem(item.id)}
-                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Excluir</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {renderEditItemModal()}
-      {renderPromoteItemModal()}
-    </div>
-  );
-}
+                                    className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                    onClick={()

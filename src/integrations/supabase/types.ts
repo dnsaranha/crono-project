@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      backlog_items: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          priority: number
+          status: Database["public"]["Enums"]["backlog_status"]
+          target_project_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          priority?: number
+          status?: Database["public"]["Enums"]["backlog_status"]
+          target_project_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          priority?: number
+          status?: Database["public"]["Enums"]["backlog_status"]
+          target_project_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backlog_items_target_project_id_fkey"
+            columns: ["target_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -315,6 +359,7 @@ export type Database = {
       }
     }
     Enums: {
+      backlog_status: "pending" | "in_progress" | "done" | "converted"
       user_role: "admin" | "editor" | "viewer"
     }
     CompositeTypes: {
