@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
-import GanttChart from "@/components/GanttChart";
+import GanttChart from "@/components/gantt/GanttChart";
 import TaskForm from "@/components/TaskForm";
 import { TaskType } from "@/components/Task";
 import { useTasks } from "@/hooks/useTasks";
