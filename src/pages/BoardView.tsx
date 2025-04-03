@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTasks } from "@/hooks/tasks";
 import { TaskType } from "@/components/Task";
 import KanbanColumn from "@/components/KanbanColumn";
-import { KanbanColumnForm } from "@/components/KanbanColumnForm";
+import KanbanColumnForm from "@/components/KanbanColumnForm";
 import TaskForm from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
 import { Plus, Columns } from "lucide-react";
