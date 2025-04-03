@@ -39,6 +39,7 @@ const GanttChart = ({
   onToggleSidebar,
   hasEditPermission = true
 }: GanttChartProps) => {
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const ganttGridRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -50,6 +51,7 @@ const GanttChart = ({
   const { expandedGroups, toggleGroup, isTaskVisible, sortTasksHierarchically } = useGanttDrag(tasks);
   const { createDependencyMode, handleDependencyStartClick, handleGridClick } = useDependencyMode(onCreateDependency);
   const { startDate, endDate, calculateDateRange } = useGanttDateRange(tasks, timeScale);
+  
   
   // Dynamically determine time scale units based on zoom level
   const determineTimeScaleFromZoom = (zoom: number) => {
@@ -122,6 +124,7 @@ const GanttChart = ({
     
     return units;
   }, [startDate, endDate, timeScale]);
+  
   
   // Calculate cell width based on zoom level and screen size
   const getCellWidth = () => {
@@ -207,6 +210,7 @@ const GanttChart = ({
     }
   };
   
+  
   const processedTasks = sortTasksHierarchically(tasks);
   const visibleTasks = processedTasks.filter(isTaskVisible);
   
@@ -254,6 +258,7 @@ const GanttChart = ({
     }
   };
 
+  
   // Função para exportar o gráfico como imagem
   const exportToImage = async () => {
     if (!containerRef.current) return;

@@ -97,24 +97,29 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
             const fromStyle = getTaskStyle(dependencyTask);
             const toStyle = getTaskStyle(task);
       
-            const fromX = parseInt(fromStyle.marginLeft as string) + parseInt(fromStyle.width as string);
+            const fromX = parseInt(fromStyle.marginLeft.toString()) + parseInt(fromStyle.width.toString());
             const fromY = fromIndex * 40 + 20;
       
-            const toX = parseInt(toStyle.marginLeft as string);
+            const toX = parseInt(toStyle.marginLeft.toString());
             const toY = toIndex * 40 + 20;
       
             const midX = (fromX + toX) / 2;
       
+            // Fix: Use string concatenation instead of template literals for SVG path
             return (
               <path
                 key={`${depId}-${task.id}`}
                 className="gantt-connection"
                 d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                stroke="#FFB236"
+                strokeWidth="2"
+                fill="none"
                 markerEnd="url(#arrowhead)"
               />
             );
           });
         })}
+        
         <defs>
           <marker
             id="arrowhead"
@@ -179,7 +184,7 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
               createDependencyMode.sourceId === task.id ? 
                 'dependency-source' : 'dependency-target-candidate' 
               : ''}
-            timeScale={timeScale as any}
+            timeScale={timeScale}
             draggable={hasEditPermission}
           />
         </div>
@@ -196,6 +201,6 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
   );
 });
 
-GanttGrid.displayName = "GanttGrid";
+GanttGrid.displayName = 'GanttGrid';
 
 export default GanttGrid;
