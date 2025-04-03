@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTasks } from "@/hooks/tasks";
 import { TaskType } from "@/components/Task";
 import { TaskForm } from "@/components/TaskForm";
-import { NewTaskButton } from "@/components/NewTaskButton";
+import NewTaskButton from "@/components/NewTaskButton";
 import GanttChart from "@/components/gantt/GanttChart";
 import GanttControls from "@/components/gantt/GanttControls";
 import { Dialog } from "@/components/ui/dialog";
