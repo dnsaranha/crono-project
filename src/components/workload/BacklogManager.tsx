@@ -985,4 +985,4 @@ export function BacklogManager({ projects, onItemConverted }: BacklogManagerProp
                                   <Button 
                                     variant="ghost" 
                                     size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red
+                                    className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:
