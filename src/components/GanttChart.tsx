@@ -306,7 +306,7 @@ const GanttChart = ({
   };
 
   const processedTasks = sortTasksHierarchically(tasks);
-  const visibleTasks = processedTasks.filter(isTaskVisible);
+  const visibleTasks = processedTasks.filter(isTaskVisible);\
   
   const handleZoomIn = () => {
     setBaseZoomLevel(prev => Math.min(prev + 0.2, 2));
@@ -560,7 +560,6 @@ const GanttChart = ({
     { level: 5, label: "Muito Alta", color: "bg-red-400" }
   ];
   
-  // Importe o hook useToast
   const { toast } = useToast();
   
   return (
@@ -837,3 +836,4 @@ const GanttChart = ({
             title="Exportar como imagem"
           >
             <Download className="h-4 w-4 mr-0 sm:mr-1" />
+            <span className="hidden
