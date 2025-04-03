@@ -5,7 +5,7 @@ import TaskTable from "@/components/TaskTable";
 import { TaskType } from "@/components/Task";
 import NewTaskButton from "@/components/NewTaskButton";
 import TaskForm from "@/components/TaskForm";
-import { useMediaQuery } from "@/hooks/use-mobile";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useTask } from "@/components/task/hooks/useTask";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
