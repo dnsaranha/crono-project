@@ -1,317 +1,208 @@
 
 import { useState, useEffect } from "react";
-import { useTasks } from "@/hooks/useTasks";
-import { useToast } from "@/components/ui/use-toast";
-import KanbanColumn from "@/components/KanbanColumn";
+import { useTasks } from "@/hooks/tasks";
 import { TaskType } from "@/components/Task";
-import TaskForm from "@/components/TaskForm";
-import LoadingState from "@/components/LoadingState";
-import EmptyTaskState from "@/components/EmptyTaskState";
-import NewTaskButton from "@/components/NewTaskButton";
-import ViewHeader from "@/components/ViewHeader";
-import KanbanColumnForm, { KanbanColumnData } from "@/components/KanbanColumnForm";
-import { Plus } from "lucide-react";
+import { KanbanColumn } from "@/components/KanbanColumn";
+import { KanbanColumnForm } from "@/components/KanbanColumnForm";
+import { TaskForm } from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
+import { Plus, Columns } from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
+import EmptyTaskState from "@/components/EmptyTaskState";
+import LoadingState from "@/components/LoadingState";
 
-const BoardView = () => {
-  const { toast } = useToast();
-  const { tasks, loading, updateTask, createTask, getProjectMembers } = useTasks();
-  const [columns, setColumns] = useState<KanbanColumnData[]>([
-    { id: "todo", title: "A Fazer", progressMin: 0, progressMax: 0 },
-    { id: "in_progress", title: "Em Progresso", progressMin: 1, progressMax: 99 },
-    { id: "done", title: "Concluído", progressMin: 100, progressMax: 100 }
-  ]);
-  
+export default function BoardView() {
+  const { tasks, loading, updateTask, createTask } = useTasks();
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
-  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
-  const [isNewTask, setIsNewTask] = useState(false);
-  
-  const [selectedColumn, setSelectedColumn] = useState<KanbanColumnData | null>(null);
-  const [isColumnFormOpen, setIsColumnFormOpen] = useState(false);
-  const [isNewColumn, setIsNewColumn] = useState(false);
-  
-  const [projectMembers, setProjectMembers] = useState<Array<{ id: string; name: string; email: string }>>([]);
-  
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showColumnForm, setShowColumnForm] = useState(false);
+  const [statuses, setStatuses] = useState<string[]>([
+    "Não Iniciado", "Em Andamento", "Concluído"
+  ]);
+  const [showMobileColumnSelector, setShowMobileColumnSelector] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(statuses);
+
   useEffect(() => {
-    loadProjectMembers();
-    
-    // Load saved column configuration from localStorage if available
-    const savedColumns = localStorage.getItem('kanban_columns');
-    if (savedColumns) {
-      try {
-        setColumns(JSON.parse(savedColumns));
-      } catch (e) {
-        console.error('Failed to parse saved columns:', e);
-      }
+    // Extract all unique status values from tasks
+    if (tasks && tasks.length > 0) {
+      const extractedStatuses = new Set<string>();
+      
+      // Add default statuses
+      extractedStatuses.add("Não Iniciado");
+      extractedStatuses.add("Em Andamento");
+      extractedStatuses.add("Concluído");
+      
+      // Add custom statuses from tasks
+      tasks.forEach(task => {
+        if (!task.isGroup && task.customStatus) {
+          extractedStatuses.add(task.customStatus);
+        }
+      });
+      
+      setStatuses(Array.from(extractedStatuses));
+      setVisibleColumns(Array.from(extractedStatuses).slice(0, 3)); // Show first 3 by default on mobile
     }
-  }, []);
-  
-  // Save columns configuration to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('kanban_columns', JSON.stringify(columns));
-  }, [columns]);
+  }, [tasks]);
 
-  const loadProjectMembers = async () => {
-    const members = await getProjectMembers();
-    setProjectMembers(members);
+  const handleAddColumn = (columnName: string) => {
+    if (columnName && !statuses.includes(columnName)) {
+      setStatuses(prev => [...prev, columnName]);
+      setVisibleColumns(prev => [...prev, columnName]);
+    }
+    setShowColumnForm(false);
   };
 
-  const handleAddTask = () => {
-    setSelectedTask(null);
-    setIsNewTask(true);
-    setIsTaskFormOpen(true);
-  };
-  
-  const handleEditTask = (task: TaskType) => {
+  const handleTaskClick = (task: TaskType) => {
     setSelectedTask(task);
-    setIsNewTask(false);
-    setIsTaskFormOpen(true);
-  };
-  
-  const handleAddColumn = () => {
-    setSelectedColumn(null);
-    setIsNewColumn(true);
-    setIsColumnFormOpen(true);
-  };
-  
-  const handleEditColumn = (columnId: string) => {
-    const column = columns.find(col => col.id === columnId);
-    if (column) {
-      setSelectedColumn(column);
-      setIsNewColumn(false);
-      setIsColumnFormOpen(true);
-    }
-  };
-  
-  const handleDeleteColumn = (columnId: string) => {
-    if (columns.length <= 2) {
-      toast({
-        title: "Operação não permitida",
-        description: "Você deve manter pelo menos duas colunas no quadro.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Remove column and update tasks
-    setColumns(prevColumns => prevColumns.filter(col => col.id !== columnId));
-    
-    // Move tasks from deleted column to first column
-    const firstColumnId = columns[0].id;
-    
-    // Update tasks in database if needed
-    const tasksToUpdate = tasks.filter(task => getTaskColumn(task) === columnId);
-    
-    if (tasksToUpdate.length > 0) {
-      // Batch update tasks
-      tasksToUpdate.forEach(task => {
-        // Determine new progress value based on first column
-        const newProgress = columns[0].progressMin || 0;
-        updateTask({ ...task, progress: newProgress });
-      });
-      
-      toast({
-        title: "Coluna excluída",
-        description: `${tasksToUpdate.length} tarefas foram movidas para a coluna "${columns[0].title}".`,
-      });
-    } else {
-      toast({
-        title: "Coluna excluída",
-        description: "A coluna foi excluída com sucesso.",
-      });
-    }
-  };
-  
-  const handleColumnFormSubmit = (columnData: KanbanColumnData) => {
-    if (isNewColumn) {
-      // Add new column
-      setColumns(prevColumns => [...prevColumns, columnData]);
-      
-      toast({
-        title: "Coluna adicionada",
-        description: `A coluna "${columnData.title}" foi adicionada com sucesso.`,
-      });
-    } else {
-      // Update existing column
-      setColumns(prevColumns => 
-        prevColumns.map(col => 
-          col.id === columnData.id ? columnData : col
-        )
-      );
-      
-      toast({
-        title: "Coluna atualizada",
-        description: `A coluna "${columnData.title}" foi atualizada com sucesso.`,
-      });
-      
-      // Update tasks that may have moved due to progress range changes
-      updateTasksBasedOnProgressRanges();
-    }
-  };
-  
-  const updateTasksBasedOnProgressRanges = () => {
-    // This will be called when column ranges change to recategorize tasks
-    // No need to update the tasks in the database as their progress hasn't changed
-    // They'll just show up in different columns based on the new ranges
+    setShowTaskForm(true);
   };
 
-  const getTaskColumn = (task: TaskType): string => {
-    // Find which column this task belongs to based on its progress
-    for (const column of columns) {
-      const min = column.progressMin ?? 0;
-      const max = column.progressMax ?? 100;
-      
-      if (task.progress >= min && task.progress <= max) {
-        return column.id;
-      }
-    }
-    
-    // Default to first column if no match
-    return columns[0]?.id || "todo";
+  const handleTaskCreate = async (task: Omit<TaskType, 'id'>) => {
+    await createTask(task);
+    setShowTaskForm(false);
+    setSelectedTask(null);
   };
-  
-  const handleDropOnColumn = (columnId: string, taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    // Find the column's progress range
-    const column = columns.find(col => col.id === columnId);
-    if (!column) return;
-    
-    // Set the task's progress to the middle of the column's range
-    const min = column.progressMin ?? 0;
-    const max = column.progressMax ?? 100;
-    let newProgress = Math.floor((min + max) / 2);
-    
-    // For "Done" column with 100% progress
-    if (max === 100 && min === 100) {
-      newProgress = 100;
-    }
-    // For "Todo" column with 0% progress
-    else if (max === 0 && min === 0) {
-      newProgress = 0;
-    }
-    
-    // Update the task
-    updateTask({
-      ...task,
-      progress: newProgress
-    });
+
+  const handleTaskUpdate = async (task: TaskType) => {
+    await updateTask(task);
+    setShowTaskForm(false);
+    setSelectedTask(null);
   };
-  
-  const handleTaskFormSubmit = async (taskData: Partial<TaskType>) => {
-    if (isNewTask) {
-      // Create new task
-      const newTaskDetails: Omit<TaskType, 'id'> = {
-        name: taskData.name || "Nova Tarefa",
-        startDate: taskData.startDate || new Date().toISOString().split('T')[0],
-        duration: taskData.duration || 7,
-        progress: taskData.progress || 0,
-        dependencies: taskData.dependencies || [],
-        assignees: taskData.assignees || [],
-        isGroup: taskData.isGroup || false,
-        isMilestone: taskData.isMilestone || false,
-        parentId: taskData.parentId,
-        priority: taskData.priority || 3
-      };
-      
-      const result = await createTask(newTaskDetails);
-      
-      if (result) {
-        toast({
-          title: "Tarefa adicionada",
-          description: `${newTaskDetails.name} foi adicionada com sucesso.`,
-        });
-        setIsTaskFormOpen(false);
-      }
-    } else if (selectedTask) {
-      // Update existing task
-      const updatedTaskData: TaskType = {
-        ...selectedTask,
-        ...taskData
-      };
-      
-      const success = await updateTask(updatedTaskData);
-      
-      if (success) {
-        toast({
-          title: "Tarefa atualizada",
-          description: `${updatedTaskData.name} foi atualizada com sucesso.`,
-        });
-        setIsTaskFormOpen(false);
-      }
+
+  const handleStatusChange = async (task: TaskType, newStatus: string) => {
+    const updatedTask = { ...task, customStatus: newStatus };
+    await updateTask(updatedTask);
+  };
+
+  const handleToggleColumnVisibility = (status: string) => {
+    if (visibleColumns.includes(status)) {
+      setVisibleColumns(prev => prev.filter(s => s !== status));
+    } else {
+      setVisibleColumns(prev => [...prev, status]);
     }
   };
 
   if (loading) {
-    return <LoadingState />;
+    return <LoadingState message="Carregando dados do projeto..." />;
   }
 
   if (tasks.length === 0) {
-    return <EmptyTaskState onAddTask={handleAddTask} />;
+    return (
+      <EmptyTaskState onAddTask={() => setShowTaskForm(true)} />
+    );
   }
 
+  // Group tasks by status
+  const groupedTasks = statuses.reduce((acc, status) => {
+    acc[status] = tasks.filter(task => 
+      !task.isGroup && (
+        (status === "Não Iniciado" && (!task.customStatus && task.progress === 0)) ||
+        (status === "Em Andamento" && (!task.customStatus && task.progress > 0 && task.progress < 100)) ||
+        (status === "Concluído" && (!task.customStatus && task.progress === 100)) ||
+        task.customStatus === status
+      )
+    );
+    return acc;
+  }, {} as Record<string, TaskType[]>);
+
   return (
-    <div className="flex flex-col h-full">
-      <ViewHeader 
-        title="Quadro Kanban" 
-        onAddItem={handleAddTask}
-        extraActions={
+    <div className="h-full flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center">
+          <h2 className="text-lg font-semibold">Quadro Kanban</h2>
+          
+          {/* Mobile column selector */}
+          <div className="md:hidden ml-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowMobileColumnSelector(!showMobileColumnSelector)}
+            >
+              <Columns className="h-4 w-4 mr-1" />
+              Colunas ({visibleColumns.length})
+            </Button>
+            
+            {showMobileColumnSelector && (
+              <div className="absolute z-10 mt-1 bg-card shadow-lg rounded-md border p-2">
+                {statuses.map(status => (
+                  <div key={status} className="flex items-center my-1">
+                    <input 
+                      type="checkbox" 
+                      id={`col-${status}`}
+                      checked={visibleColumns.includes(status)}
+                      onChange={() => handleToggleColumnVisibility(status)}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`col-${status}`} className="text-sm">
+                      {status}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex space-x-2">
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleAddColumn}
-            className="flex items-center"
+            onClick={() => setShowColumnForm(true)}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="h-4 w-4 mr-1" />
             Nova Coluna
           </Button>
-        }
-      />
-      
-      <div className="board-container flex-1 overflow-x-auto py-2 touch-pan-x">
-        <div className="flex space-x-4 h-full min-h-[500px] pr-4">
-          {columns.map(column => {
-            const columnTasks = tasks.filter(task => getTaskColumn(task) === column.id);
-            
-            return (
-              <KanbanColumn 
-                key={column.id}
-                columnId={column.id}
-                title={column.title}
-                tasks={columnTasks}
-                onDrop={(taskId) => handleDropOnColumn(column.id, taskId)}
-                onEditTask={handleEditTask}
-                onEditColumn={handleEditColumn}
-                onDeleteColumn={handleDeleteColumn}
-                totalColumns={columns.length}
-              />
-            );
-          })}
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={() => setShowTaskForm(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Tarefa
+          </Button>
         </div>
       </div>
       
-      <NewTaskButton onClick={handleAddTask} />
+      <div className="flex-grow overflow-x-auto">
+        <div className="flex h-full space-x-4 pb-4">
+          {statuses.map(status => (
+            visibleColumns.includes(status) && (
+              <KanbanColumn
+                key={status}
+                title={status}
+                tasks={groupedTasks[status] || []}
+                onTaskClick={handleTaskClick}
+                onStatusChange={handleStatusChange}
+                statuses={statuses}
+              />
+            )
+          ))}
+        </div>
+      </div>
       
-      <TaskForm
-        open={isTaskFormOpen}
-        onOpenChange={setIsTaskFormOpen}
-        task={selectedTask}
-        onSubmit={handleTaskFormSubmit}
-        tasks={tasks}
-        isNew={isNewTask}
-        projectMembers={projectMembers}
-      />
+      <Dialog open={showTaskForm} onOpenChange={setShowTaskForm}>
+        <TaskForm
+          open={showTaskForm}
+          onOpenChange={setShowTaskForm}
+          onClose={() => {
+            setShowTaskForm(false);
+            setTimeout(() => setSelectedTask(null), 200);
+          }}
+          onSubmit={selectedTask ? handleTaskUpdate : handleTaskCreate}
+          initialData={selectedTask}
+          tasks={tasks}
+          availableStatuses={statuses}
+        />
+      </Dialog>
       
-      <KanbanColumnForm
-        open={isColumnFormOpen}
-        onOpenChange={setIsColumnFormOpen}
-        column={selectedColumn}
-        onSubmit={handleColumnFormSubmit}
-        isNew={isNewColumn}
-      />
+      <Dialog open={showColumnForm} onOpenChange={setShowColumnForm}>
+        <KanbanColumnForm
+          open={showColumnForm}
+          onOpenChange={setShowColumnForm}
+          onAddColumn={handleAddColumn}
+          existingColumns={statuses}
+        />
+      </Dialog>
     </div>
   );
-};
-
-export default BoardView;
+}
