@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WorkloadOverview from "@/components/workload/WorkloadOverview";
-import BacklogManager from "@/components/workload/BacklogManager";
+import { BacklogManager } from "@/components/workload/BacklogManager";
 import { Calendar, ListTodo } from "lucide-react";
 
 // Define tipos para projetos e membros
