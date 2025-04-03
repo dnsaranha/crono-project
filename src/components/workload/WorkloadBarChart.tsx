@@ -5,6 +5,7 @@ import {
   Tooltip, Legend, ResponsiveContainer, TooltipProps 
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface WorkloadBarChartProps {
   data: {
@@ -22,6 +23,8 @@ interface CustomTooltipProps extends TooltipProps<number, string> {
 }
 
 export function WorkloadBarChart({ data }: WorkloadBarChartProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  
   const chartData = useMemo(() => {
     return data.map(item => ({
       name: item.name.split(' ')[0], // First name for display
@@ -61,34 +64,46 @@ export function WorkloadBarChart({ data }: WorkloadBarChartProps) {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={chartData}
-        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        margin={{ 
+          top: 20, 
+          right: isMobile ? 10 : 30, 
+          left: isMobile ? 0 : 20, 
+          bottom: 5 
+        }}
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
           dataKey="name" 
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: isMobile ? 10 : 12 }}
+          interval={isMobile ? 1 : 0}
         />
         <YAxis 
           yAxisId="left"
-          label={{ 
+          label={isMobile ? null : { 
             value: 'Dias de Trabalho', 
             angle: -90, 
             position: 'insideLeft',
             style: { textAnchor: 'middle' }
           }}
+          width={isMobile ? 30 : 60}
+          tick={{ fontSize: isMobile ? 10 : 12 }}
         />
         <YAxis 
           yAxisId="right" 
           orientation="right" 
-          label={{ 
-            value: 'Tarefas de Alta Prioridade', 
+          label={isMobile ? null : { 
+            value: 'Tarefas Críticas', 
             angle: 90, 
             position: 'insideRight',
             style: { textAnchor: 'middle' }
           }}
+          width={isMobile ? 30 : 60}
+          tick={{ fontSize: isMobile ? 10 : 12 }}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend />
+        <Legend 
+          wrapperStyle={isMobile ? { fontSize: '10px' } : undefined}
+        />
         <Bar 
           yAxisId="left"
           dataKey="duration" 
@@ -100,7 +115,7 @@ export function WorkloadBarChart({ data }: WorkloadBarChartProps) {
           yAxisId="right"
           dataKey="highPriority" 
           fill="#FFA500" 
-          name="Tarefas de Alta Prioridade" 
+          name="Tarefas Críticas" 
           radius={[4, 4, 0, 0]} 
         />
       </BarChart>
