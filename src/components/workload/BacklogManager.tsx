@@ -33,6 +33,7 @@ import { Plus, Edit, Trash2, MoveRight, Filter, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
+import { CreateItemForm } from "./CreateItemForm";
 
 interface BacklogManagerProps {
   projects: any[];
@@ -984,5 +985,4 @@ export function BacklogManager({ projects, onItemConverted }: BacklogManagerProp
                                   <Button 
                                     variant="ghost" 
                                     size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                    onClick={()
+                                    className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red
