@@ -12,6 +12,7 @@ import BoardView from "@/pages/BoardView";
 import TimelineView from "@/pages/TimelineView";
 import WBSView from "@/pages/WBSView";
 import CriticalPathView from "@/pages/CriticalPathView";
+import WorkloadDashboardView from "@/pages/WorkloadDashboardView";
 import ResetPassword from "@/pages/ResetPassword";
 import UpdatePassword from "@/pages/UpdatePassword";
 import { Layout } from "@/components/Layout";
@@ -28,6 +29,11 @@ export default function App() {
           <Route path="/" element={
             <Layout>
               <Dashboard />
+            </Layout>
+          } />
+          <Route path="/workload" element={
+            <Layout>
+              <WorkloadDashboardView />
             </Layout>
           } />
           <Route path="/project/:projectId" element={

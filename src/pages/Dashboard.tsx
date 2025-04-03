@@ -5,10 +5,14 @@ import { UserProfile } from "@/components/UserProfile";
 import { ProjectList } from "@/components/ProjectList";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ListChecks, Users2, FolderKanban } from "lucide-react";
+import WorkloadDashboardView from "@/pages/WorkloadDashboardView";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [activeView, setActiveView] = useState<string>("projects");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,7 +70,27 @@ export default function Dashboard() {
               Visualizar Perfil
             </Button>
           </div>
-          <ProjectList />
+          
+          <Tabs value={activeView} onValueChange={setActiveView} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+              <TabsTrigger value="projects">
+                <FolderKanban className="h-4 w-4 mr-2" />
+                Projetos
+              </TabsTrigger>
+              <TabsTrigger value="workload">
+                <Users2 className="h-4 w-4 mr-2" />
+                Visão Panorâmica
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="projects" className="space-y-4">
+              <ProjectList />
+            </TabsContent>
+            
+            <TabsContent value="workload" className="space-y-4">
+              <WorkloadDashboardView />
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>
