@@ -8,10 +8,11 @@ export interface TodayMarkerProps {
   cellWidth?: number;
 }
 
-export const TodayMarker = forwardRef<HTMLDivElement, TodayMarkerProps>(
-  ({ position, startDate, endDate, cellWidth }, ref) => {
+export const TodayMarker = forwardRef<SVGLineElement, TodayMarkerProps>(
+  ({ position = 0 }, ref) => {
     return (
       <line
+        ref={ref}
         x1={position}
         y1="0"
         x2={position}
