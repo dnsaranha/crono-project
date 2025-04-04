@@ -13,12 +13,17 @@ export function useDependencyMode(onCreateDependency?: (sourceId: string, target
   
   const handleDependencyTargetClick = (taskId: string) => {
     if (createDependencyMode && createDependencyMode.active) {
-      if (createDependencyMode.sourceId !== taskId) {
-        if (onCreateDependency) {
-          onCreateDependency(createDependencyMode.sourceId, taskId);
-        }
+      if (createDependencyMode.sourceId !== taskId && onCreateDependency) {
+        onCreateDependency(createDependencyMode.sourceId, taskId);
       }
       
+      setCreateDependencyMode(null);
+    }
+  };
+  
+  const handleGridClick = (e: React.MouseEvent) => {
+    // If clicking on the background (not a task) while in dependency mode, cancel it
+    if (createDependencyMode && createDependencyMode.active && e.target === e.currentTarget) {
       setCreateDependencyMode(null);
     }
   };
@@ -27,6 +32,7 @@ export function useDependencyMode(onCreateDependency?: (sourceId: string, target
     createDependencyMode,
     setCreateDependencyMode,
     handleDependencyStartClick,
-    handleDependencyTargetClick
+    handleDependencyTargetClick,
+    handleGridClick
   };
 }

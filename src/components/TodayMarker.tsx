@@ -1,51 +1,30 @@
 
-import { isWithinInterval } from 'date-fns';
+import React, { forwardRef } from 'react';
 
-interface TodayMarkerProps {
-  startDate: Date;
-  endDate: Date;
-  position: number;
+export interface TodayMarkerProps {
+  position?: number;
+  startDate?: Date;
+  endDate?: Date;
+  cellWidth?: number;
 }
 
-export function TodayMarker({ startDate, endDate, position }: TodayMarkerProps) {
-  const today = new Date();
-  const isVisible = isWithinInterval(today, { start: startDate, end: endDate });
-  
-  if (!isVisible) return null;
-  
-  return (
-    <>
+export const TodayMarker = forwardRef<HTMLDivElement, TodayMarkerProps>(
+  ({ position, startDate, endDate, cellWidth }, ref) => {
+    return (
       <line
         x1={position}
         y1="0"
         x2={position}
         y2="100%"
-        stroke="hsl(var(--primary))"
+        stroke="currentColor"
         strokeWidth="2"
+        className="text-red-500"
         strokeDasharray="4"
-        className="drop-shadow-sm"
       />
-      <rect 
-        x={position - 20} 
-        y="4" 
-        width="40" 
-        height="18" 
-        rx="4" 
-        fill="hsl(var(--primary))" 
-        className="drop-shadow-md"
-      />
-      <text
-        x={position}
-        y="16"
-        fill="hsl(var(--primary-foreground))"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        className="text-xs font-medium"
-      >
-        Hoje
-      </text>
-    </>
-  );
-}
+    );
+  }
+);
+
+TodayMarker.displayName = 'TodayMarker';
 
 export default TodayMarker;

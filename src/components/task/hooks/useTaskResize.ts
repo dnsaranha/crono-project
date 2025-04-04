@@ -9,7 +9,10 @@ export function useTaskResize({
   onClick,
   timeScale,
   cellWidth,
-  style
+  style,
+  onTouchStart: propsTouchStart,
+  onTouchMove: propsTouchMove,
+  onTouchEnd: propsTouchEnd
 }: TaskResizeHookProps) {
   const resizeHandleRef = useRef<HTMLDivElement | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -135,8 +138,8 @@ export function useTaskResize({
     
     setLongPressTimer(timer);
     
-    if (onTouchStart) {
-      onTouchStart(e);
+    if (propsTouchStart) {
+      propsTouchStart(e);
     }
   };
   
@@ -147,8 +150,8 @@ export function useTaskResize({
       setLongPressTimer(null);
     }
     
-    if (onTouchMove) {
-      onTouchMove(e);
+    if (propsTouchMove) {
+      propsTouchMove(e);
     }
     
     // Prevent default to avoid page scrolling if we're dragging
@@ -167,8 +170,8 @@ export function useTaskResize({
     // Reset long press state
     setIsLongPress(false);
     
-    if (onTouchEnd) {
-      onTouchEnd(e);
+    if (propsTouchEnd) {
+      propsTouchEnd(e);
     }
     
     // If it wasn't a long press, treat as a click

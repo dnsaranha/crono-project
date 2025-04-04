@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,22 +25,28 @@ import {
 interface TaskFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onClose?: () => void;
   task?: TaskType | null;
   onSubmit: (task: Partial<TaskType>) => void;
   tasks: TaskType[];
   isNew?: boolean;
+  initialData?: TaskType | null;
   projectMembers?: Array<{ id: string; name: string; email: string }>;
   readOnly?: boolean;
+  availableStatuses?: string[];
 }
 
 const TaskForm = ({ 
   open, 
   onOpenChange, 
+  onClose,
   task, 
   onSubmit, 
   tasks, 
   isNew = false,
-  projectMembers = [] 
+  initialData,
+  projectMembers = [],
+  availableStatuses = [] 
 }: TaskFormProps) => {
   const [formData, setFormData] = useState<Partial<TaskType>>({
     name: "",
@@ -52,14 +57,16 @@ const TaskForm = ({
     assignees: [],
     isGroup: false,
     isMilestone: false,
-    priority: 3
+    priority: 3,
+    customStatus: ""
   });
 
-  // When task changes, update form data
+  // When task or initialData changes, update form data
   useEffect(() => {
-    if (task) {
+    const sourceData = task || initialData;
+    if (sourceData) {
       setFormData({
-        ...task
+        ...sourceData
       });
     } else if (isNew) {
       // Reset form for new task
@@ -72,10 +79,11 @@ const TaskForm = ({
         assignees: [],
         isGroup: false,
         isMilestone: false,
-        priority: 3
+        priority: 3,
+        customStatus: ""
       });
     }
-  }, [task, isNew]);
+  }, [task, initialData, isNew]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +102,11 @@ const TaskForm = ({
     }
 
     onSubmit(finalFormData);
-    onOpenChange(false);
+    if (onClose) {
+      onClose();
+    } else {
+      onOpenChange(false);
+    }
   };
 
   const handleChange = (field: string, value: any) => {
@@ -204,6 +216,8 @@ const TaskForm = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          
+          
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Tarefa</Label>
             <Input 
@@ -251,6 +265,24 @@ const TaskForm = ({
                 <option value="">-- Nenhum --</option>
                 {parentTaskOptions.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {/* Custom Status field for board view */}
+          {availableStatuses.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="customStatus">Status</Label>
+              <select
+                id="customStatus"
+                value={formData.customStatus || ''}
+                onChange={(e) => handleChange('customStatus', e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+              >
+                <option value="">-- Selecione --</option>
+                {availableStatuses.map(status => (
+                  <option key={status} value={status}>{status}</option>
                 ))}
               </select>
             </div>
@@ -383,22 +415,33 @@ const TaskForm = ({
                         checked={formData.dependencies?.includes(depTask.id) || false}
                         onCheckedChange={() => toggleDependency(depTask.id)}
                       />
-                      <label htmlFor={`dep-${depTask.id}`} className="text-sm">
+                      <label htmlFor={`dep-${depTask.id}`} className="text-sm truncate">
                         {depTask.name}
                       </label>
                     </div>
                   ))
                 ) : (
-                  <div className="text-sm text-gray-500 col-span-2 text-center py-2">
-                    Não há tarefas disponíveis para dependência
-                  </div>
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Sem dependências disponíveis.
+                  </p>
                 )}
               </div>
             </div>
           )}
-          
-          <DialogFooter>
-            <Button type="submit" variant="default">Salvar</Button>
+                
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => {
+              if (onClose) {
+                onClose();
+              } else {
+                onOpenChange(false);
+              }
+            }}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {isNew ? 'Criar' : 'Salvar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

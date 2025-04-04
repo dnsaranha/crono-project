@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,13 @@ interface GanttSidebarProps {
   toggleGroup: (taskId: string) => void;
   handleTaskDragOver: (e: React.DragEvent, task: TaskType) => void;
   handleTaskDragLeave: () => void;
-  dragOverTask: TaskType | null;
-  dragOverPosition: 'above' | 'below' | null;
+  dragOverTask?: TaskType | null;
+  dragOverPosition?: 'above' | 'below' | null;
   handleDependencyStartClick: (taskId: string) => void;
   createDependencyMode: {active: boolean, sourceId: string} | null;
   hasEditPermission: boolean;
-  handleTaskClick: (task: TaskType) => void;
+  sidebarVisible?: boolean;
+  handleTaskClick?: (task: TaskType) => void;
 }
 
 const GanttSidebar: React.FC<GanttSidebarProps> = ({
@@ -28,6 +30,7 @@ const GanttSidebar: React.FC<GanttSidebarProps> = ({
   handleDependencyStartClick,
   createDependencyMode,
   hasEditPermission,
+  sidebarVisible = true,
   handleTaskClick
 }) => {
   return (
@@ -51,6 +54,7 @@ const GanttSidebar: React.FC<GanttSidebarProps> = ({
             }`}
             onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : null}
             onDragLeave={handleTaskDragLeave}
+            onClick={() => handleTaskClick && handleTaskClick(task)}
           >
             <div className="flex items-center w-full">
               <div className="w-5 flex-shrink-0">
@@ -59,7 +63,10 @@ const GanttSidebar: React.FC<GanttSidebarProps> = ({
                     variant="ghost" 
                     size="icon" 
                     className="h-5 w-5 p-0"
-                    onClick={() => toggleGroup(task.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGroup(task.id);
+                    }}
                   >
                     {expandedGroups[task.id] ? (
                       <ChevronDown className="h-4 w-4" />
@@ -81,7 +88,10 @@ const GanttSidebar: React.FC<GanttSidebarProps> = ({
                   variant="ghost"
                   size="sm"
                   className={`h-6 w-6 p-0 rounded-full ${createDependencyMode?.sourceId === task.id ? 'bg-yellow-200' : ''}`}
-                  onClick={() => handleDependencyStartClick(task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDependencyStartClick(task.id);
+                  }}
                   title="Criar dependência a partir desta tarefa"
                 >
                   <div className="w-2 h-2 bg-yellow-400 rounded-full" />

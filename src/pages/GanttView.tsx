@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useTasks } from "@/hooks/tasks";
 import { TaskType } from "@/components/Task";
 import TaskForm from "@/components/TaskForm";
@@ -12,10 +13,12 @@ import LoadingState from "@/components/LoadingState";
 import ExcelExportImport from "@/components/ExcelExportImport";
 
 export default function GanttView() {
+  const { projectId } = useParams<{ projectId: string }>();
   const { tasks, loading, updateTask, createTask, createDependency, batchUpdateTasks } = useTasks();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [timeScale, setTimeScale] = useState<"day" | "week" | "month" | "quarter" | "year">("week");
   
   const handleToggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -45,6 +48,19 @@ export default function GanttView() {
     await createDependency(sourceId, targetId);
   };
   
+  const handleZoomIn = () => {
+    // Placeholder for zoom in functionality
+  };
+  
+  const handleZoomOut = () => {
+    // Placeholder for zoom out functionality
+  };
+  
+  const exportToImage = async () => {
+    // Placeholder for export functionality
+    return Promise.resolve();
+  };
+  
   if (loading) {
     return <LoadingState message="Carregando dados do projeto..." />;
   }
@@ -60,10 +76,16 @@ export default function GanttView() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-3">
-        <GanttControls />
+        <GanttControls 
+          timeScale={timeScale}
+          handleZoomOut={handleZoomOut}
+          handleZoomIn={handleZoomIn}
+          exportToImage={exportToImage}
+        />
         <div className="flex gap-2">
           <ExcelExportImport 
             tasks={tasks} 
+            projectId={projectId as string}
             onImport={(tasksToUpdate, tasksToCreate) => batchUpdateTasks(tasksToUpdate, tasksToCreate)} 
           />
           <NewTaskButton onClick={() => setShowTaskForm(true)} />

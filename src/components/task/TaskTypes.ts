@@ -14,6 +14,7 @@ export interface TaskType {
   isMilestone?: boolean;
   priority?: 1 | 2 | 3 | 4 | 5;
   description?: string;
+  customStatus?: string; // Adding this for the BoardView component
 }
 
 export interface TaskProps {
@@ -54,4 +55,7 @@ export interface TaskResizeHookProps {
   timeScale: "day" | "week" | "month" | "quarter" | "year";
   cellWidth: number;
   style?: React.CSSProperties;
+  onTouchStart?: (e: React.TouchEvent) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
+  onTouchEnd?: (e: React.TouchEvent) => void;
 }

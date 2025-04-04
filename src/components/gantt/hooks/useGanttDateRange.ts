@@ -1,68 +1,72 @@
 
 import { useState, useEffect } from 'react';
-import { TaskType } from '../../Task';
-import { TimeScale } from '../GanttChart';
+import { addDays, addMonths } from 'date-fns';
+import { TaskType } from '../../task';
+
+type TimeScale = "day" | "week" | "month" | "quarter" | "year";
 
 export function useGanttDateRange(tasks: TaskType[], timeScale: TimeScale) {
   const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(addMonths(new Date(), 3));
   
-  // Calculate date range based on tasks
+  useEffect(() => {
+    calculateDateRange();
+  }, [tasks, timeScale]);
+  
   const calculateDateRange = () => {
-    if (!tasks || tasks.length === 0) {
+    if (tasks.length === 0) {
+      // Default range if no tasks
       const today = new Date();
-      const oneMonthLater = new Date(today);
-      oneMonthLater.setMonth(today.getMonth() + 1);
+      setStartDate(today);
       
-      return {
-        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        endDate: new Date(oneMonthLater.getFullYear(), oneMonthLater.getMonth() + 2, 0)
-      };
+      switch (timeScale) {
+        case "day":
+          setEndDate(addDays(today, 30));
+          break;
+        case "week":
+          setEndDate(addDays(today, 90));
+          break;
+        case "month":
+          setEndDate(addMonths(today, 6));
+          break;
+        case "quarter":
+          setEndDate(addMonths(today, 12));
+          break;
+        case "year":
+          setEndDate(addMonths(today, 24));
+          break;
+        default:
+          setEndDate(addMonths(today, 3));
+      }
+      
+      return;
     }
     
-    let earliestStart = new Date();
-    let latestEnd = new Date();
+    // Find earliest start date and latest end date from tasks
+    let earliest = new Date();
+    let latest = addDays(new Date(), 30);
     
     tasks.forEach(task => {
       const taskStart = new Date(task.startDate);
+      const taskEnd = addDays(taskStart, task.duration);
       
-      const taskEnd = new Date(taskStart);
-      taskEnd.setDate(taskStart.getDate() + (task.duration || 0));
-      
-      if (taskStart < earliestStart || earliestStart.toString() === new Date().toString()) {
-        earliestStart = new Date(taskStart);
+      if (taskStart < earliest) {
+        earliest = taskStart;
       }
       
-      if (taskEnd > latestEnd) {
-        latestEnd = new Date(taskEnd);
+      if (taskEnd > latest) {
+        latest = taskEnd;
       }
     });
     
-    // Adjust start date to beginning of month/week based on timeScale
-    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
-      earliestStart.setDate(1); // Start of month
-    } else {
-      // Start of week (Sunday)
-      const day = earliestStart.getDay();
-      earliestStart.setDate(earliestStart.getDate() - day);
-    }
+    // Add buffer on both sides
+    const buffer = timeScale === "day" ? 3 : timeScale === "week" ? 7 : 15;
+    earliest = addDays(earliest, -buffer);
+    latest = addDays(latest, buffer);
     
-    // Add buffer to end date
-    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
-      latestEnd.setMonth(latestEnd.getMonth() + 1);
-      latestEnd = new Date(latestEnd.getFullYear(), latestEnd.getMonth() + 1, 0); // End of month
-    } else {
-      latestEnd.setDate(latestEnd.getDate() + 14); // Add two weeks buffer
-    }
-    
-    return { startDate: earliestStart, endDate: latestEnd };
+    setStartDate(earliest);
+    setEndDate(latest);
   };
-  
-  useEffect(() => {
-    const range = calculateDateRange();
-    setStartDate(range.startDate);
-    setEndDate(range.endDate);
-  }, [tasks, timeScale]);
   
   return { startDate, endDate, calculateDateRange };
 }
