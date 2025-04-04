@@ -1,6 +1,6 @@
 
 import React, { forwardRef } from 'react';
-import Task from '../task';
+import { Task } from '../Task';
 import { TaskType } from '../task/TaskTypes';
 import TodayMarker from '../TodayMarker';
 
@@ -20,20 +20,20 @@ interface GanttGridProps {
   getCurrentDateLinePosition: () => number;
   startDate: Date;
   endDate: Date;
-  handleTaskDragOver: (e: React.DragEvent, task: TaskType) => void;
+  handleTaskDragOver: (e: React.DragEvent<HTMLElement>, task: TaskType) => void;
   handleTaskDragLeave: () => void;
-  handleCellDragOver: (e: React.DragEvent, weekIndex: number, rowIndex: number) => void;
-  handleCellDrop: (e: React.DragEvent, weekIndex: number, rowIndex: number) => void;
+  handleCellDragOver: (e: React.DragEvent<HTMLElement>, weekIndex: number, rowIndex: number) => void;
+  handleCellDrop: (e: React.DragEvent<HTMLElement>, weekIndex: number, rowIndex: number) => void;
   handleTaskClick: (task: TaskType) => void;
-  handleTaskDragStart: (e: React.DragEvent | React.TouchEvent, task: TaskType) => void;
+  handleTaskDragStart: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>, task: TaskType) => void;
   handleTaskDragEnd: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>, task: TaskType) => void;
-  handleTouchStart: (e: React.TouchEvent, task: TaskType) => void;
-  handleTouchMove: (e: React.TouchEvent) => void;
-  handleTouchEnd: (e: React.TouchEvent, task: TaskType) => void;
-  handleTaskResizeStart: (e: React.MouseEvent | React.TouchEvent, task: TaskType) => void;
+  handleTouchStart: (e: React.TouchEvent<HTMLElement>, task: TaskType) => void;
+  handleTouchMove: (e: React.TouchEvent<HTMLElement>) => void;
+  handleTouchEnd: (e: React.TouchEvent<HTMLElement>, task: TaskType) => void;
+  handleTaskResizeStart: (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>, task: TaskType) => void;
   onTaskUpdate?: (updatedTask: TaskType) => void;
   hasEditPermission: boolean;
-  timeScale: string;
+  timeScale: "day" | "week" | "month" | "quarter" | "year";
   dragOverTask: TaskType | null;
   dragOverPosition: 'above' | 'below' | null;
   dragOverCell: { weekIndex: number, rowIndex: number } | null;
@@ -77,8 +77,6 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
     >
       <svg className="absolute inset-0 h-full w-full pointer-events-none z-20">
         <TodayMarker 
-          startDate={startDate}
-          endDate={endDate}
           position={getCurrentDateLinePosition()}
         />
         
@@ -184,8 +182,8 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
             task={task}
             style={getTaskStyle(task)}
             onClick={() => handleTaskClick(task)}
-            onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
-            onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
+            onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e as any, task) : undefined}
+            onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e as any, task) : undefined}
             onTouchStart={hasEditPermission ? (e) => handleTouchStart(e, task) : undefined}
             onTouchMove={hasEditPermission ? handleTouchMove : undefined}
             onTouchEnd={hasEditPermission ? (e) => handleTouchEnd(e, task) : undefined}
@@ -197,7 +195,7 @@ const GanttGrid = forwardRef<HTMLDivElement, GanttGridProps>(({
               createDependencyMode.sourceId === task.id ? 
                 'dependency-source' : 'dependency-target-candidate' 
               : ''}
-            timeScale={timeScale}
+            timeScale={timeScale as "day" | "week" | "month" | "quarter" | "year"}
             draggable={hasEditPermission}
           />
         </div>

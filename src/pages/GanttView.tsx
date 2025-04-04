@@ -84,8 +84,8 @@ export default function GanttView() {
         />
         <div className="flex gap-2">
           <ExcelExportImport 
-            tasks={tasks} 
-            projectId={projectId as string}
+            tasks={tasks}
+            projectId={projectId || ""}
             onImport={(tasksToUpdate, tasksToCreate) => batchUpdateTasks(tasksToUpdate, tasksToCreate)} 
           />
           <NewTaskButton onClick={() => setShowTaskForm(true)} />

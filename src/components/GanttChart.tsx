@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { format, isEqual, add, differenceInDays, parseISO, startOfDay, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,7 +59,7 @@ import {
   Pencil
 } from "lucide-react";
 import { TodayMarker } from "./TodayMarker";
-import { TaskComponent } from "./task";
+import { Task } from "./Task";
 import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import { useTaskResize } from "@/hooks/use-task-resize";
@@ -101,10 +100,11 @@ export const GanttChart = ({
   const todayRef = useRef<HTMLDivElement>(null);
   
   // Task resize hook
-  const { initResize } = useTaskResize({
-    tasks,
+  const { handleTaskResizeStart } = useTaskResize({
     onTaskUpdate,
-    canEdit
+    timeScale: "day",
+    cellWidth: 50,
+    hasEditPermission: Boolean(canEdit)
   });
 
   // State for dates and view
@@ -137,7 +137,7 @@ export const GanttChart = ({
     let latest = add(new Date(), { months: 3 });
     
     tasks.forEach(task => {
-      const taskStart = parseISO(task.start_date);
+      const taskStart = parseISO(task.startDate);
       const taskEnd = add(taskStart, { days: task.duration });
       
       if (isBefore(taskStart, earliest)) {
@@ -194,25 +194,25 @@ export const GanttChart = ({
   const tasksArray = Array.isArray(tasks) ? tasks : [];
   
   // Helpers
-  const isMilestone = (task: TaskType) => task.is_milestone;
-  const isGroup = (task: TaskType) => task.is_group;
+  const isMilestone = (task: TaskType) => task.isMilestone;
+  const isGroup = (task: TaskType) => task.isGroup;
   
   const getTaskChildren = (taskId: string) => {
-    return tasksArray.filter(task => task.parent_id === taskId);
+    return tasksArray.filter(task => task.parentId === taskId);
   };
   
   const hasChildren = (taskId: string) => {
-    return tasksArray.some(task => task.parent_id === taskId);
+    return tasksArray.some(task => task.parentId === taskId);
   };
   
   // Task filtering and organization
-  const rootTasks = tasksArray.filter(task => !task.parent_id);
+  const rootTasks = tasksArray.filter(task => !task.parentId);
   
   const getTaskPosition = (task: TaskType) => {
-    const taskStart = parseISO(task.start_date);
+    const taskStart = parseISO(task.startDate);
     const daysDiff = differenceInDays(taskStart, startDate);
     const leftPos = daysDiff * cellWidth;
-    const width = task.is_milestone ? cellWidth : task.duration * cellWidth;
+    const width = task.isMilestone ? cellWidth : task.duration * cellWidth;
     
     return {
       left: leftPos,
@@ -304,6 +304,161 @@ export const GanttChart = ({
     setActivePredecessor(taskId);
   };
   
+  // Include the remaining components inline (would normally be separate files)
+  const TaskNameItem = ({ task, level, tasks, isExpanded, toggleExpand, hasChildren, canEdit, onTaskDelete, selectedTaskId }) => {
+    const hasTaskChildren = hasChildren(task.id);
+    const paddingLeft = level * 16 + 8;
+    const children = tasks.filter(t => t.parentId === task.id);
+    
+    return (
+      <>
+        <div 
+          className={cn(
+            "flex items-center border-b py-2 px-2 pr-4 min-h-[40px]",
+            selectedTaskId === task.id ? "bg-primary/10" : "hover:bg-muted/50"
+          )}
+          style={{ paddingLeft: `${paddingLeft}px` }}
+        >
+          {hasTaskChildren && (
+            <button 
+              onClick={() => toggleExpand(task.id)} 
+              className="mr-1 p-1 rounded hover:bg-muted"
+            >
+              {isExpanded(task.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+          )}
+          
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            {task.isGroup ? (
+              <FolderIcon size={14} className="shrink-0 text-amber-500" />
+            ) : task.isMilestone ? (
+              <DiamondIcon size={14} className="shrink-0 text-purple-500" />
+            ) : (
+              <TaskIcon size={14} className="shrink-0 text-blue-500" />
+            )}
+            
+            <span className="truncate">
+              {task.name}
+            </span>
+          </div>
+          
+          {canEdit && onTaskDelete && (
+            <div className="ml-auto flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-6 w-6 p-0 ml-1">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onTaskDelete(task.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
+        
+        {hasTaskChildren && isExpanded(task.id) && children.map(child => (
+          <TaskNameItem
+            key={child.id}
+            task={child}
+            level={level + 1}
+            tasks={tasks}
+            isExpanded={isExpanded}
+            toggleExpand={toggleExpand}
+            hasChildren={hasChildren}
+            canEdit={canEdit}
+            onTaskDelete={onTaskDelete}
+            selectedTaskId={selectedTaskId}
+          />
+        ))}
+      </>
+    );
+  };
+
+  const RenderTasksRecursively = ({ task, tasks, taskIndex, level, getTaskPosition, onTaskClick, handleTaskResizeStart, isGroupExpanded, dependencyMode, handleDependencyStart, activePredecessor, getTaskDependencies, selectedTaskId, canEdit }) => {
+    const children = tasks.filter(t => t.parentId === task.id);
+    const taskPosition = getTaskPosition(task);
+    const hasTaskChildren = children.length > 0;
+    const isDependencySource = activePredecessor === task.id;
+    const isDependencyTarget = activePredecessor !== null && activePredecessor !== task.id;
+    const dependencies = getTaskDependencies(task.id);
+    
+    return (
+      <>
+        <div
+          className={cn(
+            "absolute h-10 flex items-center",
+            selectedTaskId === task.id ? "z-20" : "z-10"
+          )}
+          style={{
+            left: `${taskPosition.left}px`,
+            top: `${taskIndex * 40}px`,
+            width: `${taskPosition.width}px`,
+          }}
+        >
+          <Task
+            task={task}
+            style={taskPosition}
+            onClick={() => onTaskClick(task.id)}
+            onResizeStart={(e) => handleTaskResizeStart(e, task)}
+            className={cn(
+              selectedTaskId === task.id && "ring-2 ring-primary ring-offset-2",
+              isDependencySource && "ring-2 ring-amber-500",
+              isDependencyTarget && "ring-2 ring-blue-500 animate-pulse"
+            )}
+            dependencies={dependencies}
+            dependencyMode={dependencyMode}
+            onDependencyStart={() => handleDependencyStart(task.id)}
+            canEdit={canEdit}
+          />
+        </div>
+        
+        {hasTaskChildren && isGroupExpanded(task.id) && children.map((child, index) => (
+          <RenderTasksRecursively
+            key={child.id}
+            task={child}
+            tasks={tasks}
+            taskIndex={taskIndex + index + 1}
+            level={level + 1}
+            getTaskPosition={getTaskPosition}
+            onTaskClick={onTaskClick}
+            handleTaskResizeStart={handleTaskResizeStart}
+            isGroupExpanded={isGroupExpanded}
+            dependencyMode={dependencyMode}
+            handleDependencyStart={handleDependencyStart}
+            activePredecessor={activePredecessor}
+            getTaskDependencies={getTaskDependencies}
+            selectedTaskId={selectedTaskId}
+            canEdit={canEdit}
+          />
+        ))}
+      </>
+    );
+  };
+
+  // Small icon components
+  const TaskIcon = ({ size, className }) => (
+    <div className={cn("flex-none", className)}>
+      <CircleDashed size={size} />
+    </div>
+  );
+
+  const FolderIcon = ({ size, className }) => (
+    <div className={cn("flex-none", className)}>
+      <Settings size={size} />
+    </div>
+  );
+
+  const DiamondIcon = ({ size, className }) => (
+    <div className={cn("flex-none", className)}>
+      <CheckCircle2 size={size} />
+    </div>
+  );
+
   return (
     <div className="flex flex-col w-full h-full" ref={containerRef}>
       {/* Toolbar */}
@@ -583,7 +738,7 @@ export const GanttChart = ({
                     level={0}
                     getTaskPosition={getTaskPosition}
                     onTaskClick={handleTaskClick}
-                    initResize={initResize}
+                    handleTaskResizeStart={handleTaskResizeStart}
                     isGroupExpanded={isGroupExpanded}
                     dependencyMode={dependencyMode}
                     handleDependencyStart={handleDependencyStart}
@@ -663,7 +818,7 @@ export const GanttChart = ({
 const TaskNameItem = ({ task, level, tasks, isExpanded, toggleExpand, hasChildren, canEdit, onTaskDelete, selectedTaskId }) => {
   const hasTaskChildren = hasChildren(task.id);
   const paddingLeft = level * 16 + 8;
-  const children = tasks.filter(t => t.parent_id === task.id);
+  const children = tasks.filter(t => t.parentId === task.id);
   
   return (
     <>
@@ -684,9 +839,9 @@ const TaskNameItem = ({ task, level, tasks, isExpanded, toggleExpand, hasChildre
         )}
         
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          {task.is_group ? (
+          {task.isGroup ? (
             <FolderIcon size={14} className="shrink-0 text-amber-500" />
-          ) : task.is_milestone ? (
+          ) : task.isMilestone ? (
             <DiamondIcon size={14} className="shrink-0 text-purple-500" />
           ) : (
             <TaskIcon size={14} className="shrink-0 text-blue-500" />
@@ -711,121 +866,78 @@ const TaskNameItem = ({ task, level, tasks, isExpanded, toggleExpand, hasChildre
                   Excluir
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-      </div>
-      
-      {hasTaskChildren && isExpanded(task.id) && children.map(child => (
-        <TaskNameItem
-          key={child.id}
-          task={child}
-          level={level + 1}
-          tasks={tasks}
-          isExpanded={isExpanded}
-          toggleExpand={toggleExpand}
-          hasChildren={hasChildren}
-          canEdit={canEdit}
-          onTaskDelete={onTaskDelete}
-          selectedTaskId={selectedTaskId}
-        />
-      ))}
-    </>
-  );
-};
-
-// Render task bars recursively
-const RenderTasksRecursively = ({ 
-  task, 
-  tasks,
-  taskIndex, 
-  level,
-  getTaskPosition,
-  onTaskClick,
-  initResize,
-  isGroupExpanded,
-  dependencyMode,
-  handleDependencyStart,
-  activePredecessor,
-  getTaskDependencies,
-  selectedTaskId,
-  canEdit
-}) => {
-  const children = tasks.filter(t => t.parent_id === task.id);
-  const taskPosition = getTaskPosition(task);
-  const hasTaskChildren = children.length > 0;
-  const isDependencySource = activePredecessor === task.id;
-  const isDependencyTarget = activePredecessor !== null && activePredecessor !== task.id;
-  const dependencies = getTaskDependencies(task.id);
-  
-  return (
-    <>
-      <div
-        className={cn(
-          "absolute h-10 flex items-center",
-          selectedTaskId === task.id ? "z-20" : "z-10"
-        )}
-        style={{
-          left: `${taskPosition.left}px`,
-          top: `${taskIndex * 40}px`,
-          width: `${taskPosition.width}px`,
-        }}
-      >
-        <TaskComponent
-          task={task}
-          position={taskPosition}
-          onClick={() => onTaskClick(task.id)}
-          onResizeStart={(e) => initResize(e, task)}
-          className={cn(
-            selectedTaskId === task.id && "ring-2 ring-primary ring-offset-2",
-            isDependencySource && "ring-2 ring-amber-500",
-            isDependencyTarget && "ring-2 ring-blue-500 animate-pulse"
+            </div>
           )}
-          dependencies={dependencies}
-          dependencyMode={dependencyMode}
-          onDependencyStart={() => handleDependencyStart(task.id)}
-          canEdit={canEdit}
-        />
-      </div>
-      
-      {hasTaskChildren && isGroupExpanded(task.id) && children.map((child, index) => (
-        <RenderTasksRecursively
-          key={child.id}
-          task={child}
-          tasks={tasks}
-          taskIndex={taskIndex + index + 1}
-          level={level + 1}
-          getTaskPosition={getTaskPosition}
-          onTaskClick={onTaskClick}
-          initResize={initResize}
-          isGroupExpanded={isGroupExpanded}
-          dependencyMode={dependencyMode}
-          handleDependencyStart={handleDependencyStart}
-          activePredecessor={activePredecessor}
-          getTaskDependencies={getTaskDependencies}
-          selectedTaskId={selectedTaskId}
-          canEdit={canEdit}
-        />
-      ))}
-    </>
-  );
-};
+        </div>
+        
+        {hasTaskChildren && isExpanded(task.id) && children.map(child => (
+          <TaskNameItem
+            key={child.id}
+            task={child}
+            level={level + 1}
+            tasks={tasks}
+            isExpanded={isExpanded}
+            toggleExpand={toggleExpand}
+            hasChildren={hasChildren}
+            canEdit={canEdit}
+            onTaskDelete={onTaskDelete}
+            selectedTaskId={selectedTaskId}
+          />
+        ))}
+      </>
+    );
+  };
 
-// Small icon components
-const TaskIcon = ({ size, className }) => (
-  <div className={cn("flex-none", className)}>
-    <CircleDashed size={size} />
-  </div>
-);
-
-const FolderIcon = ({ size, className }) => (
-  <div className={cn("flex-none", className)}>
-    <Settings size={size} />
-  </div>
-);
-
-const DiamondIcon = ({ size, className }) => (
-  <div className={cn("flex-none", className)}>
-    <CheckCircle2 size={size} />
-  </div>
-);
+  const RenderTasksRecursively = ({ task, tasks, taskIndex, level, getTaskPosition, onTaskClick, handleTaskResizeStart, isGroupExpanded, dependencyMode, handleDependencyStart, activePredecessor, getTaskDependencies, selectedTaskId, canEdit }) => {
+    const children = tasks.filter(t => t.parentId === task.id);
+    const taskPosition = getTaskPosition(task);
+    const hasTaskChildren = children.length > 0;
+    const isDependencySource = activePredecessor === task.id;
+    const isDependencyTarget = activePredecessor !== null && activePredecessor !== task.id;
+    const dependencies = getTaskDependencies(task.id);
+    
+    return (
+      <>
+        <div
+          className={cn(
+            "absolute h-10 flex items-center",
+            selectedTaskId === task.id ? "z-20" : "z-10"
+          )}
+          style={{
+            left: `${taskPosition.left}px`,
+            top: `${taskIndex * 40}px`,
+            width: `${taskPosition.width}px`,
+          }}
+        >
+          <Task
+            task={task}
+            style={taskPosition}
+            onClick={() => onTaskClick(task.id)}
+            onResizeStart={(e) => handleTaskResizeStart(e, task)}
+            className={cn(
+              selectedTaskId === task.id && "ring-2 ring-primary ring-offset-2",
+              isDependencySource && "ring-2 ring-amber-500",
+              isDependencyTarget && "ring-2 ring-blue-500 animate-pulse"
+            )}
+            dependencies={dependencies}
+            dependencyMode={dependencyMode}
+            onDependencyStart={() => handleDependencyStart(task.id)}
+            canEdit={canEdit}
+          />
+        </div>
+        
+        {hasTaskChildren && isGroupExpanded(task.id) && children.map((child, index) => (
+          <RenderTasksRecursively
+            key={child.id}
+            task={child}
+            tasks={tasks}
+            taskIndex={taskIndex + index + 1}
+            level={level + 1}
+            getTaskPosition={getTaskPosition}
+            onTaskClick={onTaskClick}
+            handleTaskResizeStart={handleTaskResizeStart}
+            isGroupExpanded={isGroupExpanded}
+            dependencyMode={dependencyMode}
+            handleDependencyStart={handleDependencyStart}
+            activePredecessor={activePredecessor}
+            getTaskDependencies

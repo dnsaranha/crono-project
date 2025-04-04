@@ -48,11 +48,14 @@ export interface TaskMilestoneProps {
 }
 
 export interface TaskResizeHookProps {
-  task: TaskType;
+  task?: TaskType;
   onResize?: (newDuration: number) => void;
   onResizeStart?: (e: React.MouseEvent | React.TouchEvent) => void;
   onClick?: () => void;
   timeScale: "day" | "week" | "month" | "quarter" | "year";
   cellWidth: number;
   style?: React.CSSProperties;
+  onTaskUpdate?: (task: TaskType) => void;
+  hasEditPermission?: boolean;
 }
+
