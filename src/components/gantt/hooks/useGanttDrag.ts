@@ -38,21 +38,27 @@ export function useGanttDrag(
   const isTaskVisible = (task: TaskType): boolean => {
     if (!task.parentId) return true;
     
-    // Check if any parent in the hierarchy is collapsed
-    let currentParentId = task.parentId;
-    const parentChain = [currentParentId];
+    // FIX: Handle undefined or null parentId safely
+    if (typeof task.parentId === 'object') {
+      return true; // If parentId is an object (like the malformed {_type: "undefined"} in some tasks), treat as root task
+    }
     
-    // Build chain of parents
-    while (currentParentId) {
-      const parent = tasks.find(t => t.id === currentParentId);
-      if (!parent) break;
+    // Build chain of parents safely
+    const parentChain: string[] = [];
+    let currentParentId: string | null | undefined = task.parentId;
+    let safetyCounter = 0; // Prevent infinite loops
+    
+    // Use a safety counter to prevent infinite loops when building parent chain
+    while (currentParentId && safetyCounter < 100) {
+      parentChain.push(currentParentId);
       
-      if (parent.parentId) {
-        parentChain.push(parent.parentId);
-        currentParentId = parent.parentId;
-      } else {
-        break;
+      const parent = tasks.find(t => t.id === currentParentId);
+      if (!parent || !parent.parentId || typeof parent.parentId === 'object') {
+        break; // Exit if we can't find parent or reached root
       }
+      
+      currentParentId = parent.parentId;
+      safetyCounter++;
     }
     
     // Check if any parent is collapsed
@@ -69,7 +75,10 @@ export function useGanttDrag(
     const added = new Set<string>();
     
     // Add root tasks first
-    const rootTasks = taskList.filter(t => !t.parentId);
+    const rootTasks = taskList.filter(t => {
+      // Consider both null parentId and malformed object parentId as root tasks
+      return !t.parentId || typeof t.parentId === 'object';
+    });
     
     // Recursive function to add tasks in hierarchy
     const addTaskWithChildren = (task: TaskType) => {
@@ -79,7 +88,10 @@ export function useGanttDrag(
       added.add(task.id);
       
       // Find and add children
-      const children = taskList.filter(t => t.parentId === task.id);
+      const children = taskList.filter(t => {
+        // Only consider string parentIds that match current task
+        return typeof t.parentId === 'string' && t.parentId === task.id;
+      });
       children.forEach(addTaskWithChildren);
     };
     
