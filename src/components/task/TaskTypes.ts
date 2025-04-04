@@ -12,7 +12,7 @@ export interface TaskType {
   parentId?: string;
   isGroup?: boolean;
   isMilestone?: boolean;
-  priority?: 1 | 2 | 3 | 4 | 5;
+  priority?: number; // Changed from '1 | 2 | 3 | 4 | 5' to number
   description?: string;
   customStatus?: string; // For BoardView component
 }
