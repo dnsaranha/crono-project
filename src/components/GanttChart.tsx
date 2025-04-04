@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { format, isEqual, add, differenceInDays, parseISO, startOfDay, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -98,7 +97,7 @@ export const GanttChart = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
-  const todayRef = useRef<HTMLDivElement>(null);
+  const todayRef = useRef<SVGLineElement>(null); // Changed to SVGLineElement
   
   // Task resize hook
   const { handleTaskResizeStart } = useTaskResize({

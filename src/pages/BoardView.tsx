@@ -11,6 +11,22 @@ import { Dialog } from "@/components/ui/dialog";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import LoadingState from "@/components/LoadingState";
 
+// Define missing interfaces to match component props
+interface KanbanColumnProps {
+  title: string;
+  tasks: TaskType[];
+  onTaskClick?: (task: TaskType) => void;
+  onStatusChange?: (task: TaskType, newStatus: string) => Promise<void>;
+  statuses: string[];
+}
+
+interface KanbanColumnFormProps {
+  open: boolean;
+  onOpenChange: React.Dispatch<React.SetStateAction<boolean>>;
+  onAddColumn?: (columnName: string) => void;
+  existingColumns: string[];
+}
+
 export default function BoardView() {
   const { tasks, loading, updateTask, createTask } = useTasks();
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);

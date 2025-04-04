@@ -20,28 +20,34 @@ export interface BacklogManagerProps {
 }
 
 export interface BacklogItemsTableProps {
-  items: BacklogItem[];
+  filteredItems: BacklogItem[];
   loading: boolean;
-  getProjectName: (projectId: string) => any;
-  onEdit: (item: BacklogItem) => void;
-  onPromote: (item: BacklogItem) => void;
-  onDelete: (id: string) => Promise<void>;
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  getStatusInfo: (status: string) => { color: string; label: string };
+  formatDate: (dateString: string) => string;
+  getProjectName: (projectId: string) => string;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  setIsEditingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  deleteBacklogItem: (id: string) => Promise<void>;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export interface BacklogEditModalProps {
-  selectedItem: BacklogItem;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem>>;
-  isEditingDialogOpen: boolean;
-  setIsEditingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedItem: BacklogItem | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   updateBacklogItem: () => Promise<void>;
   isMobile: boolean;
 }
 
 export interface BacklogPromoteModalProps {
-  selectedItem: BacklogItem;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem>>;
-  isPromotingDialogOpen: boolean;
-  setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedItem: BacklogItem | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   promoteToTask: () => Promise<void>;
   projects: any[];
   getPriorityInfo: (priority: number) => { color: string; label: string };

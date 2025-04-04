@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,8 @@ const GanttSidebar: React.FC<GanttSidebarProps> = ({
   sidebarVisible = true,
   handleTaskClick
 }) => {
+  if (!sidebarVisible) return null;
+  
   return (
     <div className="min-w-48 w-48 border-r bg-card flex-shrink-0 sm:min-w-64 sm:w-64">
       <div className="h-24 px-4 flex items-end border-b">

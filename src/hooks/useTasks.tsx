@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { TaskType } from "@/components/Task";
@@ -40,6 +39,14 @@ export function useTasks() {
   }
 
   async function updateTask(updatedTask: TaskType) {
+    // Ensure task priority is a valid value (1-5)
+    if (updatedTask.priority) {
+      const priorityNum = Number(updatedTask.priority);
+      if (priorityNum < 1 || priorityNum > 5) {
+        updatedTask.priority = (Math.min(Math.max(priorityNum, 1), 5) as 1 | 2 | 3 | 4 | 5);
+      }
+    }
+
     try {
       const success = await taskService.updateExistingTask(projectId as string, updatedTask);
       
@@ -64,6 +71,14 @@ export function useTasks() {
   }
   
   async function createTask(newTask: Omit<TaskType, 'id'>) {
+    // Ensure task priority is a valid value (1-5)
+    if (newTask.priority) {
+      const priorityNum = Number(newTask.priority);
+      if (priorityNum < 1 || priorityNum > 5) {
+        newTask.priority = (Math.min(Math.max(priorityNum, 1), 5) as 1 | 2 | 3 | 4 | 5);
+      }
+    }
+
     try {
       const createdTask = await taskService.createNewTask(projectId as string, newTask);
       
