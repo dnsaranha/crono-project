@@ -1,184 +1,115 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 import { TaskType } from "@/components/Task";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Draggable, Droppable } from "@hello-pangea/dnd";
+import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface KanbanColumnProps {
   title: string;
   tasks: TaskType[];
-  onDrop: (taskId: string) => void;
-  onEditTask: (task: TaskType) => void;
-  onEditColumn?: (columnId: string) => void;
-  onDeleteColumn?: (columnId: string) => void;
-  columnId: string; 
-  totalColumns: number;
+  statuses: string[];
+  onTaskClick?: (task: TaskType) => void;
+  onStatusChange?: (task: TaskType, newStatus: string) => Promise<void>;
 }
 
-const KanbanColumn = ({ 
-  title, 
-  tasks, 
-  onDrop, 
-  onEditTask, 
-  onEditColumn,
-  onDeleteColumn,
-  columnId,
-  totalColumns
-}: KanbanColumnProps) => {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-  
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-  
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const taskId = e.dataTransfer.getData('taskId');
-    if (taskId) {
-      onDrop(taskId);
+const KanbanColumn = ({ title, tasks, onTaskClick, onStatusChange, statuses }: KanbanColumnProps) => {
+  const getPriorityColor = (priority: number) => {
+    switch (priority) {
+      case 1: return "bg-gray-200 text-gray-800";
+      case 2: return "bg-blue-200 text-blue-800";
+      case 3: return "bg-green-200 text-green-800";
+      case 4: return "bg-yellow-200 text-yellow-800";
+      case 5: return "bg-red-200 text-red-800";
+      default: return "bg-gray-200 text-gray-800";
     }
   };
-  
-  const handleDeleteClick = () => {
-    setShowDeleteAlert(true);
-  };
-  
-  const handleConfirmDelete = () => {
-    if (onDeleteColumn) {
-      onDeleteColumn(columnId);
-    }
-    setShowDeleteAlert(false);
+
+  const getProgressColor = (progress: number) => {
+    if (progress === 100) return "bg-green-500";
+    if (progress >= 75) return "bg-green-400";
+    if (progress >= 50) return "bg-yellow-400";
+    if (progress >= 25) return "bg-orange-400";
+    return "bg-gray-300";
   };
 
   return (
-    <div 
-      className={`board-column ${isDragOver ? 'drop-zone drag-over' : ''} flex flex-col min-w-[280px] h-full rounded-md bg-gray-50 dark:bg-gray-800 border p-2`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="flex justify-between items-center mb-2 p-2">
-        <h3 className="font-medium text-lg">{title}</h3>
-        
-        {(onEditColumn || onDeleteColumn) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onEditColumn && (
-                <DropdownMenuItem onClick={() => onEditColumn(columnId)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar Coluna
-                </DropdownMenuItem>
-              )}
-              {onDeleteColumn && totalColumns > 2 && (
-                <DropdownMenuItem 
-                  onClick={handleDeleteClick}
-                  className="text-red-500 focus:text-red-500"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir Coluna
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-      
-      <div className="space-y-2 overflow-auto flex-1 p-1">
-        {tasks.map(task => (
-          <Card 
-            key={task.id}
-            className="board-card cursor-pointer"
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('taskId', task.id);
-              e.currentTarget.classList.add('task-dragging');
-            }}
-            onDragEnd={(e) => {
-              e.currentTarget.classList.remove('task-dragging');
-            }}
-            onClick={() => onEditTask(task)}
-          >
-            <CardHeader className="p-3 pb-0">
-              <CardTitle className="text-base font-medium">{task.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-1">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {task.isMilestone ? (
-                  <span className="inline-flex items-center text-purple-600 dark:text-purple-400">
-                    <span className="mr-1">●</span> Marco
-                  </span>
-                ) : (
-                  <>
-                    <div className="mt-2">
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                        <div 
-                          className="bg-blue-500 h-1.5 rounded-full" 
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
+    <Card className="w-80 flex-shrink-0">
+      <CardHeader className="py-3 px-4">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <Badge variant="outline">{tasks.length}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="px-2 pb-2">
+        <ScrollArea className="h-[calc(100vh-13rem)] px-2">
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <Card 
+                key={task.id} 
+                className="p-3 cursor-pointer hover:bg-accent"
+                onClick={() => onTaskClick && onTaskClick(task)}
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-sm">{task.name}</h3>
+                    
+                    {onStatusChange && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {statuses.map((status) => (
+                            <DropdownMenuItem 
+                              key={status}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onStatusChange(task, status);
+                              }}
+                            >
+                              Mover para {status}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge className={getPriorityColor(task.priority)}>
+                      P{task.priority}
+                    </Badge>
+                    
+                    {task.progress !== undefined && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${getProgressColor(task.progress)}`}
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                        <span>{task.progress}%</span>
                       </div>
-                      <div className="mt-1">{task.progress}% concluído</div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {tasks.length === 0 && (
-          <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-4">
-            Arraste tarefas para esta coluna
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-        )}
-      </div>
-      
-      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Coluna</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta coluna? Todas as tarefas desta coluna serão movidas para a primeira coluna.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-500 hover:bg-red-600">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 };
 

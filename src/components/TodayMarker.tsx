@@ -3,6 +3,8 @@ import React, { forwardRef } from "react";
 
 interface TodayMarkerProps {
   position?: number;
+  startDate?: Date;
+  cellWidth?: number;
 }
 
 export const TodayMarker = forwardRef<SVGLineElement, TodayMarkerProps>(({ position = 0 }, ref) => {
