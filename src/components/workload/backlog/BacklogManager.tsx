@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, CardContent, CardDescription, 
@@ -60,25 +59,50 @@ export function BacklogManager({
     try {
       setLoading(true);
       
+      // Modified query to fetch creator info separately instead of using a join
       const { data, error } = await supabase
         .from('backlog_items')
-        .select(`
-          *,
-          profiles(full_name, email)
-        `)
+        .select('*')
         .order(sortField, { ascending: sortDirection === 'asc' });
         
       if (error) {
         throw error;
       }
       
-      // Map the data to include creator name
-      const itemsWithCreatorNames = data.map((item: any) => ({
-        ...item,
-        creator_name: item.profiles?.full_name || item.profiles?.email || "Usuário"
+      // Fetch profiles separately for creator information
+      const itemsWithCreatorInfo = await Promise.all(data.map(async (item: any) => {
+        try {
+          // Only fetch profile if we have a creator_id
+          if (item.creator_id) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', item.creator_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              return {
+                ...item,
+                creator_name: profileData.full_name || profileData.email || "Usuário"
+              };
+            }
+          }
+          
+          // Default if we couldn't get the profile
+          return {
+            ...item,
+            creator_name: "Usuário"
+          };
+        } catch (e) {
+          console.error("Error fetching profile:", e);
+          return {
+            ...item,
+            creator_name: "Usuário"
+          };
+        }
       }));
       
-      setBacklogItems(itemsWithCreatorNames);
+      setBacklogItems(itemsWithCreatorInfo);
     } catch (error: any) {
       console.error("Error loading backlog items:", error.message);
       toast({

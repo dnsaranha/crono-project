@@ -1,839 +1,831 @@
-import { useState, useRef, useEffect, useMemo, TouchEvent } from "react";
-import Task, { TaskType } from "./Task";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, ChevronLeftSquare, PanelLeft, 
-         ZoomIn, ZoomOut, Download, Plus } from "lucide-react";
-import html2canvas from "html2canvas";
-import { useToast } from "@/components/ui/use-toast";
-import { useMobile } from "@/hooks/use-mobile";
-import { useTaskResize } from "@/hooks/use-task-resize";
-import GanttTimeScale from "./GanttTimeScale";
-import TodayMarker from "./TodayMarker";
-import { format, isWithinInterval, addDays, addWeeks, addMonths, differenceInDays } from "date-fns";
 
-interface GanttChartProps {
+import React, { useState, useEffect, useRef } from "react";
+import { format, isEqual, add, differenceInDays, parseISO, startOfDay, isBefore, isAfter } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { TaskType } from './Task';
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Calendar,
+  Moon,
+  Plus,
+  Sun,
+  SunMedium,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowRight,
+  ArrowLeft,
+  MoreVertical,
+  FileText,
+  Trash2,
+  ChevronDown,
+  CheckCircle2,
+  CircleDashed,
+  Clock,
+  Settings,
+  Users,
+  Pencil
+} from "lucide-react";
+import { TodayMarker } from "./TodayMarker";
+import { TaskComponent } from "./task";
+import { cn } from "@/lib/utils";
+import html2canvas from "html2canvas";
+import { useTaskResize } from "@/hooks/use-task-resize";
+
+export interface GanttProps {
   tasks: TaskType[];
-  onTaskClick?: (task: TaskType) => void;
-  onAddTask?: () => void;
-  onTaskUpdate?: (updatedTask: TaskType) => void;
-  onCreateDependency?: (sourceId: string, targetId: string) => void;
-  sidebarVisible?: boolean;
-  onToggleSidebar?: () => void;
-  hasEditPermission?: boolean;
+  onTaskClick?: (taskId: string) => void;
+  onTaskUpdate?: (task: TaskType) => void;
+  onTaskDelete?: (taskId: string) => void;
+  onAddDependency?: (predecessorId: string, successorId: string) => void;
+  canEdit?: boolean;
+  showToolbar?: boolean;
+  selectedTaskId?: string | null;
+  setDependencyMode?: React.Dispatch<React.SetStateAction<boolean>>;
+  dependencyMode?: boolean;
+  dependenciesMap?: Record<string, string[]>;
+  onDateRangeChanged?: (startDate: Date, endDate: Date) => void;
 }
 
-type TimeScale = "day" | "week" | "month" | "quarter" | "year";
-
-const GanttChart = ({ 
-  tasks, 
-  onTaskClick, 
-  onAddTask, 
+export const GanttChart = ({
+  tasks,
+  onTaskClick,
   onTaskUpdate,
-  onCreateDependency,
-  sidebarVisible = true,
-  onToggleSidebar,
-  hasEditPermission = true
-}: GanttChartProps) => {
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [draggingTask, setDraggingTask] = useState<TaskType | null>(null);
-  const [dragOverTask, setDragOverTask] = useState<TaskType | null>(null);
-  const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
-  const [dragOverCell, setDragOverCell] = useState<{ weekIndex: number, rowIndex: number } | null>(null);
+  onTaskDelete,
+  onAddDependency,
+  canEdit = true,
+  showToolbar = true,
+  selectedTaskId = null,
+  setDependencyMode,
+  dependencyMode = false,
+  dependenciesMap = {},
+  onDateRangeChanged
+}: GanttProps) => {
+  // References
   const containerRef = useRef<HTMLDivElement>(null);
-  const ganttGridRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [createDependencyMode, setCreateDependencyMode] = useState<{active: boolean, sourceId: string} | null>(null);
-  const [baseZoomLevel, setBaseZoomLevel] = useState(1); // Base zoom level (1-5)
-  const [timeScale, setTimeScale] = useState<TimeScale>("week");
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const { isMobile } = useMobile();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const ganttRef = useRef<HTMLDivElement>(null);
+  const todayRef = useRef<HTMLDivElement>(null);
   
-  const calculateDateRange = () => {
-    if (!tasks || tasks.length === 0) {
-      const today = new Date();
-      const oneMonthLater = new Date(today);
-      oneMonthLater.setMonth(today.getMonth() + 1);
-      
-      return {
-        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        endDate: new Date(oneMonthLater.getFullYear(), oneMonthLater.getMonth() + 2, 0)
-      };
-    }
-    
-    let earliestStart = new Date();
-    let latestEnd = new Date();
-    
-    tasks.forEach(task => {
-      const taskStart = new Date(task.startDate);
-      
-      const taskEnd = new Date(taskStart);
-      taskEnd.setDate(taskStart.getDate() + (task.duration || 0));
-      
-      if (taskStart < earliestStart || earliestStart.toString() === new Date().toString()) {
-        earliestStart = new Date(taskStart);
-      }
-      
-      if (taskEnd > latestEnd) {
-        latestEnd = new Date(taskEnd);
-      }
-    });
-    
-    // Adjust start date to beginning of month/week based on timeScale
-    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
-      earliestStart.setDate(1); // Start of month
-    } else {
-      // Start of week (Sunday)
-      const day = earliestStart.getDay();
-      earliestStart.setDate(earliestStart.getDate() - day);
-    }
-    
-    // Add buffer to end date
-    if (timeScale === "month" || timeScale === "quarter" || timeScale === "year") {
-      latestEnd.setMonth(latestEnd.getMonth() + 1);
-      latestEnd = new Date(latestEnd.getFullYear(), latestEnd.getMonth() + 1, 0); // End of month
-    } else {
-      latestEnd.setDate(latestEnd.getDate() + 14); // Add two weeks buffer
-    }
-    
-    return { startDate: earliestStart, endDate: latestEnd };
-  };
-  
-  const dateRange = calculateDateRange();
-  const startDate = dateRange.startDate;
-  const endDate = dateRange.endDate;
-  
-  // Dynamically determine time scale units based on zoom level
-  const determineTimeScaleFromZoom = (zoom: number) => {
-    if (zoom <= 0.6) return "month";
-    if (zoom <= 0.8) return "week";
-    return "day";
-  };
-  
-  // Update time scale when zoom changes
-  useEffect(() => {
-    const newTimeScale = determineTimeScaleFromZoom(baseZoomLevel);
-    setTimeScale(newTimeScale);
-  }, [baseZoomLevel]);
-  
-  const getTimeUnitCount = () => {
-    switch (timeScale) {
-      case "day":
-        return differenceInDays(endDate, startDate) + 1;
-      case "week":
-        return Math.ceil(differenceInDays(endDate, startDate) / 7);
-      case "month":
-        return (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
-               (endDate.getMonth() - startDate.getMonth()) + 1;
-      default:
-        return Math.ceil(differenceInDays(endDate, startDate) / 7);
-    }
-  };
-  
-  const timeUnits = useMemo(() => {
-    const units = [];
-    let current = new Date(startDate);
-    
-    switch (timeScale) {
-      case "day":
-        while (current <= endDate) {
-          units.push({
-            date: new Date(current),
-            label: format(current, "dd/MM")
-          });
-          current = addDays(current, 1);
-        }
-        break;
-      case "week":
-        while (current <= endDate) {
-          units.push({
-            date: new Date(current),
-            label: `${format(current, "dd/MM")} - ${format(addDays(current, 6), "dd/MM")}`
-          });
-          current = addDays(current, 7);
-        }
-        break;
-      case "month":
-        while (current <= endDate) {
-          units.push({
-            date: new Date(current),
-            label: format(current, "MMM yyyy")
-          });
-          current = addMonths(current, 1);
-        }
-        break;
-      default:
-        while (current <= endDate) {
-          units.push({
-            date: new Date(current),
-            label: `Semana ${format(current, "dd/MM")}`
-          });
-          current = addDays(current, 7);
-        }
-    }
-    
-    return units;
-  }, [startDate, endDate, timeScale]);
-  
-  // Calculate cell width based on zoom level and screen size
-  const getCellWidth = () => {
-    const baseWidth = timeScale === "day" ? 40 : timeScale === "week" ? 100 : 160;
-    const zoomFactor = baseZoomLevel;
-    
-    // Adjust for mobile
-    const mobileAdjust = isMobile ? 0.8 : 1;
-    
-    return Math.max(30, baseWidth * zoomFactor * mobileAdjust);
-  };
-  
-  const cellWidth = getCellWidth();
-  const tableWidth = cellWidth * timeUnits.length;
-  
-  // Adicionar o hook useTaskResize
-  const { handleTaskResizeStart } = useTaskResize({
-    onTaskResize: onTaskUpdate,
-    timeScale,
-    cellWidth,
-    hasEditPermission: Boolean(hasEditPermission)
+  // Task resize hook
+  const { initResize } = useTaskResize({
+    tasks,
+    onTaskUpdate,
+    canEdit
+  });
+
+  // State for dates and view
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(add(new Date(), { months: 3 }));
+  const [daysToShow, setDaysToShow] = useState<Date[]>([]);
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
+  const [cellWidth, setCellWidth] = useState(50);
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [isDraggingTask, setIsDraggingTask] = useState(false);
+  const [draggedTask, setDraggedTask] = useState<TaskType | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const [newTask, setNewTask] = useState({
+    name: "",
+    startDate: format(new Date(), "yyyy-MM-dd"),
+    duration: "1",
   });
   
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  
+  // Dependency mode state
+  const [activePredecessor, setActivePredecessor] = useState<string | null>(null);
+  
+  // Calculate date range based on tasks
   useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
+    if (tasks.length === 0) return;
+    
+    let earliest = new Date();
+    let latest = add(new Date(), { months: 3 });
+    
+    tasks.forEach(task => {
+      const taskStart = parseISO(task.start_date);
+      const taskEnd = add(taskStart, { days: task.duration });
+      
+      if (isBefore(taskStart, earliest)) {
+        earliest = taskStart;
       }
-    };
-    
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    
-    const initialExpanded: Record<string, boolean> = {};
-    tasks.filter(t => t.isGroup).forEach(task => {
-      initialExpanded[task.id] = true;
+      
+      if (isAfter(taskEnd, latest)) {
+        latest = taskEnd;
+      }
     });
-    setExpandedGroups(initialExpanded);
     
-    return () => window.removeEventListener('resize', updateWidth);
+    // Add buffer days
+    earliest = add(earliest, { days: -3 });
+    latest = add(latest, { days: 7 });
+    
+    setStartDate(earliest);
+    setEndDate(latest);
+    
+    if (onDateRangeChanged) {
+      onDateRangeChanged(earliest, latest);
+    }
   }, [tasks]);
   
-  const toggleGroup = (taskId: string) => {
+  // Generate days to show based on start and end date
+  useEffect(() => {
+    const days: Date[] = [];
+    let current = startOfDay(startDate);
+    const end = startOfDay(endDate);
+    
+    while (!isAfter(current, end)) {
+      days.push(current);
+      current = add(current, { days: 1 });
+    }
+    
+    setDaysToShow(days);
+  }, [startDate, endDate]);
+  
+  // Calculate cell width based on view mode
+  useEffect(() => {
+    switch (viewMode) {
+      case 'day':
+        setCellWidth(50);
+        break;
+      case 'week':
+        setCellWidth(70);
+        break;
+      case 'month':
+        setCellWidth(120);
+        break;
+    }
+  }, [viewMode]);
+  
+  // Ensure tasks is an array
+  const tasksArray = Array.isArray(tasks) ? tasks : [];
+  
+  // Helpers
+  const isMilestone = (task: TaskType) => task.is_milestone;
+  const isGroup = (task: TaskType) => task.is_group;
+  
+  const getTaskChildren = (taskId: string) => {
+    return tasksArray.filter(task => task.parent_id === taskId);
+  };
+  
+  const hasChildren = (taskId: string) => {
+    return tasksArray.some(task => task.parent_id === taskId);
+  };
+  
+  // Task filtering and organization
+  const rootTasks = tasksArray.filter(task => !task.parent_id);
+  
+  const getTaskPosition = (task: TaskType) => {
+    const taskStart = parseISO(task.start_date);
+    const daysDiff = differenceInDays(taskStart, startDate);
+    const leftPos = daysDiff * cellWidth;
+    const width = task.is_milestone ? cellWidth : task.duration * cellWidth;
+    
+    return {
+      left: leftPos,
+      width: width,
+    };
+  };
+  
+  const getTaskDependencies = (taskId: string) => {
+    return dependenciesMap[taskId] || [];
+  };
+  
+  const toggleGroupExpand = (taskId: string) => {
     setExpandedGroups(prev => ({
       ...prev,
       [taskId]: !prev[taskId]
     }));
   };
   
-  const getTaskStyle = (task: TaskType) => {
-    const taskStart = new Date(task.startDate);
-    let position = 0;
-    let width = 0;
-    
-    switch (timeScale) {
-      case "day":
-        position = differenceInDays(taskStart, startDate) * cellWidth;
-        width = task.duration * cellWidth / 1;
-        break;
-      case "week":
-        position = Math.floor(differenceInDays(taskStart, startDate) / 7) * cellWidth;
-        width = Math.ceil(task.duration / 7) * cellWidth;
-        break;
-      case "month":
-        const monthDiff = (taskStart.getFullYear() - startDate.getFullYear()) * 12 + 
-                          (taskStart.getMonth() - startDate.getMonth());
-        position = monthDiff * cellWidth;
-        width = Math.ceil(task.duration / 30) * cellWidth;
-        break;
-      default:
-        position = differenceInDays(taskStart, startDate) / 7 * cellWidth;
-        width = task.duration / 7 * cellWidth;
-    }
-    
-    return {
-      marginLeft: `${position}px`,
-      width: `${Math.max(width, 4)}px`, // Ensure minimum width
-    };
+  const isGroupExpanded = (taskId: string) => {
+    return expandedGroups[taskId] !== false; // Default to true if not set
   };
-
-  const getCurrentDateLinePosition = () => {
-    const today = new Date();
-    
-    switch (timeScale) {
-      case "day":
-        return differenceInDays(today, startDate) * cellWidth;
-      case "week":
-        return differenceInDays(today, startDate) / 7 * cellWidth;
-      case "month":
-        const monthDiff = (today.getFullYear() - startDate.getFullYear()) * 12 + 
-                          (today.getMonth() - startDate.getMonth());
-        const daysIntoMonth = today.getDate() / new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-        return (monthDiff + daysIntoMonth) * cellWidth;
-      default:
-        return differenceInDays(today, startDate) / 7 * cellWidth;
+  
+  // Handle scroll to today
+  const scrollToToday = () => {
+    if (todayRef.current && scrollContainerRef.current) {
+      const todayLeft = todayRef.current.offsetLeft;
+      scrollContainerRef.current.scrollLeft = todayLeft - 100;
     }
   };
   
-  const isTaskVisible = (task: TaskType) => {
-    if (!task.parentId) return true;
-    
-    let currentParentId = task.parentId;
-    while (currentParentId) {
-      if (!expandedGroups[currentParentId]) return false;
-      
-      const parentTask = tasks.find(t => t.id === currentParentId);
-      currentParentId = parentTask?.parentId;
-    }
-    
-    return true;
+  // Zoom controls
+  const zoomIn = () => {
+    setCellWidth(prev => Math.min(prev + 10, 120));
   };
-
-  const sortTasksHierarchically = (taskList: TaskType[]): TaskType[] => {
-    const topLevelTasks = taskList.filter(t => !t.parentId);
+  
+  const zoomOut = () => {
+    setCellWidth(prev => Math.max(prev - 10, 20));
+  };
+  
+  // Date navigation
+  const moveLeft = () => {
+    setStartDate(prev => add(prev, { days: -7 }));
+    setEndDate(prev => add(prev, { days: -7 }));
+  };
+  
+  const moveRight = () => {
+    setStartDate(prev => add(prev, { days: 7 }));
+    setEndDate(prev => add(prev, { days: 7 }));
+  };
+  
+  // Export as image
+  const exportAsImage = async () => {
+    if (!ganttRef.current) return;
     
-    const getTaskWithChildren = (parentTask: TaskType): TaskType[] => {
-      const children = taskList.filter(t => t.parentId === parentTask.id);
+    try {
+      const canvas = await html2canvas(ganttRef.current, {
+        scale: 2,
+        logging: false,
+        allowTaint: true,
+        useCORS: true
+      });
       
-      if (children.length === 0) {
-        return [parentTask];
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `gantt-chart-${format(new Date(), "yyyy-MM-dd")}.png`;
+      link.click();
+    } catch (error) {
+      console.error("Error generating chart image:", error);
+    }
+  };
+  
+  const handleTaskClick = (taskId: string) => {
+    if (dependencyMode && activePredecessor) {
+      // Add dependency
+      if (activePredecessor !== taskId && onAddDependency) {
+        onAddDependency(activePredecessor, taskId);
       }
-      
-      return [
-        parentTask,
-        ...children.flatMap(child => getTaskWithChildren(child))
-      ];
-    };
-    
-    return topLevelTasks.flatMap(task => getTaskWithChildren(task));
-  };
-
-  const processedTasks = sortTasksHierarchically(tasks);
-  const visibleTasks = processedTasks.filter(isTaskVisible);\
-  
-  const handleZoomIn = () => {
-    setBaseZoomLevel(prev => Math.min(prev + 0.2, 2));
-  };
-  
-  const handleZoomOut = () => {
-    setBaseZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-  };
-  
-  // Helper function to get date from position
-  const getDateFromPosition = (xPosition: number) => {
-    const cellIndex = Math.floor(xPosition / cellWidth);
-    
-    if (cellIndex < 0 || cellIndex >= timeUnits.length) {
-      return null;
-    }
-    
-    return timeUnits[cellIndex].date;
-  };
-  
-  const handleTaskDragStart = (e: React.DragEvent | React.TouchEvent, task: TaskType) => {
-    if (createDependencyMode) {
-      if ('preventDefault' in e) e.preventDefault();
+      setActivePredecessor(null);
       return;
     }
     
-    if ('dataTransfer' in e) {
-      e.dataTransfer.setData("application/x-task-reorder", task.id);
-      e.dataTransfer.setData("task-id", task.id);
-      e.dataTransfer.effectAllowed = "move";
-    }
-    
-    setDraggingTask(task);
-  };
-  
-  const handleTaskDragEnd = (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>, task: TaskType) => {
-    if (dragOverTask && dragOverPosition && onTaskUpdate) {
-      const siblingTasks = tasks.filter(t => 
-        t.parentId === (task.parentId || null) && t.id !== task.id
-      );
-      
-      const targetIndex = processedTasks.findIndex(t => t.id === dragOverTask.id);
-      
-      let newParentId = task.parentId;
-      
-      if (dragOverTask.id !== task.id) {
-        if (dragOverTask.isGroup) {
-          newParentId = dragOverTask.id;
-          setExpandedGroups(prev => ({
-            ...prev,
-            [dragOverTask.id]: true
-          }));
-        } 
-        else {
-          newParentId = dragOverTask.parentId;
-        }
-        
-        if (task.parentId !== newParentId) {
-          const updatedTask = { ...task, parentId: newParentId };
-          onTaskUpdate(updatedTask);
-        }
-      }
-    }
-    
-    else if (dragOverCell && onTaskUpdate) {
-      const { weekIndex } = dragOverCell;
-      
-      if (weekIndex >= 0 && weekIndex < timeUnits.length) {
-        const newStartDate = timeUnits[weekIndex].date;
-        const formattedDate = newStartDate.toISOString().split('T')[0];
-        
-        const updatedTask = { ...task, startDate: formattedDate };
-        onTaskUpdate(updatedTask);
-      }
-    }
-    
-    setDraggingTask(null);
-    setDragOverTask(null);
-    setDragOverPosition(null);
-    setDragOverCell(null);
-  };
-  
-  const handleTaskDragOver = (e: React.DragEvent, task: TaskType) => {
-    e.preventDefault();
-    
-    if (draggingTask && draggingTask.id !== task.id) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const mouseY = e.clientY;
-      const threshold = rect.top + (rect.height / 2);
-      
-      const position = mouseY < threshold ? 'above' : 'below';
-      
-      setDragOverTask(task);
-      setDragOverPosition(position);
+    if (onTaskClick) {
+      onTaskClick(taskId);
     }
   };
   
-  const handleTaskDragLeave = () => {
-    setDragOverTask(null);
-    setDragOverPosition(null);
+  const handleDependencyStart = (taskId: string) => {
+    setActivePredecessor(taskId);
   };
-  
-  const handleCellDragOver = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
-    e.preventDefault();
-    setDragOverCell({ weekIndex, rowIndex });
-  };
-  
-  const handleCellDrop = (e: React.DragEvent, weekIndex: number, rowIndex: number) => {
-    e.preventDefault();
-    setDragOverCell(null);
-  };
-  
-  // Touch event handlers for mobile
-  const handleTouchStart = (e: TouchEvent, task: TaskType) => {
-    if (!hasEditPermission) return;
-    
-    const touch = e.touches[0];
-    setTouchStartX(touch.clientX);
-    setTouchStartY(touch.clientY);
-    setDraggingTask(task);
-  };
-  
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!draggingTask || !touchStartX || !hasEditPermission) return;
-    
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - touchStartX;
-    const deltaY = touch.clientY - touchStartY;
-    
-    // If the user is moving horizontally (changing date)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-      // Calculate cell movement
-      const cellsMoved = Math.round(deltaX / cellWidth);
-      
-      if (cellsMoved !== 0 && ganttGridRef.current) {
-        const taskElement = e.currentTarget as HTMLElement;
-        const taskRect = taskElement.getBoundingClientRect();
-        const gridRect = ganttGridRef.current.getBoundingClientRect();
-        
-        // Calculate the position within the grid
-        const posX = taskRect.left - gridRect.left + deltaX;
-        const timeIndex = Math.floor(posX / cellWidth);
-        
-        if (timeIndex >= 0 && timeIndex < timeUnits.length) {
-          setDragOverCell({ 
-            weekIndex: timeIndex, 
-            rowIndex: processedTasks.findIndex(t => t.id === draggingTask.id) 
-          });
-        }
-      }
-      
-      e.preventDefault(); // Prevent scrolling
-    }
-  };
-  
-  const handleTouchEnd = (e: TouchEvent, task: TaskType) => {
-    if (!hasEditPermission) return;
-    
-    if (dragOverCell && onTaskUpdate) {
-      const { weekIndex } = dragOverCell;
-      
-      if (weekIndex >= 0 && weekIndex < timeUnits.length) {
-        const newStartDate = timeUnits[weekIndex].date;
-        const formattedDate = newStartDate.toISOString().split('T')[0];
-        
-        const updatedTask = { ...task, startDate: formattedDate };
-        onTaskUpdate(updatedTask);
-      }
-    }
-    
-    setTouchStartX(null);
-    setTouchStartY(null);
-    setDraggingTask(null);
-    setDragOverCell(null);
-  };
-  
-  const handleDependencyStartClick = (taskId: string) => {
-    setCreateDependencyMode({
-      active: true,
-      sourceId: taskId
-    });
-  };
-  
-  const handleDependencyTargetClick = (taskId: string) => {
-    if (createDependencyMode && createDependencyMode.active) {
-      if (createDependencyMode.sourceId !== taskId) {
-        if (onCreateDependency) {
-          onCreateDependency(createDependencyMode.sourceId, taskId);
-        }
-      }
-      
-      setCreateDependencyMode(null);
-    }
-  };
-  
-  const handleTaskClick = (task: TaskType) => {
-    if (createDependencyMode && createDependencyMode.active) {
-      handleDependencyTargetClick(task.id);
-    } else if (onTaskClick) {
-      onTaskClick(task);
-    }
-  };
-  
-  const handleGridClick = (e: React.MouseEvent) => {
-    if (createDependencyMode && e.target === ganttGridRef.current) {
-      setCreateDependencyMode(null);
-    }
-  };
-
-  // Função para exportar o gráfico como imagem
-  const exportToImage = async () => {
-    if (!containerRef.current) return;
-    
-    try {
-      const canvas = await html2canvas(containerRef.current, {
-        allowTaint: true,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: document.documentElement.offsetWidth,
-        windowHeight: document.documentElement.offsetHeight,
-        scale: 1.5
-      });
-      
-      const image = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = `gantt-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = image;
-      link.click();
-      
-      // Feedback para o usuário
-      toast({
-        title: "Exportado com sucesso",
-        description: "A imagem do gráfico de Gantt foi baixada.",
-      });
-    } catch (error) {
-      console.error("Erro ao exportar imagem:", error);
-      toast({
-        title: "Erro na exportação",
-        description: "Não foi possível exportar o gráfico como imagem.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const priorityLegend = [
-    { level: 1, label: "Muito Baixa", color: "bg-gray-400" },
-    { level: 2, label: "Baixa", color: "bg-blue-400" },
-    { level: 3, label: "Média", color: "bg-green-400" },
-    { level: 4, label: "Alta", color: "bg-yellow-400" },
-    { level: 5, label: "Muito Alta", color: "bg-red-400" }
-  ];
-  
-  const { toast } = useToast();
   
   return (
-    <div className="rounded-md border overflow-hidden" ref={containerRef}>
-      <div className="overflow-auto">
-        <div className="flex">
-          {sidebarVisible && (
-            <div className="min-w-48 w-48 border-r bg-card flex-shrink-0 sm:min-w-64 sm:w-64">
-              <div className="h-24 px-4 flex items-end border-b">
-                <div className="text-sm font-medium text-muted-foreground pb-2">Nome da Tarefa</div>
-              </div>
-              
-              <div>
-                {visibleTasks.map((task, rowIndex) => (
-                  <div 
-                    key={task.id} 
-                    className={`h-10 flex items-center px-2 sm:px-4 border-b ${
-                      task.isGroup ? 'bg-gantt-gray' : 'bg-card'
-                    } ${
-                      dragOverTask?.id === task.id && dragOverPosition === 'above' 
-                        ? 'border-t-2 border-t-primary' 
-                        : dragOverTask?.id === task.id && dragOverPosition === 'below'
-                        ? 'border-b-2 border-b-primary'
-                        : ''
-                    }`}
-                    onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : null}
-                    onDragLeave={handleTaskDragLeave}
+    <div className="flex flex-col w-full h-full" ref={containerRef}>
+      {/* Toolbar */}
+      {showToolbar && (
+        <div className="flex flex-wrap items-center gap-2 p-2 border-b">
+          <div className="flex-1 flex flex-wrap gap-1">
+            {/* Zoom controls */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={zoomOut}
+              className="h-8 w-8 p-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={zoomIn}
+              className="h-8 w-8 p-0"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={scrollToToday}
+              className="h-8"
+            >
+              Hoje
+            </Button>
+            
+            {/* Navigation */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={moveLeft}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={moveRight}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* View mode selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                >
+                  {viewMode === "day" ? "Dia" : viewMode === "week" ? "Semana" : "Mês"}
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setViewMode("day")}>
+                  Dia
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setViewMode("week")}>
+                  Semana
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setViewMode("month")}>
+                  Mês
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Dependency mode toggle */}
+            {setDependencyMode && (
+              <Button
+                variant={dependencyMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDependencyMode(!dependencyMode)}
+                className="h-8"
+              >
+                {dependencyMode ? "Sair do Modo Dependência" : "Modo Dependência"}
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex gap-1">
+            {/* Add task dialog */}
+            {canEdit && (
+              <Dialog open={showAddTaskDialog} onOpenChange={setShowAddTaskDialog}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1"
                   >
-                    <div className="flex items-center w-full">
-                      <div className="w-5 flex-shrink-0">
-                        {task.isGroup && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-5 w-5 p-0"
-                            onClick={() => toggleGroup(task.id)}
-                          >
-                            {expandedGroups[task.id] ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                      <div 
-                        className={`ml-1 text-xs sm:text-sm truncate flex-1 ${task.isGroup ? 'font-medium' : ''}`}
-                        style={{ paddingLeft: task.parentId ? '12px' : '0px' }}
-                      >
-                        {task.name}
-                      </div>
-                      
-                      {!task.isGroup && hasEditPermission && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-6 w-6 p-0 rounded-full ${createDependencyMode?.sourceId === task.id ? 'bg-yellow-200' : ''}`}
-                          onClick={() => handleDependencyStartClick(task.id)}
-                          title="Criar dependência a partir desta tarefa"
-                        >
-                          <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                        </Button>
-                      )}
+                    <Plus className="h-4 w-4" /> Nova Tarefa
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Nova Tarefa</DialogTitle>
+                    <DialogDescription>
+                      Preencha os detalhes para criar uma nova tarefa
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="name" className="text-right">
+                        Nome
+                      </label>
+                      <Input
+                        id="name"
+                        value={newTask.name}
+                        onChange={(e) => setNewTask({...newTask, name: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="startDate" className="text-right">
+                        Data Inicial
+                      </label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={newTask.startDate}
+                        onChange={(e) => setNewTask({...newTask, startDate: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="duration" className="text-right">
+                        Duração (dias)
+                      </label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        min="1"
+                        value={newTask.duration}
+                        onChange={(e) => setNewTask({...newTask, duration: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddTaskDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" onClick={() => {
+                      // TODO: Add new task logic
+                      setShowAddTaskDialog(false);
+                    }}>
+                      Adicionar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportAsImage}
+              className="h-8"
+            >
+              <FileText className="h-4 w-4 mr-1" /> Exportar
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar with task names */}
+        <div className="flex flex-col min-w-[200px] max-w-[300px] border-r">
+          {/* Header */}
+          <div className="flex items-center h-10 px-3 border-b bg-muted/50 font-medium">
+            Nome da Tarefa
+          </div>
+          
+          {/* Tasks list */}
+          <ScrollArea className="flex-1">
+            <div className="flex flex-col">
+              {rootTasks.map((task) => (
+                <TaskNameItem 
+                  key={task.id} 
+                  task={task} 
+                  level={0} 
+                  tasks={tasksArray}
+                  isExpanded={isGroupExpanded}
+                  toggleExpand={toggleGroupExpand}
+                  hasChildren={hasChildren}
+                  canEdit={canEdit}
+                  onTaskDelete={onTaskDelete}
+                  selectedTaskId={selectedTaskId}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        {/* Gantt chart area */}
+        <div className="flex-1 overflow-hidden">
+          <div className="flex flex-col h-full">
+            {/* Date header */}
+            <div className="flex border-b sticky top-0 z-10 bg-background">
+              <div className="flex flex-shrink-0">
+                {daysToShow.map((day, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex flex-col items-center justify-center border-r border-b h-10",
+                      isEqual(day, startOfDay(new Date())) ? "bg-blue-50 dark:bg-blue-950" : "bg-muted/50"
+                    )}
+                    style={{ width: `${cellWidth}px` }}
+                  >
+                    <div className="text-xs font-medium">
+                      {format(day, "EEE", { locale: ptBR })}
+                    </div>
+                    <div className="text-xs">
+                      {format(day, "dd/MM")}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          )}
-          
-          <div className="overflow-auto flex-grow" style={{ minWidth: `${tableWidth}px` }}>
-            {/* Usar o novo componente GanttTimeScale */}
-            <GanttTimeScale 
-              startDate={startDate}
-              endDate={endDate}
-              timeScale={timeScale}
-              cellWidth={cellWidth}
-            />
             
+            {/* Gantt chart content with scrolling */}
             <div 
-              ref={ganttGridRef}
-              className={`gantt-grid relative ${createDependencyMode?.active ? 'dependency-mode' : ''}`}
-              style={{ height: `${visibleTasks.length * 40}px`, width: `${tableWidth}px` }}
-              onClick={handleGridClick}
+              ref={scrollContainerRef}
+              className="flex-1 overflow-auto"
             >
-              <svg className="absolute inset-0 h-full w-full pointer-events-none z-20">
-                {/* Usar o novo componente TodayMarker */}
+              <div 
+                ref={ganttRef}
+                className="relative"
+                style={{ 
+                  width: `${daysToShow.length * cellWidth}px`,
+                  minHeight: `${rootTasks.length * 40}px` 
+                }}
+              >
+                {/* Grid lines */}
+                {daysToShow.map((day, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "absolute top-0 bottom-0 border-r",
+                      isEqual(day, startOfDay(new Date())) ? "bg-blue-50/50 dark:bg-blue-950/20" : "",
+                      format(day, "E") === "Sun" || format(day, "E") === "Sat" ? "bg-gray-50 dark:bg-gray-800/20" : ""
+                    )}
+                    style={{
+                      left: `${index * cellWidth}px`,
+                      width: `${cellWidth}px`,
+                      height: "100%"
+                    }}
+                  />
+                ))}
+                
+                {/* Today marker */}
                 <TodayMarker 
                   startDate={startDate}
-                  endDate={endDate}
-                  position={getCurrentDateLinePosition()}
+                  cellWidth={cellWidth}
+                  ref={todayRef}
                 />
                 
-                {visibleTasks.map(task => {
-                  if (!task.dependencies?.length) return null;
-              
-                  return task.dependencies.map(depId => {
-                    const dependencyTask = visibleTasks.find(t => t.id === depId);
-                    if (!dependencyTask || !isTaskVisible(dependencyTask)) return null;
-              
-                    const fromIndex = visibleTasks.findIndex(t => t.id === depId);
-                    const toIndex = visibleTasks.findIndex(t => t.id === task.id);
-              
-                    if (fromIndex === -1 || toIndex === -1) return null;
-              
-                    const fromStyle = getTaskStyle(dependencyTask);
-                    const toStyle = getTaskStyle(task);
-              
-                    const fromX = parseInt(fromStyle.marginLeft) + parseInt(fromStyle.width);
-                    const fromY = fromIndex * 40 + 20;
-              
-                    const toX = parseInt(toStyle.marginLeft);
-                    const toY = toIndex * 40 + 20;
-              
-                    const midX = (fromX + toX) / 2;
-              
-                    return (
-                      <path
-                        key={`${depId}-${task.id}`}
-                        className="gantt-connection"
-                        d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
-                        markerEnd="url(#arrowhead)"
-                      />
-                    );
-                  });
-                })}
-                <defs>
-                  <marker
-                    id="arrowhead"
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="9"
-                    refY="3.5"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#FFB236" />
-                  </marker>
-                </defs>
-              </svg>
-              
-              {visibleTasks.map((task, rowIndex) => (
-                <div 
-                  key={task.id} 
-                  className={`absolute h-10 w-full ${
-                    dragOverTask?.id === task.id && dragOverPosition === 'above' 
-                      ? 'border-t-2 border-t-primary' 
-                      : dragOverTask?.id === task.id && dragOverPosition === 'below'
-                      ? 'border-b-2 border-b-primary'
-                      : ''
-                  }`}
-                  style={{ top: `${rowIndex * 40}px` }}
-                  onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : null}
-                  onDragLeave={handleTaskDragLeave}
-                >
-                  <div className="absolute inset-0 flex">
-                    {timeUnits.map((unit, timeIndex) => (
-                      <div
-                        key={timeIndex}
-                        className={`h-full ${
-                          dragOverCell?.weekIndex === timeIndex && dragOverCell?.rowIndex === rowIndex
-                            ? 'bg-blue-100 dark:bg-blue-900/20'
-                            : ''
-                        }`}
-                        style={{ 
-                          width: `${cellWidth}px`,
-                          minWidth: `${cellWidth}px`
-                        }}
-                        onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, timeIndex, rowIndex) : null}
-                        onDrop={(e) => hasEditPermission ? handleCellDrop(e, timeIndex, rowIndex) : null}
-                      />
-                    ))}
-                  </div>
-                  
-                  <Task 
+                {/* Tasks bars */}
+                {rootTasks.map((task, taskIndex) => (
+                  <RenderTasksRecursively
+                    key={task.id}
                     task={task}
-                    style={getTaskStyle(task)}
-                    onClick={() => handleTaskClick(task)}
-                    onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e, task) : undefined}
-                    onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e, task) : undefined}
-                    onTouchStart={hasEditPermission ? (e) => handleTouchStart(e, task) : undefined}
-                    onTouchMove={hasEditPermission ? handleTouchMove : undefined}
-                    onTouchEnd={hasEditPermission ? (e) => handleTouchEnd(e, task) : undefined}
-                    cellWidth={cellWidth}
-                    onResize={hasEditPermission ? (newDuration) => 
-                      onTaskUpdate?.({ ...task, duration: newDuration }) : undefined}
-                    onResizeStart={hasEditPermission ? (e) => handleTaskResizeStart(e, task) : undefined}
-                    className={createDependencyMode?.active ? 
-                      createDependencyMode.sourceId === task.id ? 
-                        'dependency-source' : 'dependency-target-candidate' 
-                      : ''}
-                    timeScale={timeScale}
-                    draggable={hasEditPermission}
+                    tasks={tasksArray}
+                    taskIndex={taskIndex}
+                    level={0}
+                    getTaskPosition={getTaskPosition}
+                    onTaskClick={handleTaskClick}
+                    initResize={initResize}
+                    isGroupExpanded={isGroupExpanded}
+                    dependencyMode={dependencyMode}
+                    handleDependencyStart={handleDependencyStart}
+                    activePredecessor={activePredecessor}
+                    getTaskDependencies={getTaskDependencies}
+                    selectedTaskId={selectedTaskId}
+                    canEdit={canEdit}
                   />
-                </div>
-              ))}
-              
-              {createDependencyMode?.active && (
-                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-auto z-50 pointer-events-none">
-                  <div className="text-xs bg-yellow-100 text-yellow-800 px-3 py-2 rounded-md shadow-md">
-                    Clique em uma tarefa para criar dependência
-                  </div>
-                </div>
-              )}
+                ))}
+                
+                {/* Dependency lines */}
+                {Object.entries(dependenciesMap).map(([predId, successors]) => (
+                  successors.map((succId) => {
+                    const predecessor = tasksArray.find(t => t.id === predId);
+                    const successor = tasksArray.find(t => t.id === succId);
+                    
+                    if (!predecessor || !successor) return null;
+                    
+                    const predPos = getTaskPosition(predecessor);
+                    const predEnd = predPos.left + predPos.width;
+                    const succPos = getTaskPosition(successor);
+                    
+                    // Find vertical positions
+                    const predTaskIndex = tasksArray.findIndex(t => t.id === predId);
+                    const succTaskIndex = tasksArray.findIndex(t => t.id === succId);
+                    
+                    const predY = (predTaskIndex + 0.5) * 40;
+                    const succY = (succTaskIndex + 0.5) * 40;
+                    
+                    return (
+                      <svg
+                        key={`${predId}-${succId}`}
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                        style={{
+                          zIndex: 5,
+                          overflow: "visible"
+                        }}
+                      >
+                        <defs>
+                          <marker
+                            id="arrowhead"
+                            markerWidth="10"
+                            markerHeight="7"
+                            refX="0"
+                            refY="3.5"
+                            orient="auto"
+                          >
+                            <polygon
+                              points="0 0, 10 3.5, 0 7"
+                              className="fill-current text-blue-500"
+                            />
+                          </marker>
+                        </defs>
+                        <path
+                          d={`M ${predEnd} ${predY} H ${(predEnd + succPos.left) / 2} V ${succY} H ${succPos.left}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className="text-blue-500"
+                          strokeDasharray="4"
+                          markerEnd="url(#arrowhead)"
+                        />
+                      </svg>
+                    );
+                  })
+                ))}
+              </div>
             </div>
-          </div>
-          
-          {/* Toggle sidebar button - better placement for mobile */}
-          <div className="absolute left-0 top-24 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleSidebar}
-              className="bg-card/70 hover:bg-card border-r border-t border-b rounded-l-none"
-              aria-label={sidebarVisible ? "Esconder lista de tarefas" : "Mostrar lista de tarefas"}
-            >
-              {sidebarVisible ? (
-                <ChevronLeftSquare className="h-5 w-5" />
-              ) : (
-                <PanelLeft className="h-5 w-5" />
-              )}
-            </Button>
           </div>
         </div>
       </div>
-      
-      <div className="p-2 bg-card border-t flex flex-wrap justify-between items-center gap-2">
-        <div className="flex flex-wrap items-center gap-1 sm:gap-4">
-          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-yellow-400 rounded-full mr-1"></div>
-              <span>Dependências</span>
-            </div>
-          </div>
-          
-          <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-4">
-            {priorityLegend.map(priority => (
-              <div key={priority.level} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full ${priority.color} mr-1`}></div>
-                <span className="text-xs text-muted-foreground">{priority.label}</span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-background dark:bg-gray-800"
-              onClick={handleZoomOut}
-              title="Diminuir Zoom"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-xs text-muted-foreground min-w-10 text-center">
-              {timeScale === "day" ? "Dias" : timeScale === "week" ? "Semanas" : "Meses"}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-background dark:bg-gray-800"
-              onClick={handleZoomIn}
-              title="Aumentar Zoom"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* Botão para exportar como imagem */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-0 sm:ml-2"
-            onClick={exportToImage}
-            title="Exportar como imagem"
+    </div>
+  );
+};
+
+// Task name component for the sidebar
+const TaskNameItem = ({ task, level, tasks, isExpanded, toggleExpand, hasChildren, canEdit, onTaskDelete, selectedTaskId }) => {
+  const hasTaskChildren = hasChildren(task.id);
+  const paddingLeft = level * 16 + 8;
+  const children = tasks.filter(t => t.parent_id === task.id);
+  
+  return (
+    <>
+      <div 
+        className={cn(
+          "flex items-center border-b py-2 px-2 pr-4 min-h-[40px]",
+          selectedTaskId === task.id ? "bg-primary/10" : "hover:bg-muted/50"
+        )}
+        style={{ paddingLeft: `${paddingLeft}px` }}
+      >
+        {hasTaskChildren && (
+          <button 
+            onClick={() => toggleExpand(task.id)} 
+            className="mr-1 p-1 rounded hover:bg-muted"
           >
-            <Download className="h-4 w-4 mr-0 sm:mr-1" />
-            <span className="hidden
+            {isExpanded(task.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        )}
+        
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          {task.is_group ? (
+            <FolderIcon size={14} className="shrink-0 text-amber-500" />
+          ) : task.is_milestone ? (
+            <DiamondIcon size={14} className="shrink-0 text-purple-500" />
+          ) : (
+            <TaskIcon size={14} className="shrink-0 text-blue-500" />
+          )}
+          
+          <span className="truncate">
+            {task.name}
+          </span>
+        </div>
+        
+        {canEdit && onTaskDelete && (
+          <div className="ml-auto flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-6 w-6 p-0 ml-1">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onTaskDelete(task.id)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </div>
+      
+      {hasTaskChildren && isExpanded(task.id) && children.map(child => (
+        <TaskNameItem
+          key={child.id}
+          task={child}
+          level={level + 1}
+          tasks={tasks}
+          isExpanded={isExpanded}
+          toggleExpand={toggleExpand}
+          hasChildren={hasChildren}
+          canEdit={canEdit}
+          onTaskDelete={onTaskDelete}
+          selectedTaskId={selectedTaskId}
+        />
+      ))}
+    </>
+  );
+};
+
+// Render task bars recursively
+const RenderTasksRecursively = ({ 
+  task, 
+  tasks,
+  taskIndex, 
+  level,
+  getTaskPosition,
+  onTaskClick,
+  initResize,
+  isGroupExpanded,
+  dependencyMode,
+  handleDependencyStart,
+  activePredecessor,
+  getTaskDependencies,
+  selectedTaskId,
+  canEdit
+}) => {
+  const children = tasks.filter(t => t.parent_id === task.id);
+  const taskPosition = getTaskPosition(task);
+  const hasTaskChildren = children.length > 0;
+  const isDependencySource = activePredecessor === task.id;
+  const isDependencyTarget = activePredecessor !== null && activePredecessor !== task.id;
+  const dependencies = getTaskDependencies(task.id);
+  
+  return (
+    <>
+      <div
+        className={cn(
+          "absolute h-10 flex items-center",
+          selectedTaskId === task.id ? "z-20" : "z-10"
+        )}
+        style={{
+          left: `${taskPosition.left}px`,
+          top: `${taskIndex * 40}px`,
+          width: `${taskPosition.width}px`,
+        }}
+      >
+        <TaskComponent
+          task={task}
+          position={taskPosition}
+          onClick={() => onTaskClick(task.id)}
+          onResizeStart={(e) => initResize(e, task)}
+          className={cn(
+            selectedTaskId === task.id && "ring-2 ring-primary ring-offset-2",
+            isDependencySource && "ring-2 ring-amber-500",
+            isDependencyTarget && "ring-2 ring-blue-500 animate-pulse"
+          )}
+          dependencies={dependencies}
+          dependencyMode={dependencyMode}
+          onDependencyStart={() => handleDependencyStart(task.id)}
+          canEdit={canEdit}
+        />
+      </div>
+      
+      {hasTaskChildren && isGroupExpanded(task.id) && children.map((child, index) => (
+        <RenderTasksRecursively
+          key={child.id}
+          task={child}
+          tasks={tasks}
+          taskIndex={taskIndex + index + 1}
+          level={level + 1}
+          getTaskPosition={getTaskPosition}
+          onTaskClick={onTaskClick}
+          initResize={initResize}
+          isGroupExpanded={isGroupExpanded}
+          dependencyMode={dependencyMode}
+          handleDependencyStart={handleDependencyStart}
+          activePredecessor={activePredecessor}
+          getTaskDependencies={getTaskDependencies}
+          selectedTaskId={selectedTaskId}
+          canEdit={canEdit}
+        />
+      ))}
+    </>
+  );
+};
+
+// Small icon components
+const TaskIcon = ({ size, className }) => (
+  <div className={cn("flex-none", className)}>
+    <CircleDashed size={size} />
+  </div>
+);
+
+const FolderIcon = ({ size, className }) => (
+  <div className={cn("flex-none", className)}>
+    <Settings size={size} />
+  </div>
+);
+
+const DiamondIcon = ({ size, className }) => (
+  <div className={cn("flex-none", className)}>
+    <CheckCircle2 size={size} />
+  </div>
+);
