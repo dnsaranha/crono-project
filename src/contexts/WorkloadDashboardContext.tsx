@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,6 +7,7 @@ export interface Project {
   id: string;
   name: string;
   owner_id: string;
+  role?: string;
 }
 
 export interface Member {
@@ -36,6 +38,10 @@ interface WorkloadDashboardContextType {
   projects: Project[];
   members: Member[];
   tasks: Task[];
+  userRole: 'owner' | 'admin' | 'editor' | 'viewer' | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  canCreate: boolean;
   refreshData: () => Promise<void>;
 }
 
@@ -46,6 +52,7 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [userRole, setUserRole] = useState<'owner' | 'admin' | 'editor' | 'viewer' | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -55,23 +62,82 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
     try {
       setLoading(true);
 
-      const { data: projectData, error: projectError } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setProjects([]);
+        setMembers([]);
+        setTasks([]);
+        return;
+      }
+
+      // Fetch owned projects with owner profile info
+      const { data: ownedProjects, error: ownedError } = await supabase
         .from('projects')
         .select(`
-          id,
-          name,
-          owner_id,
-          start_date,
-          end_date
-        `);
+          *,
+          owner:profiles!projects_owner_id_fkey (
+            full_name,
+            email
+          )
+        `)
+        .eq('owner_id', user.id);
+        
+      if (ownedError) throw ownedError;
+      
+      // Add role 'owner' to owned projects
+      const ownedProjectsWithRole = ownedProjects.map(project => ({
+        ...project,
+        role: 'owner'
+      }));
+      
+      // Fetch member projects with owner profile info and role
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_members')
+        .select(`
+          role,
+          project:projects (
+            *,
+            owner:profiles!projects_owner_id_fkey (
+              full_name,
+              email
+            )
+          )
+        `)
+        .eq('user_id', user.id);
+        
+      if (memberError) throw memberError;
+      
+      // Format member projects
+      const memberProjectsFormatted = memberProjects
+        .filter(item => item.project) // Filter out any null projects
+        .map(item => ({
+          ...item.project,
+          role: item.role
+        }));
+      
+      // Combine and remove duplicates
+      const allProjects = [...ownedProjectsWithRole, ...memberProjectsFormatted];
+      const uniqueProjects = Array.from(
+        new Map(allProjects.map(item => [item.id, item])).values()
+      );
+      
+      setProjects(uniqueProjects);
 
-      if (projectError) throw projectError;
+      // Determine user's highest role across all projects
+      let highestRole: 'owner' | 'admin' | 'editor' | 'viewer' | null = 'viewer';
+      uniqueProjects.forEach(project => {
+        if (project.role === 'owner') highestRole = 'owner';
+        else if (project.role === 'admin' && highestRole !== 'owner') highestRole = 'admin';
+        else if (project.role === 'editor' && highestRole !== 'owner' && highestRole !== 'admin') highestRole = 'editor';
+      });
+      
+      setUserRole(highestRole);
 
-      setProjects(projectData || []);
-
-      const projectIds = projectData?.map(p => p.id) || [];
+      const projectIds = uniqueProjects.map(p => p.id) || [];
 
       if (projectIds.length > 0) {
+        // Fetch members for all projects user has access to
         const { data: memberData, error: memberError } = await supabase
           .from('project_members')
           .select(`
@@ -98,6 +164,7 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
 
         setMembers(formattedMembers);
 
+        // Fetch tasks for all projects user has access to
         const { data: taskData, error: taskError } = await supabase
           .from('tasks')
           .select(`
@@ -135,7 +202,7 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
         }
 
         const formattedTasks = taskData?.map(task => {
-          const projectName = projectData?.find(p => p.id === task.project_id)?.name || 'Projeto Desconhecido';
+          const projectName = uniqueProjects.find(p => p.id === task.project_id)?.name || 'Projeto Desconhecido';
           return {
             id: task.id,
             name: task.name,
@@ -160,11 +227,20 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
     }
   }
 
+  // Determine permissions based on user role
+  const canEdit = userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
+  const canDelete = userRole === 'owner' || userRole === 'admin';
+  const canCreate = userRole === 'owner' || userRole === 'admin' || userRole === 'editor';
+
   const value = {
     loading,
     projects,
     members,
     tasks,
+    userRole,
+    canEdit,
+    canDelete,
+    canCreate,
     refreshData: loadDashboardData
   };
 

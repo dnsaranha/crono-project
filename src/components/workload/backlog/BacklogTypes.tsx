@@ -14,4 +14,7 @@ export interface BacklogItem {
 export interface BacklogManagerProps {
   projects: any[];
   onItemConverted?: () => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }

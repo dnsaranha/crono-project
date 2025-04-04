@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useMemo } from "react";
 import { TaskType } from "../task";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ const GanttChart = ({
   const { toast } = useToast();
   
   const { expandedGroups, toggleGroup, isTaskVisible, sortTasksHierarchically } = useGanttDrag(tasks);
-  const { createDependencyMode, handleDependencyStartClick, handleGridClick } = useDependencyMode(onCreateDependency);
+  const { createDependencyMode, handleDependencyStartClick, handleGridClick, setCreateDependencyMode } = useDependencyMode(onCreateDependency);
   const { startDate, endDate, calculateDateRange } = useGanttDateRange(tasks, timeScale);
   
   

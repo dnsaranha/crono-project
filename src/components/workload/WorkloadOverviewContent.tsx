@@ -4,9 +4,23 @@ import { Button } from "@/components/ui/button";
 import { useWorkloadDashboard } from "@/contexts/WorkloadDashboardContext";
 import { WorkloadOverview } from "./WorkloadOverview";
 import { RefreshCw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export function WorkloadOverviewContent() {
-  const { tasks, members, projects, refreshData, loading } = useWorkloadDashboard();
+  const { tasks, members, projects, refreshData, loading, userRole } = useWorkloadDashboard();
+  
+  if (!userRole) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Você não tem permissão para acessar esta visualização. 
+          Por favor, solicite acesso a um administrador.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <>

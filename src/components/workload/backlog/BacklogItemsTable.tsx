@@ -1,29 +1,46 @@
 
-import React from "react";
-import { Edit, MoveRight, Trash2 } from "lucide-react";
+import React from 'react';
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BacklogItem } from "./BacklogTypes";
-import { formatDate, getPriorityInfo, getStatusInfo } from "./BacklogUtils";
+import {
+  Tooltip, TooltipContent,
+  TooltipProvider, TooltipTrigger
+} from "@/components/ui/tooltip";
+import { Edit, MoveRight, Trash2 } from 'lucide-react';
+import { BacklogItem } from './BacklogTypes';
 
 interface BacklogItemsTableProps {
-  items: BacklogItem[];
+  filteredItems: BacklogItem[];
   loading: boolean;
-  getProjectName: (id: string) => string;
-  onEdit: (item: BacklogItem) => void;
-  onPromote: (item: BacklogItem) => void;
-  onDelete: (id: string) => void;
+  getPriorityInfo: (priority: number) => any;
+  getStatusInfo: (status: string) => any;
+  formatDate: (dateString: string) => string;
+  getProjectName: (projectId: string) => string;
+  setSelectedItem: (item: BacklogItem) => void;
+  setIsEditingDialogOpen: (isOpen: boolean) => void;
+  setIsPromotingDialogOpen: (isOpen: boolean) => void;
+  deleteBacklogItem: (id: string) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export function BacklogItemsTable({
-  items,
+  filteredItems,
   loading,
+  getPriorityInfo,
+  getStatusInfo,
+  formatDate,
   getProjectName,
-  onEdit,
-  onPromote,
-  onDelete
+  setSelectedItem,
+  setIsEditingDialogOpen,
+  setIsPromotingDialogOpen,
+  deleteBacklogItem,
+  canEdit = true,
+  canDelete = true
 }: BacklogItemsTableProps) {
   return (
     <div className="rounded-md border overflow-hidden max-h-[500px] overflow-y-auto">
@@ -40,7 +57,7 @@ export function BacklogItemsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center">
                 {loading ? (
@@ -51,7 +68,7 @@ export function BacklogItemsTable({
               </TableCell>
             </TableRow>
           ) : (
-            items.map(item => {
+            filteredItems.map(item => {
               const priorityInfo = getPriorityInfo(item.priority);
               const statusInfo = getStatusInfo(item.status);
               
@@ -86,25 +103,7 @@ export function BacklogItemsTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => onEdit(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Editar</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      
-                      {item.status !== "converted" && (
+                      {canEdit && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -112,7 +111,33 @@ export function BacklogItemsTable({
                                 variant="ghost" 
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => onPromote(item)}
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setIsEditingDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      
+                      {item.status !== "converted" && canEdit && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setIsPromotingDialogOpen(true);
+                                }}
                               >
                                 <MoveRight className="h-4 w-4" />
                               </Button>
@@ -124,23 +149,25 @@ export function BacklogItemsTable({
                         </TooltipProvider>
                       )}
                       
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                              onClick={() => onDelete(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Excluir</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {canDelete && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                onClick={() => deleteBacklogItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Excluir</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -5,6 +5,7 @@ import { WorkloadFilters } from "./WorkloadFilters";
 import { WorkloadVisualization } from "./WorkloadVisualization";
 import { TaskAllocationTable } from "./TaskAllocationTable";
 import { isWithinInterval, addDays, parseISO } from "date-fns";
+import { useWorkloadDashboard } from "@/contexts/WorkloadDashboardContext";
 
 interface WorkloadOverviewProps {
   tasks: TaskType[];
@@ -16,6 +17,7 @@ export function WorkloadOverview({ tasks, members, projects }: WorkloadOverviewP
   const [selectedMember, setSelectedMember] = useState<string>("all");
   const [timeFrame, setTimeFrame] = useState<string>("month");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const { canEdit, canDelete } = useWorkloadDashboard();
   
   // Filter tasks based on current search and filters
   const filteredTasks = useMemo(() => {
@@ -42,7 +44,7 @@ export function WorkloadOverview({ tasks, members, projects }: WorkloadOverviewP
         return isWithinInterval(taskStart, { start: today, end: monthEnd });
       } else if (timeFrame === "quarter") {
         const quarterEnd = addDays(today, 90);
-        return isWithinInterval(taskStart, { start: today, end: monthEnd });
+        return isWithinInterval(taskStart, { start: today, end: quarterEnd });
       }
       
       return true;
@@ -102,6 +104,8 @@ export function WorkloadOverview({ tasks, members, projects }: WorkloadOverviewP
         filteredTasks={filteredTasks}
         projects={projects}
         members={members}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     </div>
   );
