@@ -1,4 +1,5 @@
 
+
 export interface BacklogItem {
   id: string;
   title: string;
@@ -62,3 +63,4 @@ export interface BacklogPromoteModalProps {
   // Add this property to match how it's used in BacklogManager.tsx
   onPromote?: () => Promise<void>;
 }
+
