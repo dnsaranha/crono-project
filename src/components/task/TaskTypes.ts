@@ -32,6 +32,10 @@ export interface TaskProps {
   className?: string;
   draggable?: boolean;
   timeScale?: "day" | "week" | "month" | "quarter" | "year";
+  dependencies?: string[]; // Added for GanttChart
+  dependencyMode?: boolean; // Added for GanttChart
+  onDependencyStart?: () => void; // Added for GanttChart
+  canEdit?: boolean; // Added for GanttChart
 }
 
 export interface TaskMilestoneProps {

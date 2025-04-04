@@ -4,12 +4,13 @@ import { TaskType } from '@/components/Task';
 
 interface UseTaskResizeProps {
   onTaskResize?: (task: TaskType, newDuration: number) => void;
+  onTaskUpdate?: (task: TaskType) => void; // Added for GanttChart
   timeScale: 'day' | 'week' | 'month' | 'quarter' | 'year';
   cellWidth: number;
   hasEditPermission: boolean;
 }
 
-export function useTaskResize({ onTaskResize, timeScale, cellWidth, hasEditPermission }: UseTaskResizeProps) {
+export function useTaskResize({ onTaskResize, onTaskUpdate, timeScale, cellWidth, hasEditPermission }: UseTaskResizeProps) {
   const [resizingTask, setResizingTask] = useState<{
     task: TaskType;
     startX: number;
@@ -21,11 +22,11 @@ export function useTaskResize({ onTaskResize, timeScale, cellWidth, hasEditPermi
     e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>, 
     task: TaskType
   ) => {
-    if (!onTaskResize || !hasEditPermission) return;
+    if ((!onTaskResize && !onTaskUpdate) || !hasEditPermission) return;
     
     e.stopPropagation();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const targetElement = e.currentTarget.parentElement;
+    const targetElement = e.currentTarget.parentElement as HTMLElement;
     
     if (!targetElement) return;
 
@@ -92,8 +93,12 @@ export function useTaskResize({ onTaskResize, timeScale, cellWidth, hasEditPermi
           finalDuration = Math.max(1, Math.round((elementWidth / cellWidth) * 7));
       }
       
+      const updatedTask = { ...resizingTask.task, duration: finalDuration };
+      
       if (onTaskResize) {
         onTaskResize(resizingTask.task, finalDuration);
+      } else if (onTaskUpdate) {
+        onTaskUpdate(updatedTask);
       }
       
       setResizingTask(null);
@@ -108,7 +113,7 @@ export function useTaskResize({ onTaskResize, timeScale, cellWidth, hasEditPermi
     document.addEventListener('touchmove', handleMove as EventListener);
     document.addEventListener('mouseup', handleEnd);
     document.addEventListener('touchend', handleEnd);
-  }, [onTaskResize, hasEditPermission, cellWidth, timeScale, resizingTask]);
+  }, [onTaskResize, onTaskUpdate, hasEditPermission, cellWidth, timeScale, resizingTask]);
 
   // Helper para calcular a largura da tarefa com base na duração
   const getTaskDurationWidth = (duration: number, scale: string, width: number) => {

@@ -1,115 +1,59 @@
 
-import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BacklogItem } from "./BacklogTypes";
 
-interface BacklogEditModalProps {
-  isMobile: boolean;
+export interface BacklogEditModalProps {
+  selectedItem: BacklogItem | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  selectedItem: BacklogItem;
-  setSelectedItem: (item: BacklogItem | null) => void;
-  onSave: () => Promise<void>;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  updateBacklogItem: () => Promise<void>;
+  isMobile: boolean;
 }
 
 export function BacklogEditModal({
-  isMobile,
-  isOpen,
-  setIsOpen,
   selectedItem,
   setSelectedItem,
-  onSave
+  isOpen,
+  setIsOpen,
+  updateBacklogItem,
+  isMobile
 }: BacklogEditModalProps) {
-  const content = (
-    <>
-      <div className="grid gap-4 py-4">
-        <div className="space-y-2">
-          <Label htmlFor="edit-title">Título *</Label>
-          <Input
-            id="edit-title"
-            placeholder="Título do item"
-            value={selectedItem.title || ""}
-            onChange={(e) => setSelectedItem({ ...selectedItem, title: e.target.value })}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="edit-description">Descrição</Label>
-          <Textarea
-            id="edit-description"
-            placeholder="Descreva o item em detalhes"
-            value={selectedItem.description || ""}
-            onChange={(e) => setSelectedItem({ ...selectedItem, description: e.target.value })}
-            rows={4}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="edit-priority">Prioridade</Label>
-          <Select
-            value={String(selectedItem.priority || 3)}
-            onValueChange={(value) => setSelectedItem({ ...selectedItem, priority: parseInt(value) })}
-          >
-            <SelectTrigger id="edit-priority">
-              <SelectValue placeholder="Selecione a prioridade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Muito Baixa</SelectItem>
-              <SelectItem value="2">Baixa</SelectItem>
-              <SelectItem value="3">Média</SelectItem>
-              <SelectItem value="4">Alta</SelectItem>
-              <SelectItem value="5">Muito Alta</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="edit-status">Status</Label>
-          <Select
-            value={selectedItem.status || "pending"}
-            onValueChange={(value) => setSelectedItem({ ...selectedItem, status: value as any })}
-          >
-            <SelectTrigger id="edit-status">
-              <SelectValue placeholder="Selecione o status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="in_progress">Em Progresso</SelectItem>
-              <SelectItem value="done">Concluído</SelectItem>
-              {selectedItem.status === 'converted' && (
-                <SelectItem value="converted">Convertido</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row gap-3 justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setSelectedItem(null);
-            setIsOpen(false);
-          }}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          onClick={onSave}
-        >
-          Salvar Alterações
-        </Button>
-      </div>
-    </>
-  );
+  if (!selectedItem) return null;
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setSelectedItem(prev => prev ? { ...prev, [name]: value } : null);
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
+    setSelectedItem(prev => prev ? { ...prev, [name]: name === 'priority' ? Number(value) : value } : null);
+  };
   
   if (isMobile) {
     return (
@@ -118,13 +62,89 @@ export function BacklogEditModal({
           <DrawerHeader>
             <DrawerTitle>Editar Item</DrawerTitle>
             <DrawerDescription>
-              Modifique os detalhes do item do backlog
+              Altere os detalhes deste item do backlog
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4">
-            {content}
+          <div className="p-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium">
+                  Título
+                </label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={selectedItem.title}
+                  onChange={handleInputChange}
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="description" className="text-sm font-medium">
+                  Descrição
+                </label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={selectedItem.description || ''}
+                  onChange={handleInputChange}
+                  className="w-full min-h-[120px]"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="priority" className="text-sm font-medium">
+                    Prioridade
+                  </label>
+                  <Select
+                    value={String(selectedItem.priority)}
+                    onValueChange={(value) => handleSelectChange('priority', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Prioridade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Muito Baixa</SelectItem>
+                      <SelectItem value="2">Baixa</SelectItem>
+                      <SelectItem value="3">Média</SelectItem>
+                      <SelectItem value="4">Alta</SelectItem>
+                      <SelectItem value="5">Muito Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="status" className="text-sm font-medium">
+                    Status
+                  </label>
+                  <Select
+                    value={selectedItem.status}
+                    onValueChange={(value) => handleSelectChange('status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="in_progress">Em Progresso</SelectItem>
+                      <SelectItem value="approved">Aprovado</SelectItem>
+                      <SelectItem value="rejected">Rejeitado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
-          <DrawerFooter className="pt-0" />
+          <DrawerFooter>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={updateBacklogItem}>
+              Salvar
+            </Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
@@ -132,14 +152,91 @@ export function BacklogEditModal({
   
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Editar Item</DialogTitle>
           <DialogDescription>
-            Modifique os detalhes do item do backlog
+            Altere os detalhes deste item do backlog
           </DialogDescription>
         </DialogHeader>
-        {content}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="title" className="text-sm font-medium">
+              Título
+            </label>
+            <Input
+              id="title"
+              name="title"
+              value={selectedItem.title}
+              onChange={handleInputChange}
+              className="w-full"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium">
+              Descrição
+            </label>
+            <Textarea
+              id="description"
+              name="description"
+              value={selectedItem.description || ''}
+              onChange={handleInputChange}
+              className="w-full min-h-[120px]"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="priority" className="text-sm font-medium">
+                Prioridade
+              </label>
+              <Select
+                value={String(selectedItem.priority)}
+                onValueChange={(value) => handleSelectChange('priority', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Muito Baixa</SelectItem>
+                  <SelectItem value="2">Baixa</SelectItem>
+                  <SelectItem value="3">Média</SelectItem>
+                  <SelectItem value="4">Alta</SelectItem>
+                  <SelectItem value="5">Muito Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="status" className="text-sm font-medium">
+                Status
+              </label>
+              <Select
+                value={selectedItem.status}
+                onValueChange={(value) => handleSelectChange('status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="in_progress">Em Progresso</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="rejected">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={updateBacklogItem}>
+            Salvar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

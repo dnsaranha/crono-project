@@ -486,8 +486,8 @@ export function BacklogManager({
       <BacklogEditModal
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
-        isEditingDialogOpen={isEditingDialogOpen}
-        setIsEditingDialogOpen={setIsEditingDialogOpen}
+        isOpen={isEditingDialogOpen}
+        setIsOpen={setIsEditingDialogOpen}
         updateBacklogItem={updateBacklogItem}
         isMobile={isMobile}
       />
@@ -496,8 +496,8 @@ export function BacklogManager({
       <BacklogPromoteModal
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
-        isPromotingDialogOpen={isPromotingDialogOpen}
-        setIsPromotingDialogOpen={setIsPromotingDialogOpen}
+        isOpen={isPromotingDialogOpen}
+        setIsOpen={setIsPromotingDialogOpen}
         promoteToTask={promoteToTask}
         projects={projects}
         getPriorityInfo={getPriorityInfo}

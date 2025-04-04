@@ -17,7 +17,7 @@ export function useTaskResize({
   const startPositionRef = useRef(0);
   const startWidthRef = useRef(0);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
     e.stopPropagation();
     
     if (onResizeStart) {
@@ -27,7 +27,7 @@ export function useTaskResize({
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     startPositionRef.current = clientX;
     
-    const element = e.currentTarget.parentElement;
+    const element = e.currentTarget.parentElement as HTMLElement;
     if (element) {
       const width = element.getBoundingClientRect().width;
       startWidthRef.current = width;
@@ -37,8 +37,8 @@ export function useTaskResize({
     
     const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
       const moveClientX = 'touches' in moveEvent 
-        ? moveEvent.touches[0].clientX 
-        : moveEvent.clientX;
+        ? (moveEvent as TouchEvent).touches[0].clientX 
+        : (moveEvent as MouseEvent).clientX;
       
       const diff = moveClientX - startPositionRef.current;
       
@@ -50,7 +50,7 @@ export function useTaskResize({
     const handleEnd = () => {
       setIsResizing(false);
       
-      if (element && onResize) {
+      if (element && onResize && task) {
         const width = element.getBoundingClientRect().width;
         let newDuration = task.duration;
         
@@ -84,7 +84,7 @@ export function useTaskResize({
   }, [task, onResize, onResizeStart, cellWidth, timeScale]);
 
   // Handlers for touch events that manage the task card directly
-  const handleTaskTouchStart = useCallback((e: React.TouchEvent) => {
+  const handleTaskTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
     if (resizeHandleRef.current && resizeHandleRef.current.contains(e.target as Node)) {
       // If touching the resize handle, let the resize handler take over
       return;
@@ -112,11 +112,11 @@ export function useTaskResize({
     }
   }, [onClick]);
 
-  const handleTaskTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTaskTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
     // Handle touch move for the task card
   }, []);
 
-  const handleTaskTouchEnd = useCallback((e: React.TouchEvent) => {
+  const handleTaskTouchEnd = useCallback((e: React.TouchEvent<HTMLElement>) => {
     // Handle touch end for the task card
   }, []);
 
