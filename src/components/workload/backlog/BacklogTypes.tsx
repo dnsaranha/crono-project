@@ -32,7 +32,7 @@ export interface BacklogItemsTableProps {
   deleteBacklogItem: (id: string) => Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
-  // Add missing props that are being used in BacklogManager.tsx
+  // Add these properties to match how it's called in BacklogManager.tsx
   items?: BacklogItem[];
   onEdit?: (item: BacklogItem) => void;
   onPromote?: (item: BacklogItem) => void;
@@ -46,7 +46,7 @@ export interface BacklogEditModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   updateBacklogItem: () => Promise<void>;
   isMobile: boolean;
-  // Add missing prop that's being used
+  // Add this property to match how it's used
   onSave?: () => Promise<void>;
 }
 
@@ -59,6 +59,6 @@ export interface BacklogPromoteModalProps {
   projects: any[];
   getPriorityInfo: (priority: number) => { color: string; label: string };
   isMobile: boolean;
-  // Add missing prop that's being used
+  // Add this property to match how it's used
   onPromote?: () => Promise<void>;
 }

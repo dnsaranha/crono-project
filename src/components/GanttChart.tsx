@@ -1,22 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
-import { format, isEqual, add, differenceInDays, parseISO, startOfDay, isBefore, isAfter } from "date-fns";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { format, isEqual, add, differenceInDays, parseISO, startOfDay, isBefore, isAfter, addDays, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TaskType } from '../task';
+import { TaskType } from './task/TaskTypes';
 import { Button } from "@/components/ui/button";
 import { ChevronLeftSquare, PanelLeft, ZoomIn, ZoomOut, Download } from "lucide-react";
 import html2canvas from "html2canvas";
 import { useToast } from "@/components/ui/use-toast";
 import { useMobile } from "@/hooks/use-mobile";
 import { useTaskResize } from "@/hooks/use-task-resize";
-import GanttTimeScale from "../GanttTimeScale";
-import TodayMarker from "../TodayMarker";
-import { addMonths } from "date-fns";
-import GanttSidebar from "./GanttSidebar";
-import GanttGrid from "./GanttGrid";
-import GanttControls from "./GanttControls";
-import { useDependencyMode } from "./hooks/useDependencyMode";
-import { useGanttDateRange } from "./hooks/useGanttDateRange";
-import { useGanttDrag } from "./hooks/useGanttDrag";
+import GanttTimeScale from "./gantt/GanttTimeScale";
+import TodayMarker from "./TodayMarker";
+import GanttSidebar from "./gantt/GanttSidebar";
+import GanttGrid from "./gantt/GanttGrid";
+import GanttControls from "./gantt/GanttControls";
+import { useDependencyMode } from "./gantt/hooks/useDependencyMode";
+import { useGanttDateRange } from "./gantt/hooks/useGanttDateRange";
+import { useGanttDrag } from "./gantt/hooks/useGanttDrag";
 
 export type TimeScale = "day" | "week" | "month" | "quarter" | "year";
 
