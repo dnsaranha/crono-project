@@ -26,7 +26,7 @@ const taskVariants = cva("gantt-task cursor-pointer absolute top-0 rounded-sm sh
   }
 });
 
-const Task = ({ 
+const TaskComponent = ({ 
   task, 
   style, 
   onClick, 
@@ -125,4 +125,4 @@ const Task = ({
   );
 };
 
-export default Task;
+export default TaskComponent;

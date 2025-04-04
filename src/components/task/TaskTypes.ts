@@ -22,12 +22,12 @@ export interface TaskProps {
   style?: React.CSSProperties;
   onClick?: () => void;
   onResize?: (newDuration: number) => void;
-  onResizeStart?: (e: React.MouseEvent | React.TouchEvent) => void;
-  onDragStart?: (e: React.DragEvent | React.TouchEvent) => void;
-  onDragEnd?: (e: React.DragEvent | React.TouchEvent) => void;
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: (e: React.TouchEvent) => void;
+  onResizeStart?: (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
+  onDragStart?: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
+  onTouchStart?: (e: React.TouchEvent<HTMLElement>) => void;
+  onTouchMove?: (e: React.TouchEvent<HTMLElement>) => void;
+  onTouchEnd?: (e: React.TouchEvent<HTMLElement>) => void;
   cellWidth?: number;
   className?: string;
   draggable?: boolean;
@@ -39,23 +39,22 @@ export interface TaskMilestoneProps {
   style?: React.CSSProperties;
   onClick?: () => void;
   draggable?: boolean;
-  onDragStart?: (e: React.DragEvent | React.TouchEvent) => void;
-  onDragEnd?: (e: React.DragEvent | React.TouchEvent) => void;
-  onTouchStart?: (e: React.TouchEvent) => void;
-  onTouchMove?: (e: React.TouchEvent) => void;
-  onTouchEnd?: (e: React.TouchEvent) => void;
+  onDragStart?: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
+  onTouchStart?: (e: React.TouchEvent<HTMLElement>) => void;
+  onTouchMove?: (e: React.TouchEvent<HTMLElement>) => void;
+  onTouchEnd?: (e: React.TouchEvent<HTMLElement>) => void;
   className?: string;
 }
 
 export interface TaskResizeHookProps {
   task?: TaskType;
   onResize?: (newDuration: number) => void;
-  onResizeStart?: (e: React.MouseEvent | React.TouchEvent) => void;
+  onResizeStart?: (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => void;
   onClick?: () => void;
   timeScale: "day" | "week" | "month" | "quarter" | "year";
   cellWidth: number;
   style?: React.CSSProperties;
-  onTaskUpdate?: (task: TaskType) => void;
   hasEditPermission?: boolean;
+  onTaskUpdate?: (task: TaskType) => void;
 }
-

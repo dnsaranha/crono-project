@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { TaskType } from '@/components/Task';
 import { Task } from '@/components/Task';
+import { TaskType } from '@/components/task';
 
 interface TaskRowProps {
   task: TaskType;
@@ -29,7 +29,7 @@ interface TaskRowProps {
   dragOverCell: { weekIndex: number, rowIndex: number } | null;
 }
 
-export const TaskRow: React.FC<TaskRowProps> = ({
+export const TaskRow: React.FC<TaskRowProps> = ({ 
   task,
   rowIndex,
   getTaskStyle,
@@ -54,59 +54,68 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   dragOverPosition,
   dragOverCell
 }) => {
+  
+  // Style for the task
+  const taskStyle = getTaskStyle(task);
+  
+  // Determine if this is the row being targeted for drag and drop
+  const isTargetRow = dragOverTask?.id === task.id;
+  
   return (
     <div 
-      key={task.id} 
-      className={`absolute h-10 w-full ${
-        dragOverTask?.id === task.id && dragOverPosition === 'above' 
-          ? 'border-t-2 border-t-primary' 
-          : dragOverTask?.id === task.id && dragOverPosition === 'below'
-          ? 'border-b-2 border-b-primary'
-          : ''
-      }`}
-      style={{ top: `${rowIndex * 40}px` }}
-      onDragOver={(e) => hasEditPermission ? handleTaskDragOver(e, task) : undefined}
-      onDragLeave={handleTaskDragLeave}
+      className="gantt-row relative"
+      style={{ height: '40px' }}
     >
+      {/* Background grid cells */}
       <div className="absolute inset-0 flex">
-        {timeUnits.map((unit, timeIndex) => (
+        {timeUnits.map((week, weekIndex) => (
           <div
-            key={timeIndex}
-            className={`h-full ${
-              dragOverCell?.weekIndex === timeIndex && dragOverCell?.rowIndex === rowIndex
-                ? 'bg-blue-100 dark:bg-blue-900/20'
-                : ''
+            key={`cell-${rowIndex}-${weekIndex}`}
+            className={`h-full border-r border-b ${
+              dragOverCell?.weekIndex === weekIndex && dragOverCell?.rowIndex === rowIndex
+                ? 'bg-muted/50'
+                : weekIndex % 2 === 0 ? 'bg-muted/20' : ''
             }`}
-            style={{ 
-              width: `${cellWidth}px`,
-              minWidth: `${cellWidth}px`
-            }}
-            onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, timeIndex, rowIndex) : undefined}
-            onDrop={(e) => hasEditPermission ? handleCellDrop(e, timeIndex, rowIndex) : undefined}
+            style={{ width: `${cellWidth}px` }}
+            onDragOver={(e) => hasEditPermission ? handleCellDragOver(e, weekIndex, rowIndex) : null}
+            onDrop={(e) => hasEditPermission ? handleCellDrop(e, weekIndex, rowIndex) : null}
           />
         ))}
       </div>
       
-      <Task 
-        task={task}
-        style={getTaskStyle(task)}
-        onClick={() => handleTaskClick(task)}
-        onDragStart={hasEditPermission ? (e) => handleTaskDragStart(e as any, task) : undefined}
-        onDragEnd={hasEditPermission ? (e) => handleTaskDragEnd(e as any, task) : undefined}
-        onTouchStart={hasEditPermission ? (e) => handleTouchStart(e, task) : undefined}
-        onTouchMove={hasEditPermission ? handleTouchMove : undefined}
-        onTouchEnd={hasEditPermission ? (e) => handleTouchEnd(e, task) : undefined}
-        cellWidth={cellWidth}
-        onResize={hasEditPermission ? (newDuration) => 
-          onTaskUpdate?.({ ...task, duration: newDuration }) : undefined}
-        onResizeStart={hasEditPermission ? (e) => handleTaskResizeStart(e, task) : undefined}
-        className={createDependencyMode?.active ? 
-          createDependencyMode.sourceId === task.id ? 
-            'dependency-source' : 'dependency-target-candidate' 
-          : ''}
-        timeScale={timeScale}
-        draggable={hasEditPermission}
-      />
+      {/* Task component */}
+      {!task.isGroup || task.isMilestone ? (
+        <Task
+          task={task}
+          style={taskStyle}
+          onClick={() => handleTaskClick(task)}
+          onResizeStart={(e) => hasEditPermission ? handleTaskResizeStart(e, task) : undefined}
+          onDragStart={(e) => hasEditPermission ? handleTaskDragStart(e, task) : undefined}
+          onDragEnd={(e) => hasEditPermission ? handleTaskDragEnd(e, task) : undefined}
+          onTouchStart={(e) => hasEditPermission ? handleTouchStart(e, task) : undefined}
+          onTouchMove={(e) => hasEditPermission ? handleTouchMove(e) : undefined}
+          onTouchEnd={(e) => hasEditPermission ? handleTouchEnd(e, task) : undefined}
+          className={createDependencyMode?.active ? 'hover:ring-2 hover:ring-yellow-400' : ''}
+          draggable={hasEditPermission}
+          timeScale={timeScale}
+        />
+      ) : (
+        <div 
+          className="gantt-group-task absolute"
+          style={taskStyle}
+          onClick={() => handleTaskClick(task)}
+        >
+          <div className="h-1 bg-gray-400 w-full" />
+        </div>
+      )}
+      
+      {/* Target indicators for drag and drop */}
+      {isTargetRow && dragOverPosition === 'above' && (
+        <div className="absolute h-1 bg-primary w-full top-0 z-10" />
+      )}
+      {isTargetRow && dragOverPosition === 'below' && (
+        <div className="absolute h-1 bg-primary w-full bottom-0 z-10" />
+      )}
     </div>
   );
 };
