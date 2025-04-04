@@ -46,7 +46,7 @@ export interface BacklogEditModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   updateBacklogItem: () => Promise<void>;
   isMobile: boolean;
-  // Add this property to match how it's used
+  // Add this property to match how it's used in BacklogManager.tsx
   onSave?: () => Promise<void>;
 }
 
@@ -59,6 +59,6 @@ export interface BacklogPromoteModalProps {
   projects: any[];
   getPriorityInfo: (priority: number) => { color: string; label: string };
   isMobile: boolean;
-  // Add this property to match how it's used
+  // Add this property to match how it's used in BacklogManager.tsx
   onPromote?: () => Promise<void>;
 }
