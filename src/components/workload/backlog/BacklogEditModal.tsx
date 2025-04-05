@@ -25,16 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BacklogItem } from "./BacklogTypes";
-
-export interface BacklogEditModalProps {
-  selectedItem: BacklogItem | null;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  updateBacklogItem: () => Promise<void>;
-  isMobile: boolean;
-}
+import { BacklogItem, BacklogEditModalProps } from "./BacklogTypes";
 
 export function BacklogEditModal({
   selectedItem,
@@ -42,9 +33,19 @@ export function BacklogEditModal({
   isOpen,
   setIsOpen,
   updateBacklogItem,
-  isMobile
+  isMobile,
+  onSave
 }: BacklogEditModalProps) {
   if (!selectedItem) return null;
+  
+  // Handler that works with both property patterns
+  const handleSave = async () => {
+    if (onSave) {
+      await onSave();
+    } else {
+      await updateBacklogItem();
+    }
+  };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,7 +142,7 @@ export function BacklogEditModal({
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={updateBacklogItem}>
+            <Button onClick={handleSave}>
               Salvar
             </Button>
           </DrawerFooter>
@@ -233,7 +234,7 @@ export function BacklogEditModal({
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={updateBacklogItem}>
+          <Button onClick={handleSave}>
             Salvar
           </Button>
         </div>

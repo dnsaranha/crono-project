@@ -16,9 +16,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -26,18 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BacklogItem } from "./BacklogTypes";
-
-export interface BacklogPromoteModalProps {
-  selectedItem: BacklogItem | null;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  promoteToTask: () => Promise<void>;
-  projects: { id: string, name: string }[];
-  getPriorityInfo: (priority: number) => { label: string, color: string };
-  isMobile: boolean;
-}
+import { Badge } from "@/components/ui/badge";
+import { BacklogItem, BacklogPromoteModalProps } from "./BacklogTypes";
 
 export function BacklogPromoteModal({
   selectedItem,
@@ -47,15 +34,65 @@ export function BacklogPromoteModal({
   promoteToTask,
   projects,
   getPriorityInfo,
-  isMobile
+  isMobile,
+  onPromote
 }: BacklogPromoteModalProps) {
   if (!selectedItem) return null;
+
+  // Handler that works with both property patterns
+  const handlePromote = async () => {
+    if (onPromote) {
+      await onPromote();
+    } else {
+      await promoteToTask();
+    }
+  };
   
-  const handleSelectChange = (projectId: string) => {
+  const handleProjectChange = (projectId: string) => {
     setSelectedItem(prev => prev ? { ...prev, target_project_id: projectId } : null);
   };
   
-  const selectedPriority = selectedItem ? getPriorityInfo(selectedItem.priority) : { label: '', color: '' };
+  // Use the provided getPriorityInfo or a fallback
+  const priorityInfo = getPriorityInfo ? 
+    getPriorityInfo(selectedItem.priority) : 
+    { label: `Prioridade ${selectedItem.priority}`, color: 'bg-gray-200' };
+  
+  const content = (
+    <>
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-medium">Detalhes do Item</h3>
+          <p className="text-sm text-gray-500">{selectedItem.title}</p>
+          <div className="mt-2 flex items-center gap-2">
+            <Badge variant="outline" className={priorityInfo.color}>
+              {priorityInfo.label}
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="project" className="text-sm font-medium">
+            Selecione o Projeto
+          </label>
+          <Select
+            value={selectedItem.target_project_id || ""}
+            onValueChange={handleProjectChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </>
+  );
   
   if (isMobile) {
     return (
@@ -64,74 +101,18 @@ export function BacklogPromoteModal({
           <DrawerHeader>
             <DrawerTitle>Converter para Tarefa</DrawerTitle>
             <DrawerDescription>
-              Selecione um projeto para adicionar este item como tarefa
+              Converta este item do backlog em uma tarefa de projeto
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Título da Tarefa
-                </label>
-                <div className="p-2 border rounded-md bg-muted/20">
-                  {selectedItem.title}
-                </div>
-              </div>
-              
-              {selectedItem.description && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Descrição
-                  </label>
-                  <div className="p-2 border rounded-md bg-muted/20 whitespace-pre-wrap h-20 overflow-y-auto">
-                    {selectedItem.description}
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Prioridade
-                </label>
-                <div>
-                  <Badge variant="outline" className={selectedPriority.color}>
-                    {selectedPriority.label}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="project" className="text-sm font-medium">
-                  Projeto de Destino
-                </label>
-                <Select
-                  value={selectedItem.target_project_id || ''}
-                  onValueChange={handleSelectChange}
-                >
-                  <SelectTrigger id="project">
-                    <SelectValue placeholder="Selecione um projeto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="pt-2 text-sm text-muted-foreground">
-                Esta ação irá criar uma tarefa no projeto selecionado com os detalhes deste item de backlog.
-              </div>
-            </div>
+            {content}
           </div>
           <DrawerFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button 
-              onClick={promoteToTask}
+              onClick={handlePromote}
               disabled={!selectedItem.target_project_id}
             >
               Converter para Tarefa
@@ -148,72 +129,16 @@ export function BacklogPromoteModal({
         <DialogHeader>
           <DialogTitle>Converter para Tarefa</DialogTitle>
           <DialogDescription>
-            Selecione um projeto para adicionar este item como tarefa
+            Converta este item do backlog em uma tarefa de projeto
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Título da Tarefa
-            </label>
-            <div className="p-2 border rounded-md bg-muted/20">
-              {selectedItem.title}
-            </div>
-          </div>
-          
-          {selectedItem.description && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Descrição
-              </label>
-              <div className="p-2 border rounded-md bg-muted/20 whitespace-pre-wrap h-24 overflow-y-auto">
-                {selectedItem.description}
-              </div>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Prioridade
-            </label>
-            <div>
-              <Badge variant="outline" className={selectedPriority.color}>
-                {selectedPriority.label}
-              </Badge>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="project" className="text-sm font-medium">
-              Projeto de Destino
-            </label>
-            <Select
-              value={selectedItem.target_project_id || ''}
-              onValueChange={handleSelectChange}
-            >
-              <SelectTrigger id="project">
-                <SelectValue placeholder="Selecione um projeto" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="pt-2 text-sm text-muted-foreground">
-            Esta ação irá criar uma tarefa no projeto selecionado com os detalhes deste item de backlog.
-          </div>
-        </div>
+        {content}
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancelar
           </Button>
           <Button 
-            onClick={promoteToTask}
+            onClick={handlePromote}
             disabled={!selectedItem.target_project_id}
           >
             Converter para Tarefa

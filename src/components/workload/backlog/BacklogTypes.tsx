@@ -32,11 +32,11 @@ export interface BacklogItemsTableProps {
   deleteBacklogItem: (id: string) => Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
-  // Add required properties
-  items: BacklogItem[];
-  onEdit: (item: BacklogItem) => void;
-  onPromote: (item: BacklogItem) => void;
-  onDelete: (id: string) => Promise<void>;
+  // Fix the interface by adding missing properties
+  items?: BacklogItem[]; // Optional for backward compatibility
+  onEdit?: (item: BacklogItem) => void;
+  onPromote?: (item: BacklogItem) => void;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 export interface BacklogEditModalProps {
@@ -46,8 +46,8 @@ export interface BacklogEditModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   updateBacklogItem: () => Promise<void>;
   isMobile: boolean;
-  // Add required property
-  onSave: () => Promise<void>;
+  // Make onSave compatible with actual usage
+  onSave?: () => Promise<void>;
 }
 
 export interface BacklogPromoteModalProps {
@@ -57,8 +57,8 @@ export interface BacklogPromoteModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   promoteToTask: () => Promise<void>;
   projects: any[];
-  getPriorityInfo: (priority: number) => { color: string; label: string };
+  getPriorityInfo?: (priority: number) => { color: string; label: string };
   isMobile: boolean;
-  // Add required property
-  onPromote: () => Promise<void>;
+  // Make onPromote compatible with actual usage
+  onPromote?: () => Promise<void>;
 }

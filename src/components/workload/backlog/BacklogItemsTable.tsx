@@ -19,23 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, FileText, ArrowUpRight, Trash2, Edit } from "lucide-react";
-import { BacklogItem } from "./BacklogTypes";
+import { BacklogItem, BacklogItemsTableProps } from "./BacklogTypes";
 import { Skeleton } from "@/components/ui/skeleton";
-
-export interface BacklogItemsTableProps {
-  filteredItems: BacklogItem[];
-  loading: boolean;
-  getPriorityInfo: (priority: number) => { label: string; color: string };
-  getStatusInfo: (status: string) => { label: string; color: string };
-  formatDate: (date: string) => string;
-  getProjectName: (projectId: string) => string;
-  setSelectedItem: (item: BacklogItem) => void;
-  setIsEditingDialogOpen: (isOpen: boolean) => void;
-  setIsPromotingDialogOpen: (isOpen: boolean) => void;
-  deleteBacklogItem: (id: string) => Promise<void>;
-  canEdit?: boolean;
-  canDelete?: boolean;
-}
 
 export function BacklogItemsTable({
   filteredItems,
@@ -49,23 +34,49 @@ export function BacklogItemsTable({
   setIsPromotingDialogOpen,
   deleteBacklogItem,
   canEdit = true,
-  canDelete = true
+  canDelete = true,
+  // Support both property styles for compatibility
+  items,
+  onEdit,
+  onPromote,
+  onDelete
 }: BacklogItemsTableProps) {
+  
+  // Create handlers that support both property patterns
   const handleEdit = (item: BacklogItem) => {
-    setSelectedItem(item);
-    setIsEditingDialogOpen(true);
+    if (onEdit) {
+      onEdit(item);
+    } else {
+      setSelectedItem(item);
+      setIsEditingDialogOpen(true);
+    }
   };
   
   const handlePromote = (item: BacklogItem) => {
-    setSelectedItem(item);
-    setIsPromotingDialogOpen(true);
+    if (onPromote) {
+      onPromote(item);
+    } else {
+      setSelectedItem(item);
+      setIsPromotingDialogOpen(true);
+    }
+  };
+  
+  const handleDelete = async (id: string) => {
+    if (onDelete) {
+      await onDelete(id);
+    } else {
+      await deleteBacklogItem(id);
+    }
   };
   
   if (loading) {
     return <TableLoadingSkeleton />;
   }
   
-  if (filteredItems.length === 0) {
+  // Use the appropriate items array (support both patterns)
+  const itemsToDisplay = items || filteredItems;
+  
+  if (itemsToDisplay.length === 0) {
     return (
       <div className="text-center py-10 text-muted-foreground">
         Nenhum item encontrado com os filtros atuais
@@ -89,7 +100,7 @@ export function BacklogItemsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredItems.map((item) => (
+            {itemsToDisplay.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.title}</TableCell>
                 <TableCell>
@@ -137,7 +148,7 @@ export function BacklogItemsTable({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="cursor-pointer text-destructive"
-                        onClick={() => deleteBacklogItem(item.id)}
+                        onClick={() => handleDelete(item.id)}
                         disabled={!canDelete}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
