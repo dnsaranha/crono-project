@@ -84,13 +84,11 @@ export default function GridView() {
       <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
           <TaskForm
-            task={selectedTask}
+            open={isTaskFormOpen}
+            onOpenChange={setIsTaskFormOpen}
             onSubmit={handleSaveTask}
-            onCancel={() => {
-              setIsTaskFormOpen(false);
-              setSelectedTask(null);
-            }}
-            isEditing={!!selectedTask}
+            initialData={selectedTask}
+            tasks={tasks}
             projectMembers={projectMembers}
           />
         </DialogContent>

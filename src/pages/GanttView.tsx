@@ -7,18 +7,29 @@ import TaskForm from "@/components/TaskForm";
 import NewTaskButton from "@/components/NewTaskButton";
 import GanttChart from "@/components/gantt/GanttChart";
 import GanttControls from "@/components/gantt/GanttControls";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import EmptyTaskState from "@/components/EmptyTaskState";
 import LoadingState from "@/components/LoadingState";
 import ExcelExportImport from "@/components/ExcelExportImport";
 
 export default function GanttView() {
   const { projectId } = useParams<{ projectId: string }>();
-  const { tasks, loading, updateTask, createTask, createDependency, batchUpdateTasks } = useTasks();
+  const { tasks, loading, updateTask, createTask, createDependency, batchUpdateTasks, getProjectMembers } = useTasks();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [timeScale, setTimeScale] = useState<"day" | "week" | "month" | "quarter" | "year">("week");
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  
+  // Load project members
+  useEffect(() => {
+    async function loadProjectMembers() {
+      const members = await getProjectMembers();
+      setProjectMembers(members || []);
+    }
+    
+    loadProjectMembers();
+  }, [getProjectMembers]);
   
   const handleToggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -48,17 +59,12 @@ export default function GanttView() {
     await createDependency(sourceId, targetId);
   };
   
-  const handleZoomIn = () => {
-    // Placeholder for zoom in functionality
-  };
-  
-  const handleZoomOut = () => {
-    // Placeholder for zoom out functionality
-  };
-  
-  const exportToImage = async () => {
-    // Placeholder for export functionality
-    return Promise.resolve();
+  const handleSaveTask = (taskData: TaskType) => {
+    if (selectedTask) {
+      return handleTaskUpdate(taskData);
+    } else {
+      return handleTaskCreate(taskData as Omit<TaskType, 'id'>);
+    }
   };
   
   if (loading) {
@@ -76,12 +82,6 @@ export default function GanttView() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-3">
-        <GanttControls 
-          timeScale={timeScale}
-          handleZoomOut={handleZoomOut}
-          handleZoomIn={handleZoomIn}
-          exportToImage={exportToImage}
-        />
         <div className="flex gap-2">
           <ExcelExportImport 
             tasks={tasks}
@@ -104,14 +104,16 @@ export default function GanttView() {
       </div>
       
       <Dialog open={showTaskForm} onOpenChange={setShowTaskForm}>
-        <TaskForm
-          open={showTaskForm}
-          onOpenChange={setShowTaskForm}
-          onClose={handleCloseTaskForm}
-          onSubmit={selectedTask ? handleTaskUpdate : handleTaskCreate}
-          initialData={selectedTask}
-          tasks={tasks}
-        />
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
+          <TaskForm
+            open={showTaskForm}
+            onOpenChange={setShowTaskForm}
+            onSubmit={handleSaveTask}
+            initialData={selectedTask}
+            tasks={tasks}
+            projectMembers={projectMembers}
+          />
+        </DialogContent>
       </Dialog>
     </div>
   );
