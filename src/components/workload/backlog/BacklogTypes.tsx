@@ -20,19 +20,20 @@ export interface BacklogManagerProps {
 }
 
 export interface BacklogItemsTableProps {
-  filteredItems: BacklogItem[];
+  // Original properties
+  filteredItems?: BacklogItem[];
   loading: boolean;
-  getPriorityInfo: (priority: number) => { color: string; label: string };
-  getStatusInfo: (status: string) => { color: string; label: string };
-  formatDate: (dateString: string) => string;
+  getPriorityInfo?: (priority: number) => { color: string; label: string };
+  getStatusInfo?: (status: string) => { color: string; label: string };
+  formatDate?: (dateString: string) => string;
   getProjectName: (projectId: string) => string;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  setIsEditingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  deleteBacklogItem: (id: string) => Promise<void>;
-  canEdit: boolean;
-  canDelete: boolean;
-  // Support both property patterns
+  setSelectedItem?: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  setIsEditingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPromotingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  deleteBacklogItem?: (id: string) => Promise<void>;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  // Alternative property pattern
   items?: BacklogItem[]; 
   onEdit?: (item: BacklogItem) => void;
   onPromote?: (item: BacklogItem) => void;
@@ -44,9 +45,9 @@ export interface BacklogEditModalProps {
   setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  updateBacklogItem: () => Promise<void>;
+  updateBacklogItem?: () => Promise<void>;
   isMobile: boolean;
-  // Support both property patterns
+  // Alternative property pattern
   onSave?: () => Promise<void>;
 }
 
@@ -55,10 +56,10 @@ export interface BacklogPromoteModalProps {
   setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  promoteToTask: () => Promise<void>;
+  promoteToTask?: () => Promise<void>;
   projects: any[];
   getPriorityInfo?: (priority: number) => { color: string; label: string };
   isMobile: boolean;
-  // Support both property patterns
+  // Alternative property pattern
   onPromote?: () => Promise<void>;
 }

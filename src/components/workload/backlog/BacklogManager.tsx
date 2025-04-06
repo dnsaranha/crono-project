@@ -32,11 +32,13 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
     selectedItem,
     updateBacklogItem,
     isEditingDialogOpen,
-    setIsOpen: setEditIsOpen,
     isPromotingDialogOpen,
-    setIsPromotingIsOpen: setPromoteIsOpen,
+    setIsCreatingDialogOpen,
     promoteToTask,
-    projects
+    projects,
+    // Use the proper property names based on the context
+    setIsEditingDialogOpen: setIsOpen,
+    setIsPromotingDialogOpen: setIsPromotingIsOpen
   } = useBacklog();
   
   const { isMobile } = useMobile();
@@ -79,7 +81,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
         isOpen={isEditingDialogOpen}
-        setIsOpen={setEditIsOpen}
+        setIsOpen={setIsEditingDialogOpen}
         updateBacklogItem={updateBacklogItem}
         isMobile={isMobile}
       />
@@ -89,7 +91,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
         isOpen={isPromotingDialogOpen}
-        setIsOpen={setPromoteIsOpen}
+        setIsOpen={setIsPromotingDialogOpen}
         promoteToTask={promoteToTask}
         projects={projects}
         getPriorityInfo={getPriorityInfo}

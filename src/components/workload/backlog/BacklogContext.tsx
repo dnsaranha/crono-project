@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { BacklogItem } from "./BacklogTypes";
+import { getStatusInfo, getPriorityInfo, formatDate } from "./BacklogUtils";
 
 interface BacklogContextType {
   backlogItems: BacklogItem[];
@@ -34,6 +35,12 @@ interface BacklogContextType {
   projects: any[];
   onItemConverted?: () => void;
   getProjectName: (projectId: string) => string;
+  // Add the missing properties that were causing errors
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  getStatusInfo: (status: string) => { color: string; label: string };
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  formatDate: (dateString: string) => string;
 }
 
 const BacklogContext = createContext<BacklogContextType | undefined>(undefined);
@@ -76,6 +83,10 @@ export function BacklogProvider({
   const [isCreatingDialogOpen, setIsCreatingDialogOpen] = useState(false);
   const [isEditingDialogOpen, setIsEditingDialogOpen] = useState(false);
   const [isPromotingDialogOpen, setIsPromotingDialogOpen] = useState(false);
+  
+  // Add aliases for backward compatibility
+  const setIsOpen = setIsEditingDialogOpen;
+  const setIsPromotingIsOpen = setIsPromotingDialogOpen;
   
   const { toast } = useToast();
   
@@ -410,6 +421,12 @@ export function BacklogProvider({
     projects,
     onItemConverted,
     getProjectName,
+    // Add the utility functions and missing aliases
+    getStatusInfo,
+    getPriorityInfo,
+    formatDate,
+    setIsOpen,
+    setIsPromotingIsOpen,
   };
 
   return (
