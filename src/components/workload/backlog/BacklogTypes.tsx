@@ -63,3 +63,41 @@ export interface BacklogPromoteModalProps {
   // Alternative property pattern
   onPromote?: () => Promise<void>;
 }
+
+export interface BacklogContextType {
+  backlogItems: BacklogItem[];
+  loading: boolean;
+  filterStatus: string;
+  setFilterStatus: (status: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  sortField: string;
+  setSortField: (field: string) => void;
+  sortDirection: string;
+  setSortDirection: (direction: string) => void;
+  selectedItem: BacklogItem | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  newItem: Partial<BacklogItem>;
+  setNewItem: React.Dispatch<React.SetStateAction<Partial<BacklogItem>>>;
+  loadBacklogItems: () => Promise<void>;
+  createBacklogItem: () => Promise<void>;
+  updateBacklogItem: () => Promise<void>;
+  deleteBacklogItem: (id: string) => Promise<void>;
+  promoteToTask: () => Promise<void>;
+  filteredItems: BacklogItem[];
+  isCreatingDialogOpen: boolean;
+  setIsCreatingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isEditingDialogOpen: boolean;
+  setIsEditingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isPromotingDialogOpen: boolean;
+  setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  projects: any[];
+  onItemConverted?: () => void;
+  getProjectName: (projectId: string) => string;
+  // Add the properties that were causing errors
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  getStatusInfo: (status: string) => { color: string; label: string };
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  formatDate: (dateString: string) => string;
+}

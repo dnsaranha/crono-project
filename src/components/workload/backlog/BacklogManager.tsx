@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMobile } from "@/hooks/use-mobile";
-import { BacklogItem, BacklogManagerProps } from "./BacklogTypes";
+import { BacklogManagerProps } from "./BacklogTypes";
 import { BacklogFilters } from "./BacklogFilters";
 import { BacklogItemsTable } from "./BacklogItemsTable";
 import { BacklogEditModal } from "./BacklogEditModal";
