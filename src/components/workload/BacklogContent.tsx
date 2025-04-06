@@ -25,6 +25,8 @@ export function BacklogContent() {
       projects={projects}
       onItemConverted={refreshData}
       canCreate={canCreate}
+      canEdit={canCreate}
+      canDelete={canCreate}
     />
   );
 }

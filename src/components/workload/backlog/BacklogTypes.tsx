@@ -32,8 +32,8 @@ export interface BacklogItemsTableProps {
   deleteBacklogItem: (id: string) => Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
-  // Fix the interface by adding missing properties
-  items?: BacklogItem[]; // Optional for backward compatibility
+  // Support both property patterns
+  items?: BacklogItem[]; 
   onEdit?: (item: BacklogItem) => void;
   onPromote?: (item: BacklogItem) => void;
   onDelete?: (id: string) => Promise<void>;
@@ -46,7 +46,7 @@ export interface BacklogEditModalProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   updateBacklogItem: () => Promise<void>;
   isMobile: boolean;
-  // Make onSave compatible with actual usage
+  // Support both property patterns
   onSave?: () => Promise<void>;
 }
 
@@ -59,6 +59,6 @@ export interface BacklogPromoteModalProps {
   projects: any[];
   getPriorityInfo?: (priority: number) => { color: string; label: string };
   isMobile: boolean;
-  // Make onPromote compatible with actual usage
+  // Support both property patterns
   onPromote?: () => Promise<void>;
 }
