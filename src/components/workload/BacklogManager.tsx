@@ -1,14 +1,15 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMobile } from "@/hooks/use-mobile";
-import { BacklogItem, BacklogManagerProps } from "./BacklogTypes";
-import { BacklogFilters } from "./BacklogFilters";
-import { BacklogItemsTable } from "./BacklogItemsTable";
-import { BacklogEditModal } from "./BacklogEditModal";
-import { BacklogPromoteModal } from "./BacklogPromoteModal";
-import { BacklogHeader } from "./BacklogHeader";
-import { BacklogProvider, useBacklog } from "./BacklogContext";
-import { getStatusInfo, getPriorityInfo, formatDate } from "./BacklogUtils";
+import { BacklogItem, BacklogManagerProps } from "./backlog/BacklogTypes";
+import { BacklogFilters } from "./backlog/BacklogFilters";
+import { BacklogItemsTable } from "./backlog/BacklogItemsTable";
+import { BacklogEditModal } from "./backlog/BacklogEditModal";
+import { BacklogPromoteModal } from "./backlog/BacklogPromoteModal";
+import { BacklogHeader } from "./backlog/BacklogHeader";
+import { BacklogProvider, useBacklog } from "./backlog/BacklogContext";
+import { getStatusInfo, getPriorityInfo, formatDate } from "./backlog/BacklogUtils";
 
 function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolean, canDelete?: boolean }) {
   const { 
@@ -34,9 +35,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
     isPromotingDialogOpen,
     setIsCreatingDialogOpen,
     promoteToTask,
-    projects,
-    setIsEditingDialogOpen: setIsOpen,
-    setIsPromotingDialogOpen: setIsPromotingIsOpen
+    projects
   } = useBacklog();
   
   const { isMobile } = useMobile();
@@ -79,7 +78,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
         isOpen={isEditingDialogOpen}
-        setIsOpen={setIsOpen}
+        setIsOpen={setIsEditingDialogOpen}
         updateBacklogItem={updateBacklogItem}
         isMobile={isMobile}
       />
@@ -89,7 +88,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
         isOpen={isPromotingDialogOpen}
-        setIsOpen={setIsPromotingIsOpen}
+        setIsOpen={setIsPromotingDialogOpen}
         promoteToTask={promoteToTask}
         projects={projects}
         getPriorityInfo={getPriorityInfo}

@@ -50,7 +50,7 @@ export function BacklogEditForm({
         />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <label htmlFor="priority" className="text-sm font-medium">
             Prioridade
@@ -59,7 +59,7 @@ export function BacklogEditForm({
             value={String(selectedItem.priority)}
             onValueChange={(value) => handleSelectChange('priority', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full h-12 px-4 text-base">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
             <SelectContent>
@@ -80,7 +80,7 @@ export function BacklogEditForm({
             value={selectedItem.status}
             onValueChange={(value) => handleSelectChange('status', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full h-12 px-4 text-base">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

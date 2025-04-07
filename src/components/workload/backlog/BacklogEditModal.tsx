@@ -45,7 +45,17 @@ export function BacklogEditModal({
   };
   
   const handleSelectChange = (name: string, value: string) => {
-    setSelectedItem(prev => prev ? { ...prev, [name]: name === 'priority' ? Number(value) : value } : null);
+    setSelectedItem(prev => {
+      if (!prev) return null;
+      
+      // Convert priority to number
+      if (name === 'priority') {
+        return { ...prev, [name]: Number(value) };
+      }
+      
+      // Handle other fields as strings
+      return { ...prev, [name]: value };
+    });
   };
   
   if (isMobile) {
@@ -58,15 +68,15 @@ export function BacklogEditModal({
               Altere os detalhes deste item do backlog
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4">
+          <div className="p-4 pb-0">
             <BacklogEditForm
               selectedItem={selectedItem}
               handleInputChange={handleInputChange}
               handleSelectChange={handleSelectChange}
             />
           </div>
-          <DrawerFooter>
-            <div className="flex justify-end gap-2">
+          <DrawerFooter className="pt-2">
+            <div className="flex justify-end gap-2 w-full">
               <BacklogEditActions 
                 onCancel={() => setIsOpen(false)} 
                 onSave={handleSave} 

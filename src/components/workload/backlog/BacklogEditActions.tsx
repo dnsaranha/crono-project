@@ -11,13 +11,32 @@ export function BacklogEditActions({
   onCancel,
   onSave
 }: BacklogEditActionsProps) {
+  const [isSaving, setIsSaving] = React.useState(false);
+  
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await onSave();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
   return (
     <>
-      <Button variant="outline" onClick={onCancel}>
+      <Button 
+        variant="outline" 
+        onClick={onCancel} 
+        className="min-w-24 h-11"
+      >
         Cancelar
       </Button>
-      <Button onClick={onSave}>
-        Salvar
+      <Button 
+        onClick={handleSave}
+        disabled={isSaving}
+        className="min-w-24 h-11"
+      >
+        {isSaving ? "Salvando..." : "Salvar"}
       </Button>
     </>
   );

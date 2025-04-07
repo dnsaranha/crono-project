@@ -35,7 +35,7 @@ interface BacklogContextType {
   projects: any[];
   onItemConverted?: () => void;
   getProjectName: (projectId: string) => string;
-  // Add the missing properties that were causing errors
+  // Add the missing properties
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   getStatusInfo: (status: string) => { color: string; label: string };
@@ -249,6 +249,8 @@ export function BacklogProvider({
         return;
       }
       
+      setLoading(true);
+
       const { error } = await supabase
         .from('backlog_items')
         .update({
@@ -261,11 +263,9 @@ export function BacklogProvider({
         
       if (error) throw error;
       
-      // Close dialog
+      // Close dialog and reload items
       setIsEditingDialogOpen(false);
-      
-      // Reload items
-      loadBacklogItems();
+      await loadBacklogItems();
       
       toast({
         title: "Item atualizado",
@@ -278,6 +278,8 @@ export function BacklogProvider({
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
   
