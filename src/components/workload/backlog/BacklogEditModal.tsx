@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/drawer";
 import { BacklogEditModalProps } from "./BacklogTypes";
 import { BacklogEditForm } from "./BacklogEditForm";
+import { BacklogEditActions } from "./BacklogEditActions";
 
 export function BacklogEditModal({
   selectedItem,
