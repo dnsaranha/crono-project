@@ -56,14 +56,10 @@ export function TaskAllocationTable({
     return project ? project.name : "Projeto Desconhecido";
   };
 
-  // Get member names by IDs
-  const getAssigneeNames = (assigneeIds: string[] = []) => {
-    return assigneeIds
-      .map(id => {
-        const member = members.find(m => m.id === id);
-        return member ? member.name : "Usuário";
-      })
-      .join(", ");
+  // Get member name by ID
+  const getMemberName = (userId: string) => {
+    const member = members.find(m => m.id === userId);
+    return member ? member.name : "Usuário";
   };
 
   // Get priority display info
@@ -201,12 +197,12 @@ export function TaskAllocationTable({
                             <TooltipProvider key={assigneeId}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30">
-                                    {members.find(m => m.id === assigneeId)?.name?.split(' ')[0] || "Usuário"}
+                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30 min-w-8 text-center">
+                                    {getMemberName(assigneeId).split(' ')[0] || "Usuário"}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{members.find(m => m.id === assigneeId)?.name || "Usuário"}</p>
+                                  <p>{getMemberName(assigneeId)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -225,7 +221,7 @@ export function TaskAllocationTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => goToTask(task.project_id)}
-                          className="h-9 w-9 p-0"
+                          className="h-9 w-9 p-0 touch-manipulation"
                         >
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Editar</span>

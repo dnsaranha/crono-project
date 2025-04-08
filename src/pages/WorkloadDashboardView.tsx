@@ -1,7 +1,5 @@
 
 import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, ListTodo } from "lucide-react";
 import { WorkloadDashboardProvider } from "@/contexts/WorkloadDashboardContext";
 import { WorkloadTabs } from "@/components/workload/WorkloadTabs";
 
