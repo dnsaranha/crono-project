@@ -27,14 +27,14 @@ export function BacklogEditActions({
       <Button 
         variant="outline" 
         onClick={onCancel} 
-        className="min-w-24 h-11"
+        className="min-w-24 h-11 touch-manipulation"
       >
         Cancelar
       </Button>
       <Button 
         onClick={handleSave}
         disabled={isSaving}
-        className="min-w-24 h-11"
+        className="min-w-24 h-11 touch-manipulation"
       >
         {isSaving ? "Salvando..." : "Salvar"}
       </Button>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { format, addDays } from "date-fns";
 import { Edit, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskAllocationTableProps {
   filteredTasks: any[];
@@ -194,11 +195,29 @@ export function TaskAllocationTable({
                     <TableCell>{calculateEndDate(task.startDate, task.duration)}</TableCell>
                     <TableCell>{getProjectName(task.project_id)}</TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {task.assignees && task.assignees.length > 0
-                          ? getAssigneeNames(task.assignees)
-                          : "Não atribuído"}
-                      </span>
+                      {task.assignees && task.assignees.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {task.assignees.slice(0, 2).map((assigneeId: string) => (
+                            <TooltipProvider key={assigneeId}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30">
+                                    {members.find(m => m.id === assigneeId)?.name?.split(' ')[0] || "Usuário"}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{members.find(m => m.id === assigneeId)?.name || "Usuário"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ))}
+                          {task.assignees.length > 2 && (
+                            <Badge variant="outline">+{task.assignees.length - 2}</Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Não atribuído</span>
+                      )}
                     </TableCell>
                     {canEdit && (
                       <TableCell>
@@ -206,8 +225,10 @@ export function TaskAllocationTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => goToTask(task.project_id)}
+                          className="h-9 w-9 p-0"
                         >
                           <Edit className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
                         </Button>
                       </TableCell>
                     )}

@@ -51,7 +51,7 @@ const TaskTableRow = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="p-0 mr-1 h-6 w-6"
+              className="p-0 mr-1 h-6 w-6 touch-manipulation"
               onClick={() => toggleGroup(task.id)}
             >
               {expandedGroups[task.id] ? 
@@ -65,7 +65,7 @@ const TaskTableRow = ({
             <Flag className="h-4 w-4 mr-1 text-purple-600 dark:text-purple-500" />
           )}
           
-          {task.name}
+          <span className="line-clamp-2">{task.name}</span>
         </div>
       </TableCell>
       <TableCell className="dark-mode-fix">{formatDate(task.startDate)}</TableCell>
@@ -103,7 +103,7 @@ const TaskTableRow = ({
               <TooltipProvider key={userId}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30">
+                    <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30 min-w-8 text-center">
                       {getMemberName(userId).split(' ')[0]}
                     </Badge>
                   </TooltipTrigger>
@@ -127,9 +127,10 @@ const TaskTableRow = ({
             variant="ghost" 
             size="sm" 
             onClick={() => onEditTask(task)}
-            className="px-2"
+            className="px-2 h-9 touch-manipulation"
           >
             <Pencil className="h-4 w-4" />
+            <span className="sr-only">Editar</span>
           </Button>
           
           {onDeleteTask && (
@@ -137,9 +138,10 @@ const TaskTableRow = ({
               variant="ghost" 
               size="sm"
               onClick={() => onDeleteTask(task.id)}
-              className="px-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              className="px-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 h-9 touch-manipulation"
             >
               <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Excluir</span>
             </Button>
           )}
         </div>
