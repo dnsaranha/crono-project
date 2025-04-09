@@ -72,14 +72,14 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
                 <div className="space-y-2">
                   <Label htmlFor="project">Projeto Associado</Label>
                   <Select 
-                    value={newItem.target_project_id || ''} 
-                    onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value })}
+                    value={newItem.target_project_id || 'none'} 
+                    onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger id="project">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem projeto</SelectItem>
+                      <SelectItem value="none">Sem projeto</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
@@ -172,14 +172,14 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
             <div className="space-y-2">
               <Label htmlFor="project">Projeto Associado</Label>
               <Select 
-                value={newItem.target_project_id || ''} 
-                onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value })}
+                value={newItem.target_project_id || 'none'} 
+                onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? '' : value })}
               >
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Selecione um projeto (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem projeto</SelectItem>
+                  <SelectItem value="none">Sem projeto</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ interface InviteFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  onComplete?: () => void; // Adicionando a prop opcional onComplete
+  onComplete?: () => void; 
 }
 
 export function InviteForm({ open, onOpenChange, projectId, onComplete }: InviteFormProps) {
@@ -51,7 +52,7 @@ export function InviteForm({ open, onOpenChange, projectId, onComplete }: Invite
         .select('id')
         .eq('project_id', projectId)
         .eq('user_id', profileData.id)
-        .single();
+        .maybeSingle();
       
       if (existingMember) {
         toast({

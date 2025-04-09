@@ -45,8 +45,8 @@ export function BacklogPromoteContent({
           Selecione o Projeto
         </label>
         <Select
-          value={selectedItem.target_project_id || ""}
-          onValueChange={handleProjectChange}
+          value={selectedItem.target_project_id || "none"}
+          onValueChange={(value) => handleProjectChange(value === 'none' ? '' : value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecione um projeto" />

@@ -101,15 +101,15 @@ export function BacklogEditForm({
         <Label htmlFor="project">Projeto Associado</Label>
         <Select
           disabled={disabled}
-          value={selectedItem.target_project_id || ''}
-          onValueChange={(value) => handleSelectChange('target_project_id', value)}
+          value={selectedItem.target_project_id || 'none'}
+          onValueChange={(value) => handleSelectChange('target_project_id', value === 'none' ? '' : value)}
         >
           <SelectTrigger id="project">
             <SelectValue placeholder="Selecione um projeto" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="">Nenhum</SelectItem>
+              <SelectItem value="none">Nenhum</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
