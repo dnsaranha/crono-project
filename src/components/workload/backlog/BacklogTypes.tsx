@@ -12,8 +12,9 @@ export interface BacklogItem {
 }
 
 export interface BacklogManagerProps {
-  projects: any[];
-  onItemConverted?: () => void;
+  projects?: any[];
+  projectId?: string; // Adicionando projectId como opção
+  onItemConverted?: () => Promise<void>;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;

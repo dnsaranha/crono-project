@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMobile } from "@/hooks/use-mobile";
-import { BacklogManagerProps } from "./BacklogTypes";
+import { BacklogItem, BacklogManagerProps } from "./BacklogTypes";
 import { BacklogFilters } from "./BacklogFilters";
 import { BacklogItemsTable } from "./BacklogItemsTable";
 import { BacklogEditModal } from "./BacklogEditModal";
@@ -33,12 +33,8 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
     updateBacklogItem,
     isEditingDialogOpen,
     isPromotingDialogOpen,
-    setIsCreatingDialogOpen,
     promoteToTask,
-    projects,
-    // Use the proper property names based on the context
-    setIsEditingDialogOpen: setIsOpen,
-    setIsPromotingDialogOpen: setIsPromotingIsOpen
+    projects
   } = useBacklog();
   
   const { isMobile } = useMobile();
@@ -103,6 +99,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
 
 export function BacklogManager({ 
   projects, 
+  projectId,
   onItemConverted,
   canCreate = true,
   canEdit = true, 
@@ -111,7 +108,11 @@ export function BacklogManager({
   return (
     <div className="space-y-6">
       <Card>
-        <BacklogProvider projects={projects} onItemConverted={onItemConverted}>
+        <BacklogProvider 
+          projects={projects} 
+          projectId={projectId}
+          onItemConverted={onItemConverted}
+        >
           <BacklogContent canEdit={canEdit} canDelete={canDelete} />
         </BacklogProvider>
       </Card>
