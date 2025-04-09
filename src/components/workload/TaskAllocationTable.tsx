@@ -56,10 +56,10 @@ export function TaskAllocationTable({
     return project ? project.name : "Projeto Desconhecido";
   };
 
-  // Get member name by ID
+  // Get member name by ID - Corrigido para buscar o nome corretamente
   const getMemberName = (userId: string) => {
-    const member = members.find(m => m.id === userId);
-    return member ? member.name : "Usuário";
+    const member = members.find(m => m.user_id === userId);
+    return member ? member.name : "Não atribuído";
   };
 
   // Get priority display info
@@ -198,7 +198,7 @@ export function TaskAllocationTable({
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30 min-w-8 text-center">
-                                    {getMemberName(assigneeId).split(' ')[0] || "Usuário"}
+                                    {getMemberName(assigneeId).split(' ')[0]}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>

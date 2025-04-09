@@ -137,7 +137,7 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
       const projectIds = uniqueProjects.map(p => p.id) || [];
 
       if (projectIds.length > 0) {
-        // Fetch members for all projects user has access to
+        // Fetch members for all projects user has access to - Corrigido para incluir user_id
         const { data: memberData, error: memberError } = await supabase
           .from('project_members')
           .select(`
@@ -156,7 +156,7 @@ export function WorkloadDashboardProvider({ children }: { children: ReactNode })
 
         const formattedMembers = memberData?.map(member => ({
           id: member.id,
-          user_id: member.user_id,
+          user_id: member.user_id,  // Garantindo que o user_id seja incluído
           project_id: member.project_id,
           name: member.profiles.full_name || member.profiles.email,
           email: member.profiles.email

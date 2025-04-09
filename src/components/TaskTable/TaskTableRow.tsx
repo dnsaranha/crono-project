@@ -29,10 +29,10 @@ const TaskTableRow = ({
   const { getPriorityInfo } = usePriorityInfo();
   const priorityInfo = getPriorityInfo(task.priority);
   
-  // Helper to get member name from user ID
+  // Helper para obter o nome do membro a partir do ID do usuário - Corrigido
   const getMemberName = (userId: string) => {
     const member = projectMembers.find(m => m.id === userId);
-    return member ? member.name : "Usuário";
+    return member ? member.name : "Não atribuído";
   };
   
   return (
@@ -118,7 +118,7 @@ const TaskTableRow = ({
             )}
           </div>
         ) : (
-          <span className="text-gray-400 text-xs">Nenhum</span>
+          <span className="text-gray-400 text-xs">Não atribuído</span>
         )}
       </TableCell>
       <TableCell className="dark-mode-fix">
