@@ -2,13 +2,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useWorkloadDashboard } from "@/contexts/WorkloadDashboardContext";
-import { WorkloadOverview } from "./WorkloadOverview";
 import { RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { WorkloadAllocationView } from "./workload-allocation/WorkloadAllocationView";
 
 export function WorkloadOverviewContent() {
-  const { tasks, members, projects, refreshData, loading, userRole } = useWorkloadDashboard();
+  const { tasks, members, projects, refreshData, loading, userRole, canEdit, canDelete } = useWorkloadDashboard();
   
   if (!userRole) {
     return (
@@ -37,10 +37,12 @@ export function WorkloadOverviewContent() {
         <span className="xs:hidden">Atualizar</span>
       </Button>
       
-      <WorkloadOverview 
+      <WorkloadAllocationView
         projects={projects}
         members={members}
         tasks={tasks}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     </>
   );

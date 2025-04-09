@@ -1,103 +1,109 @@
 
+import React from 'react';
+
+// Definição do item de backlog
 export interface BacklogItem {
   id: string;
   title: string;
-  description: string | null;
+  description: string;
   priority: number;
   status: 'pending' | 'in_progress' | 'done' | 'converted';
   created_at: string;
-  target_project_id?: string | null;
+  target_project_id: string | null;
   creator_id: string;
   creator_name?: string;
+  updated_at: string;
 }
 
-export interface BacklogManagerProps {
+// Props para o componente BacklogEditForm
+export interface BacklogEditFormProps {
+  selectedItem: BacklogItem;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleSelectChange: (name: string, value: string) => void;
+}
+
+// Props para ações de edição
+export interface BacklogEditActionsProps {
+  onCancel: () => void;
+  onSave: () => Promise<void>;
+}
+
+// Props para o modal de edição
+export interface BacklogEditModalProps {
+  selectedItem: BacklogItem;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem>>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  updateBacklogItem?: () => Promise<void>;
+  isMobile: boolean;
+  onSave?: () => Promise<void>;
+}
+
+// Props para o conteúdo de promoção
+export interface BacklogPromoteContentProps {
+  selectedItem: BacklogItem;
   projects: any[];
-  onItemConverted?: () => void;
-  canCreate?: boolean;
-  canEdit?: boolean;
-  canDelete?: boolean;
+  getPriorityInfo: (priority: number) => { color: string; label: string };
 }
 
+// Props para ações de promoção
+export interface BacklogPromoteActionsProps {
+  onCancel: () => void;
+  onPromote: () => Promise<void>;
+}
+
+// Props para o modal de promoção
+export interface BacklogPromoteModalProps {
+  selectedItem: BacklogItem;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem>>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  promoteToTask?: () => Promise<void>;
+  projects: any[];
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  isMobile: boolean;
+  onPromote?: () => Promise<void>;
+}
+
+// Props para a tabela de itens
 export interface BacklogItemsTableProps {
-  // Original properties
   filteredItems?: BacklogItem[];
-  loading: boolean;
-  getPriorityInfo?: (priority: number) => { color: string; label: string };
-  getStatusInfo?: (status: string) => { color: string; label: string };
-  formatDate?: (dateString: string) => string;
+  loading?: boolean;
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  getStatusInfo: (status: string) => { color: string; label: string };
+  formatDate: (dateString: string) => string;
   getProjectName: (projectId: string) => string;
-  setSelectedItem?: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  setIsEditingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPromotingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedItem?: React.Dispatch<React.SetStateAction<BacklogItem>>;
+  setIsEditingDialogOpen?: (isOpen: boolean) => void;
+  setIsPromotingDialogOpen?: (isOpen: boolean) => void;
   deleteBacklogItem?: (id: string) => Promise<void>;
   canEdit?: boolean;
   canDelete?: boolean;
-  // Alternative property pattern
-  items?: BacklogItem[]; 
+  // Compatibilidade com o padrão de props alternativo
+  items?: BacklogItem[];
   onEdit?: (item: BacklogItem) => void;
   onPromote?: (item: BacklogItem) => void;
   onDelete?: (id: string) => Promise<void>;
 }
 
-export interface BacklogEditModalProps {
-  selectedItem: BacklogItem | null;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  updateBacklogItem?: () => Promise<void>;
-  isMobile: boolean;
-  // Alternative property pattern
-  onSave?: () => Promise<void>;
-}
-
-export interface BacklogPromoteModalProps {
-  selectedItem: BacklogItem | null;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  isOpen: boolean;
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  promoteToTask?: () => Promise<void>;
-  projects: any[];
-  getPriorityInfo?: (priority: number) => { color: string; label: string };
-  isMobile: boolean;
-  // Alternative property pattern
-  onPromote?: () => Promise<void>;
-}
-
-export interface BacklogContextType {
-  backlogItems: BacklogItem[];
-  loading: boolean;
-  filterStatus: string;
-  setFilterStatus: (status: string) => void;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  sortField: string;
-  setSortField: (field: string) => void;
-  sortDirection: string;
-  setSortDirection: (direction: string) => void;
-  selectedItem: BacklogItem | null;
-  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
-  newItem: Partial<BacklogItem>;
-  setNewItem: React.Dispatch<React.SetStateAction<Partial<BacklogItem>>>;
-  loadBacklogItems: () => Promise<void>;
-  createBacklogItem: () => Promise<void>;
-  updateBacklogItem: () => Promise<void>;
-  deleteBacklogItem: (id: string) => Promise<void>;
-  promoteToTask: () => Promise<void>;
-  filteredItems: BacklogItem[];
-  isCreatingDialogOpen: boolean;
-  setIsCreatingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isEditingDialogOpen: boolean;
-  setIsEditingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isPromotingDialogOpen: boolean;
-  setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  projects: any[];
-  onItemConverted?: () => void;
-  getProjectName: (projectId: string) => string;
-  // Add the properties that were causing errors
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  getStatusInfo: (status: string) => { color: string; label: string };
+// Props para a linha de item
+export interface BacklogItemRowProps {
+  item: BacklogItem;
   getPriorityInfo: (priority: number) => { color: string; label: string };
+  getStatusInfo: (status: string) => { color: string; label: string };
+  getProjectName: (projectId: string) => string;
   formatDate: (dateString: string) => string;
+  onEdit: (item: BacklogItem) => void;
+  onPromote: (item: BacklogItem) => void;
+  onDelete: (id: string) => Promise<void>;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+export interface BacklogManagerProps {
+  projects: any[];
+  onItemConverted?: () => Promise<void>;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }

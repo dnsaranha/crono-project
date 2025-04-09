@@ -32,7 +32,7 @@ export function BacklogPromoteModal({
 }: BacklogPromoteModalProps) {
   if (!selectedItem) return null;
 
-  // Handler that works with both property patterns
+  // Função que suporta ambos os padrões de propriedades
   const handlePromote = async () => {
     if (onPromote) {
       await onPromote();
@@ -41,10 +41,7 @@ export function BacklogPromoteModal({
     }
   };
   
-  const handleProjectChange = (projectId: string) => {
-    setSelectedItem(prev => prev ? { ...prev, target_project_id: projectId } : null);
-  };
-  
+  // Versão para dispositivos móveis
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
@@ -52,49 +49,48 @@ export function BacklogPromoteModal({
           <DrawerHeader>
             <DrawerTitle>Converter para Tarefa</DrawerTitle>
             <DrawerDescription>
-              Converta este item do backlog em uma tarefa de projeto
+              Transforme este item de backlog em uma tarefa do projeto
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4">
-            <BacklogPromoteContent 
+          <div className="p-4 pb-0">
+            <BacklogPromoteContent
               selectedItem={selectedItem}
               projects={projects}
               getPriorityInfo={getPriorityInfo}
-              handleProjectChange={handleProjectChange}
             />
           </div>
-          <DrawerFooter>
-            <BacklogPromoteActions 
-              onCancel={() => setIsOpen(false)}
-              onPromote={handlePromote}
-              isDisabled={!selectedItem.target_project_id}
-            />
+          <DrawerFooter className="pt-2">
+            <div className="flex justify-end gap-2 w-full">
+              <BacklogPromoteActions 
+                onCancel={() => setIsOpen(false)} 
+                onPromote={handlePromote} 
+              />
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
   }
   
+  // Versão para desktop
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Converter para Tarefa</DialogTitle>
           <DialogDescription>
-            Converta este item do backlog em uma tarefa de projeto
+            Transforme este item de backlog em uma tarefa do projeto
           </DialogDescription>
         </DialogHeader>
-        <BacklogPromoteContent 
+        <BacklogPromoteContent
           selectedItem={selectedItem}
           projects={projects}
           getPriorityInfo={getPriorityInfo}
-          handleProjectChange={handleProjectChange}
         />
         <div className="flex justify-end gap-2 mt-4">
           <BacklogPromoteActions 
-            onCancel={() => setIsOpen(false)}
-            onPromote={handlePromote}
-            isDisabled={!selectedItem.target_project_id}
+            onCancel={() => setIsOpen(false)} 
+            onPromote={handlePromote} 
           />
         </div>
       </DialogContent>

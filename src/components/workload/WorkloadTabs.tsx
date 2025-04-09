@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, ListTodo } from "lucide-react";
+import { Calendar, ListTodo, BarChart } from "lucide-react";
 import { WorkloadOverviewContent } from "./WorkloadOverviewContent";
 import { BacklogContent } from "./BacklogContent";
 
@@ -15,7 +15,7 @@ export function WorkloadTabs({ selectedTab, onTabChange }: WorkloadTabsProps) {
     <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
       <TabsList className="grid w-full max-w-md grid-cols-2 mb-6 touch-manipulation h-[50px]">
         <TabsTrigger value="overview" className="h-full py-3 touch-manipulation">
-          <Calendar className="h-4 w-4 mr-2" />
+          <BarChart className="h-4 w-4 mr-2" />
           <span className="hidden xs:inline">Carga de Trabalho</span>
           <span className="xs:hidden">Carga</span>
         </TabsTrigger>
