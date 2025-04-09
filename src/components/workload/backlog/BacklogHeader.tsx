@@ -7,10 +7,10 @@ import { useBacklog } from "./BacklogContext";
 
 interface BacklogHeaderProps {
   isMobile: boolean;
-  canCreate: boolean;
+  canCreate?: boolean;
 }
 
-export function BacklogHeader({ isMobile, canCreate }: BacklogHeaderProps) {
+export function BacklogHeader({ isMobile, canCreate = true }: BacklogHeaderProps) {
   const { filteredItems } = useBacklog();
 
   return (

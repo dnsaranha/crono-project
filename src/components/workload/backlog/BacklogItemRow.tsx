@@ -1,135 +1,182 @@
 
 import React from 'react';
-import { TableCell, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Pencil, Trash2 } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  Trash2,
+  ArrowUpRight,
+  LocateIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useBacklog } from './BacklogContext';
-import { BacklogItem } from './BacklogTypes';
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate } from "./BacklogUtils";
+import { useBacklog } from "./BacklogContext";
 
 interface BacklogItemRowProps {
-  item: BacklogItem;
+  id: string;
+  title: string;
+  description: string | null;
+  priority: number;
+  status: string;
+  created_at: string;
+  target_project_id?: string | null;
+  creator_id: string;
+  creator_name?: string;
   getPriorityInfo: (priority: number) => { color: string; label: string };
   getStatusInfo: (status: string) => { color: string; label: string };
   getProjectName: (projectId: string) => string;
-  formatDate: (dateString: string) => string;
-  onEdit: (item: BacklogItem) => void;
-  onPromote: (item: BacklogItem) => void;
-  onDelete: (id: string) => Promise<void>;
+  onEdit: () => void;
+  onPromote: () => void;
+  onDelete: () => Promise<void>;
   canEdit?: boolean;
   canDelete?: boolean;
 }
 
 export function BacklogItemRow({
-  item,
+  id,
+  title,
+  description,
+  priority,
+  status,
+  created_at,
+  target_project_id,
+  creator_id,
+  creator_name,
   getPriorityInfo,
   getStatusInfo,
   getProjectName,
-  formatDate,
   onEdit,
   onPromote,
   onDelete,
   canEdit = true,
-  canDelete = true
+  canDelete = true,
 }: BacklogItemRowProps) {
-  // Usar o hook para obter o contexto com as novas funções de permissão
+  const priorityInfo = getPriorityInfo(priority);
+  const statusInfo = getStatusInfo(status);
+  const formattedDate = formatDate(created_at);
   const { canUserEdit, canUserDelete } = useBacklog();
   
-  // Verificar se este item específico pode ser editado/excluído pelo usuário atual
-  const canEditThisItem = canEdit && canUserEdit(item);
-  const canDeleteThisItem = canDelete && canUserDelete(item);
+  // Verificar se o usuário tem permissão para editar e excluir este item específico
+  const hasEditPermission = canUserEdit({ id, title, description, priority, status, created_at, target_project_id, creator_id, creator_name });
+  const hasDeletePermission = canUserDelete({ id, title, description, priority, status, created_at, target_project_id, creator_id, creator_name });
   
-  const priorityInfo = getPriorityInfo(item.priority);
-  const statusInfo = getStatusInfo(item.status);
+  // Permissões efetivas (combinando permissões da página e específicas do item)
+  const effectiveCanEdit = canEdit && hasEditPermission;
+  const effectiveCanDelete = canDelete && hasDeletePermission;
   
+  // Determinar se o item pode ser promovido (apenas itens pendentes ou em progresso)
+  const canPromote = status !== 'converted' && status !== 'done' && effectiveCanEdit;
+
   return (
-    <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-      <TableCell className="py-3 font-medium">
-        {item.title}
-        {item.description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
-            {item.description}
-          </p>
+    <tr className="border-b hover:bg-muted/50">
+      <td className="py-3 px-4">
+        <div className="font-medium">{title}</div>
+        {description && (
+          <div className="text-sm text-muted-foreground line-clamp-1">
+            {description}
+          </div>
         )}
-      </TableCell>
-      
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${priorityInfo.color}`} />
-          <span className="text-xs">{priorityInfo.label}</span>
-        </div>
-      </TableCell>
-      
-      <TableCell>
-        <Badge variant="outline" className={`${statusInfo.color} px-2 py-0.5`}>
+      </td>
+      <td className="py-3 px-4">
+        <Badge className={`bg-${priorityInfo.color}-100 text-${priorityInfo.color}-800 hover:bg-${priorityInfo.color}-200`}>
+          {priorityInfo.label}
+        </Badge>
+      </td>
+      <td className="py-3 px-4">
+        <Badge className={`bg-${statusInfo.color}-100 text-${statusInfo.color}-800 hover:bg-${statusInfo.color}-200`}>
           {statusInfo.label}
         </Badge>
-      </TableCell>
-      
-      <TableCell>
-        {item.target_project_id ? (
-          <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30">
-            {getProjectName(item.target_project_id)}
-          </Badge>
+      </td>
+      <td className="py-3 px-4">
+        {target_project_id ? (
+          <div className="flex items-center gap-1">
+            <LocateIcon className="h-3 w-3" />
+            <span>{getProjectName(target_project_id)}</span>
+          </div>
         ) : (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Não definido</span>
+          <span className="text-muted-foreground">Não atribuído</span>
         )}
-      </TableCell>
-      
-      <TableCell>
-        <span className="text-sm text-gray-600 dark:text-gray-300">
-          {item.creator_name || "Usuário"}
-        </span>
-      </TableCell>
-      
-      <TableCell>
-        <span className="text-sm text-gray-600 dark:text-gray-300">
-          {formatDate(item.created_at)}
-        </span>
-      </TableCell>
-      
-      <TableCell>
-        <div className="flex items-center gap-2 justify-end">
-          {canEditThisItem && item.status !== 'converted' && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onEdit(item)}
-              className="h-8 w-8 p-0" 
-              title="Editar"
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Editar</span>
+      </td>
+      <td className="py-3 px-4">{formattedDate}</td>
+      <td className="py-3 px-4">{creator_name || "Usuário"}</td>
+      <td className="py-3 px-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Abrir menu</span>
+              <MoreVertical className="h-4 w-4" />
             </Button>
-          )}
-          
-          {canEditThisItem && item.status !== 'converted' && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onPromote(item)} 
-              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400"
-              title="Converter para tarefa"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              <span className="sr-only">Converter para tarefa</span>
-            </Button>
-          )}
-          
-          {canDeleteThisItem && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onDelete(item.id)} 
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-800 dark:text-red-500 dark:hover:text-red-400"
-              title="Excluir"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Excluir</span>
-            </Button>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {effectiveCanEdit && (
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+            )}
+            {canPromote && (
+              <DropdownMenuItem onClick={onPromote}>
+                <ArrowUpRight className="mr-2 h-4 w-4" />
+                Promover para Tarefa
+              </DropdownMenuItem>
+            )}
+            {effectiveCanDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir
+                </DropdownMenuItem>
+              </>
+            )}
+            {!effectiveCanEdit && !effectiveCanDelete && (
+              <DropdownMenuItem disabled>
+                Você não tem permissões
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
+  );
+}
+
+export function BacklogItemRowSkeleton() {
+  return (
+    <tr className="border-b">
+      <td className="py-3 px-4">
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-4 w-3/4 mt-2" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-6 w-20" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-6 w-24" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-5 w-32" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-5 w-24" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-5 w-20" />
+      </td>
+      <td className="py-3 px-4">
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </td>
+    </tr>
   );
 }

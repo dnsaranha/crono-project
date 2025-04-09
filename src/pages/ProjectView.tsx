@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, Outlet, Link, useNavigate } from "react-router-dom";
@@ -32,6 +33,7 @@ export default function ProjectView() {
   const [isOwnerOrAdmin, setIsOwnerOrAdmin] = useState(false);
   const [hasEditPermission, setHasEditPermission] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<ProfileInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("gantt");
   const { tasks, batchUpdateTasks } = useTasks();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -202,7 +204,12 @@ export default function ProjectView() {
         </div>
       </div>
       
-      <Tabs defaultValue="gantt" className="w-full">
+      <Tabs 
+        defaultValue="gantt" 
+        value={activeTab}
+        onValueChange={setActiveTab} 
+        className="w-full"
+      >
         <TabsList className="mb-6 flex overflow-x-auto touch-pan-x pb-1 scrollbar-none">
           <TabsTrigger value="gantt" asChild>
             <Link to={`/project/${projectId}/gantt`}>Gantt</Link>
@@ -223,7 +230,14 @@ export default function ProjectView() {
             <Link to={`/project/${projectId}/critical-path`}>Caminho Crítico</Link>
           </TabsTrigger>
           <TabsTrigger value="team" asChild>
-            <Link to={`/project/${projectId}/team`}>Equipe</Link>
+            <Link to={`/project/${projectId}/team`} onClick={() => setActiveTab("team")}>
+              Equipe
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="backlog" asChild>
+            <Link to={`/project/${projectId}/backlog`} onClick={() => setActiveTab("backlog")}>
+              Backlog
+            </Link>
           </TabsTrigger>
         </TabsList>
         
@@ -253,6 +267,10 @@ export default function ProjectView() {
         
         <TabsContent value="critical-path" className="border-none p-0">
           <Outlet context={{ hasEditPermission }} />
+        </TabsContent>
+        
+        <TabsContent value="backlog" className="border-none p-0">
+          <Outlet context={{ hasEditPermission, isOwnerOrAdmin, projectId }} />
         </TabsContent>
       </Tabs>
     </div>

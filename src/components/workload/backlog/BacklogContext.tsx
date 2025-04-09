@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -23,7 +22,7 @@ interface BacklogContextType {
   loadBacklogItems: () => Promise<void>;
   createBacklogItem: () => Promise<void>;
   updateBacklogItem: () => Promise<void>;
-  deleteBacklogItem: (id: string) => Promise<void>;
+  deleteBacklogItem: () => Promise<void>;
   promoteToTask: () => Promise<void>;
   filteredItems: BacklogItem[];
   isCreatingDialogOpen: boolean;
@@ -35,7 +34,6 @@ interface BacklogContextType {
   projects: any[];
   onItemConverted?: () => void;
   getProjectName: (projectId: string) => string;
-  // Add the missing properties
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   getStatusInfo: (status: string) => { color: string; label: string };
@@ -87,6 +85,7 @@ export function BacklogProvider({
   const [isEditingDialogOpen, setIsEditingDialogOpen] = useState(false);
   const [isPromotingDialogOpen, setIsPromotingDialogOpen] = useState(false);
   const [userRoleMap, setUserRoleMap] = useState<Record<string, string>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Add aliases for backward compatibility
   const setIsOpen = setIsEditingDialogOpen;
@@ -104,6 +103,8 @@ export function BacklogProvider({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setCurrentUserId(user.id);
 
       const { data: memberRoles, error } = await supabase
         .from('project_members')
@@ -132,9 +133,9 @@ export function BacklogProvider({
   };
   
   // Verificações de permissão baseadas no papel do usuário e criador do item
-  const canUserEdit = (item: BacklogItem) => {
+  const canUserEdit = (item: BacklogItem): boolean => {
     // Criador sempre pode editar
-    if (item.creator_id === supabase.auth.getUser().then(({ data }) => data.user?.id)) {
+    if (item.creator_id === currentUserId) {
       return true;
     }
     
@@ -143,9 +144,9 @@ export function BacklogProvider({
     return role === 'admin' || role === 'editor' || role === 'owner';
   };
   
-  const canUserDelete = (item: BacklogItem) => {
+  const canUserDelete = (item: BacklogItem): boolean => {
     // Criador sempre pode excluir
-    if (item.creator_id === supabase.auth.getUser().then(({ data }) => data.user?.id)) {
+    if (item.creator_id === currentUserId) {
       return true;
     }
     

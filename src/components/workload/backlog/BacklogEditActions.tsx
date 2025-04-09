@@ -5,38 +5,21 @@ import { Button } from "@/components/ui/button";
 interface BacklogEditActionsProps {
   onCancel: () => void;
   onSave: () => Promise<void>;
+  disabled?: boolean;
 }
 
-export function BacklogEditActions({
-  onCancel,
-  onSave
+export function BacklogEditActions({ 
+  onCancel, 
+  onSave,
+  disabled = false 
 }: BacklogEditActionsProps) {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      await onSave();
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
   return (
     <>
-      <Button 
-        variant="outline" 
-        onClick={onCancel} 
-        className="min-w-24 h-11 touch-manipulation"
-      >
+      <Button variant="outline" onClick={onCancel}>
         Cancelar
       </Button>
-      <Button 
-        onClick={handleSave}
-        disabled={isSaving}
-        className="min-w-24 h-11 touch-manipulation"
-      >
-        {isSaving ? "Salvando..." : "Salvar"}
+      <Button onClick={onSave} disabled={disabled}>
+        Salvar
       </Button>
     </>
   );

@@ -29,9 +29,12 @@ export function BacklogEditModal({
   isMobile,
   onSave
 }: BacklogEditModalProps) {
-  const { projects } = useBacklog();
+  const { projects, canUserEdit } = useBacklog();
   
   if (!selectedItem) return null;
+  
+  // Verificar se o usuário pode editar este item
+  const canEdit = canUserEdit(selectedItem);
   
   // Handler that works with both property patterns
   const handleSave = async () => {
@@ -77,13 +80,15 @@ export function BacklogEditModal({
               handleInputChange={handleInputChange}
               handleSelectChange={handleSelectChange}
               projects={projects}
+              disabled={!canEdit}
             />
           </div>
           <DrawerFooter className="pt-2">
             <div className="flex justify-end gap-2 w-full">
               <BacklogEditActions 
                 onCancel={() => setIsOpen(false)} 
-                onSave={handleSave} 
+                onSave={handleSave}
+                disabled={!canEdit}
               />
             </div>
           </DrawerFooter>
@@ -99,6 +104,11 @@ export function BacklogEditModal({
           <DialogTitle>Editar Item</DialogTitle>
           <DialogDescription>
             Altere os detalhes deste item do backlog
+            {!canEdit && (
+              <div className="mt-2 text-yellow-600">
+                Você não tem permissão para editar este item. Solicite ao criador ou administrador do projeto.
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         <BacklogEditForm
@@ -106,11 +116,13 @@ export function BacklogEditModal({
           handleInputChange={handleInputChange}
           handleSelectChange={handleSelectChange}
           projects={projects}
+          disabled={!canEdit}
         />
         <div className="flex justify-end gap-2 mt-4">
           <BacklogEditActions 
             onCancel={() => setIsOpen(false)} 
-            onSave={handleSave} 
+            onSave={handleSave}
+            disabled={!canEdit}
           />
         </div>
       </DialogContent>
