@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,120 +11,93 @@ import {
   Drawer,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { BacklogEditModalProps } from "./BacklogTypes";
 import { BacklogEditForm } from "./BacklogEditForm";
 import { BacklogEditActions } from "./BacklogEditActions";
-import { useBacklog } from './BacklogContext';
+import { BacklogItem } from "./BacklogTypes";
+import { useBacklog } from "./BacklogContext";
+
+interface BacklogEditModalProps {
+  selectedItem: BacklogItem | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  updateBacklogItem?: () => Promise<void>;
+  isMobile: boolean;
+}
 
 export function BacklogEditModal({
-  selectedItem,
-  setSelectedItem,
   isOpen,
   setIsOpen,
-  updateBacklogItem,
-  isMobile,
-  onSave
+  isMobile
 }: BacklogEditModalProps) {
-  const { projects, canUserEdit } = useBacklog();
-  
-  if (!selectedItem) return null;
-  
-  // Verificar se o usuário pode editar este item
-  const canEdit = canUserEdit(selectedItem);
-  
-  // Handler that works with both property patterns
-  const handleSave = async () => {
-    if (onSave) {
-      await onSave();
-    } else if (updateBacklogItem) {
+  const {
+    selectedItem,
+    setSelectedItem,
+    updateBacklogItem,
+    canUserEdit
+  } = useBacklog();
+
+  // Se não houver item selecionado ou não tiver permissão para editar, não renderiza nada
+  if (!selectedItem) {
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (updateBacklogItem) {
       await updateBacklogItem();
     }
   };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setSelectedItem(prev => prev ? { ...prev, [name]: value } : null);
-  };
-  
-  const handleSelectChange = (name: string, value: string) => {
-    setSelectedItem(prev => {
-      if (!prev) return null;
-      
-      // Convert priority to number
-      if (name === 'priority') {
-        return { ...prev, [name]: Number(value) };
-      }
-      
-      // Handle other fields as strings
-      return { ...prev, [name]: value };
-    });
-  };
-  
+
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Editar Item</DrawerTitle>
-            <DrawerDescription>
-              Altere os detalhes deste item do backlog
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 pb-0">
-            <BacklogEditForm
-              selectedItem={selectedItem}
-              handleInputChange={handleInputChange}
-              handleSelectChange={handleSelectChange}
-              projects={projects}
-              disabled={!canEdit}
-            />
-          </div>
-          <DrawerFooter className="pt-2">
-            <div className="flex justify-end gap-2 w-full">
-              <BacklogEditActions 
-                onCancel={() => setIsOpen(false)} 
-                onSave={handleSave}
-                disabled={!canEdit}
+          <form onSubmit={handleSubmit}>
+            <DrawerHeader>
+              <DrawerTitle>Editar Item do Backlog</DrawerTitle>
+              <DrawerDescription>
+                Edite os detalhes deste item do backlog
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4 pb-0">
+              <BacklogEditForm
+                selectedItem={selectedItem}
+                setSelectedItem={setSelectedItem}
               />
             </div>
-          </DrawerFooter>
+            <div className="p-4 mt-2">
+              <BacklogEditActions
+                setIsOpen={setIsOpen}
+              />
+            </div>
+          </form>
         </DrawerContent>
       </Drawer>
     );
   }
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Editar Item</DialogTitle>
-          <DialogDescription>
-            Altere os detalhes deste item do backlog
-            {!canEdit && (
-              <div className="mt-2 text-yellow-600">
-                Você não tem permissão para editar este item. Solicite ao criador ou administrador do projeto.
-              </div>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        <BacklogEditForm
-          selectedItem={selectedItem}
-          handleInputChange={handleInputChange}
-          handleSelectChange={handleSelectChange}
-          projects={projects}
-          disabled={!canEdit}
-        />
-        <div className="flex justify-end gap-2 mt-4">
-          <BacklogEditActions 
-            onCancel={() => setIsOpen(false)} 
-            onSave={handleSave}
-            disabled={!canEdit}
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Editar Item do Backlog</DialogTitle>
+            <DialogDescription>
+              Edite os detalhes deste item do backlog
+            </DialogDescription>
+          </DialogHeader>
+          <BacklogEditForm
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
           />
-        </div>
+          <BacklogEditActions
+            setIsOpen={setIsOpen}
+          />
+        </form>
       </DialogContent>
     </Dialog>
   );

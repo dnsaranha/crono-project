@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BacklogItem } from './BacklogTypes';
@@ -5,7 +6,7 @@ import { BacklogItem } from './BacklogTypes';
 interface BacklogContextProps {
   children: React.ReactNode;
   projects?: any[];
-  projectId?: string; // Adicionando projectId como uma opção
+  projectId?: string;
   onItemConverted?: () => Promise<void>;
 }
 
@@ -17,28 +18,32 @@ interface BacklogContextValue {
   sortField: string;
   sortDirection: 'asc' | 'desc';
   searchQuery: string;
-  selectedItem: BacklogItem;
+  selectedItem: BacklogItem | null;
   isEditingDialogOpen: boolean;
   isPromotingDialogOpen: boolean;
   isCreatingDialogOpen: boolean;
   projects: any[];
+  newItem: Partial<BacklogItem>;
+  setNewItem: React.Dispatch<React.SetStateAction<Partial<BacklogItem>>>;
   setFilterStatus: (status: string) => void;
   setSortField: (field: string) => void;
   setSortDirection: (direction: 'asc' | 'desc') => void;
   setSearchQuery: (query: string) => void;
-  setSelectedItem: (item: BacklogItem) => void;
+  setSelectedItem: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   setIsEditingDialogOpen: (isOpen: boolean) => void;
   setIsPromotingDialogOpen: (isOpen: boolean) => void;
   setIsCreatingDialogOpen: (isOpen: boolean) => void;
   loadBacklogItems: () => Promise<void>;
-  createBacklogItem: (item: Partial<BacklogItem>) => Promise<BacklogItem | null>;
-  updateBacklogItem: (item: BacklogItem) => Promise<BacklogItem | null>;
+  createBacklogItem: () => Promise<void>;
+  updateBacklogItem: () => Promise<void>;
   deleteBacklogItem: (id: string) => Promise<void>;
-  promoteToTask: (item: BacklogItem) => Promise<boolean>;
+  promoteToTask: () => Promise<void>;
   getProjectName: (projectId: string | null | undefined) => string;
   getPriorityInfo: (priority: number) => { color: string; label: string };
   getStatusInfo: (status: string) => { color: string; label: string };
   formatDate: (dateString: string) => string;
+  canUserEdit: (item: BacklogItem) => boolean;
+  canUserDelete: (item: BacklogItem) => boolean;
 }
 
 const BacklogContext = createContext<BacklogContextValue | undefined>(undefined);
@@ -51,7 +56,14 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
   const [sortField, setSortField] = useState('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItem, setSelectedItem] = useState<BacklogItem>({} as BacklogItem);
+  const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
+  const [newItem, setNewItem] = useState<Partial<BacklogItem>>({
+    title: '',
+    description: '',
+    priority: 3,
+    status: 'pending',
+    target_project_id: projectId || null
+  });
   const [isEditingDialogOpen, setIsEditingDialogOpen] = useState(false);
   const [isPromotingDialogOpen, setIsPromotingDialogOpen] = useState(false);
   const [isCreatingDialogOpen, setIsCreatingDialogOpen] = useState(false);
@@ -107,11 +119,22 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
   };
 
   // Função para criar um novo item no backlog
-  const createBacklogItem = async (item: Partial<BacklogItem>) => {
+  const createBacklogItem = async () => {
     try {
+      // Verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+      
+      // Garantir que creator_id e title estão definidos
+      const itemToCreate = {
+        ...newItem,
+        creator_id: user.id,
+        title: newItem.title || "Novo Item" // Garantir que title não seja vazio
+      };
+      
       const { data, error } = await supabase
         .from('backlog_items')
-        .insert([item])
+        .insert(itemToCreate)
         .select('*')
         .single();
 
@@ -131,24 +154,36 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
         }
       }
 
-      const newItem = { ...data, creator_name };
+      const createdItem = { ...data, creator_name };
 
-      setItems(prevItems => [...prevItems, newItem]);
-      setFilteredItems(prevFilteredItems => [...prevFilteredItems, newItem]);
-      return newItem;
+      setItems(prevItems => [...prevItems, createdItem]);
+      setFilteredItems(prevFilteredItems => [...prevFilteredItems, createdItem]);
+      
+      // Limpar o formulário
+      setNewItem({
+        title: '',
+        description: '',
+        priority: 3,
+        status: 'pending',
+        target_project_id: projectId || null
+      });
+      
+      // Fechar o diálogo
+      setIsCreatingDialogOpen(false);
     } catch (error) {
       console.error('Erro ao criar item do backlog:', error);
-      return null;
     }
   };
 
   // Função para atualizar um item do backlog
-  const updateBacklogItem = async (item: BacklogItem) => {
+  const updateBacklogItem = async () => {
     try {
+      if (!selectedItem) return;
+      
       const { data, error } = await supabase
         .from('backlog_items')
-        .update(item)
-        .eq('id', item.id)
+        .update(selectedItem)
+        .eq('id', selectedItem.id)
         .select('*')
         .single();
 
@@ -171,15 +206,16 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
       const updatedItem = { ...data, creator_name };
 
       setItems(prevItems =>
-        prevItems.map(i => (i.id === item.id ? updatedItem : i))
+        prevItems.map(i => (i.id === selectedItem.id ? updatedItem : i))
       );
       setFilteredItems(prevFilteredItems =>
-        prevFilteredItems.map(i => (i.id === item.id ? updatedItem : i))
+        prevFilteredItems.map(i => (i.id === selectedItem.id ? updatedItem : i))
       );
-      return updatedItem;
+      
+      // Fechar o diálogo
+      setIsEditingDialogOpen(false);
     } catch (error) {
       console.error('Erro ao atualizar item do backlog:', error);
-      return null;
     }
   };
 
@@ -203,12 +239,14 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
   };
 
   // Função para promover um item do backlog para uma task
-  const promoteToTask = async (item: BacklogItem) => {
+  const promoteToTask = async () => {
     try {
+      if (!selectedItem) return;
+      
       // Verificar se o item já foi convertido
-      if (item.status === 'converted') {
+      if (selectedItem.status === 'converted') {
         console.warn('Item já foi convertido para tarefa.');
-        return false;
+        return;
       }
 
       // Criar a task com os dados do item do backlog
@@ -216,10 +254,10 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
         .from('tasks')
         .insert([
           {
-            name: item.title,
-            description: item.description,
-            project_id: item.target_project_id,
-            priority: item.priority,
+            name: selectedItem.title,
+            description: selectedItem.description,
+            project_id: selectedItem.target_project_id,
+            priority: selectedItem.priority,
             status: 'pending',
             start_date: new Date().toISOString().split('T')[0],
             duration: 1,
@@ -236,32 +274,46 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
       const { error: updateError } = await supabase
         .from('backlog_items')
         .update({ status: 'converted' })
-        .eq('id', item.id);
+        .eq('id', selectedItem.id);
 
       if (updateError) throw updateError;
 
       // Atualizar o estado local
       setItems(prevItems =>
         prevItems.map(i =>
-          i.id === item.id ? { ...i, status: 'converted' } : i
+          i.id === selectedItem.id ? { ...i, status: 'converted' } : i
         )
       );
       setFilteredItems(prevFilteredItems =>
         prevFilteredItems.map(i =>
-          i.id === item.id ? { ...i, status: 'converted' } : i
+          i.id === selectedItem.id ? { ...i, status: 'converted' } : i
         )
       );
 
+      // Fechar o diálogo
+      setIsPromotingDialogOpen(false);
+      
       // Chamar a função onItemConverted para atualizar a lista de tasks
       if (onItemConverted) {
         await onItemConverted();
       }
-
-      return true;
     } catch (error) {
       console.error('Erro ao promover item para tarefa:', error);
-      return false;
     }
+  };
+
+  // Verificação de permissões de edição
+  const canUserEdit = (item: BacklogItem) => {
+    // Por enquanto, permitimos que qualquer usuário edite qualquer item
+    // Esta função pode ser expandida para verificar se o usuário é o criador ou tem permissões específicas
+    return true;
+  };
+
+  // Verificação de permissões de exclusão
+  const canUserDelete = (item: BacklogItem) => {
+    // Por enquanto, permitimos que qualquer usuário delete qualquer item
+    // Esta função pode ser expandida para verificar se o usuário é o criador ou tem permissões específicas
+    return true;
   };
 
   // Função para aplicar filtros
@@ -305,8 +357,9 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
 
   // Função para obter o nome do projeto
   const getProjectName = (projectId: string | null | undefined) => {
+    if (!projectId) return 'Nenhum';
     const project = projects.find(p => p.id === projectId);
-    return project ? project.name : 'Nenhum';
+    return project ? project.name : 'Desconhecido';
   };
 
   const getPriorityInfo = (priority: number) => {
@@ -356,7 +409,7 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
 
   useEffect(() => {
     loadBacklogItems();
-  }, [projectId]); // Adicionar projectId como dependência para recarregar quando mudar
+  }, [projectId]);
 
   return (
     <BacklogContext.Provider value={{
@@ -368,6 +421,8 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
       sortDirection,
       searchQuery,
       selectedItem,
+      newItem,
+      setNewItem,
       isEditingDialogOpen,
       isPromotingDialogOpen,
       isCreatingDialogOpen,
@@ -388,7 +443,9 @@ export const BacklogProvider = ({ children, projects = [], projectId, onItemConv
       getProjectName,
       getPriorityInfo,
       getStatusInfo,
-      formatDate
+      formatDate,
+      canUserEdit,
+      canUserDelete
     }}>
       {children}
     </BacklogContext.Provider>

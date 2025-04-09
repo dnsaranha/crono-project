@@ -9,6 +9,7 @@ import { BacklogEditModal } from "./BacklogEditModal";
 import { BacklogPromoteModal } from "./BacklogPromoteModal";
 import { BacklogHeader } from "./BacklogHeader";
 import { BacklogProvider, useBacklog } from "./BacklogContext";
+import { BacklogCreateDialog } from "./BacklogCreateDialog";
 import { getStatusInfo, getPriorityInfo, formatDate } from "./BacklogUtils";
 
 function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolean, canDelete?: boolean }) {
@@ -30,10 +31,8 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
     setSearchQuery,
     loadBacklogItems,
     selectedItem,
-    updateBacklogItem,
     isEditingDialogOpen,
     isPromotingDialogOpen,
-    promoteToTask,
     projects
   } = useBacklog();
   
@@ -72,13 +71,15 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         />
       </CardContent>
       
+      {/* Create Dialog */}
+      <BacklogCreateDialog isMobile={isMobile} />
+      
       {/* Edit Modal */}
       <BacklogEditModal
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
         isOpen={isEditingDialogOpen}
         setIsOpen={setIsEditingDialogOpen}
-        updateBacklogItem={updateBacklogItem}
         isMobile={isMobile}
       />
       
@@ -88,7 +89,6 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
         setSelectedItem={setSelectedItem}
         isOpen={isPromotingDialogOpen}
         setIsOpen={setIsPromotingDialogOpen}
-        promoteToTask={promoteToTask}
         projects={projects}
         getPriorityInfo={getPriorityInfo}
         isMobile={isMobile}

@@ -13,7 +13,7 @@ export interface BacklogItem {
 
 export interface BacklogManagerProps {
   projects?: any[];
-  projectId?: string; // Adicionando projectId como opção
+  projectId?: string;
   onItemConverted?: () => Promise<void>;
   canCreate?: boolean;
   canEdit?: boolean;
@@ -27,7 +27,7 @@ export interface BacklogItemsTableProps {
   getPriorityInfo?: (priority: number) => { color: string; label: string };
   getStatusInfo?: (status: string) => { color: string; label: string };
   formatDate?: (dateString: string) => string;
-  getProjectName: (projectId: string) => string;
+  getProjectName: (projectId: string | null | undefined) => string;
   setSelectedItem?: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   setIsEditingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   setIsPromotingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -94,15 +94,10 @@ export interface BacklogContextType {
   setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   projects: any[];
   onItemConverted?: () => void;
-  getProjectName: (projectId: string) => string;
-  // Add the properties that were causing errors
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  getProjectName: (projectId: string | null | undefined) => string;
+  canUserEdit: (item: BacklogItem) => boolean;
+  canUserDelete: (item: BacklogItem) => boolean;
   getStatusInfo: (status: string) => { color: string; label: string };
   getPriorityInfo: (priority: number) => { color: string; label: string };
   formatDate: (dateString: string) => string;
-  // Adicionar funções para verificar permissões
-  canUserEdit: (item: BacklogItem) => boolean;
-  canUserDelete: (item: BacklogItem) => boolean;
-  userRoleMap: Record<string, string>;
 }

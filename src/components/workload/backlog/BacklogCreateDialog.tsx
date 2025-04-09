@@ -53,7 +53,7 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
                   <Label htmlFor="title">Título *</Label>
                   <Input 
                     id="title" 
-                    value={newItem.title || ''}
+                    value={newItem?.title || ''}
                     onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                     placeholder="Título do item"
                     required
@@ -63,7 +63,7 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
-                    value={newItem.description || ''}
+                    value={newItem?.description || ''}
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                     placeholder="Descreva o item em detalhes"
                     rows={4}
@@ -72,8 +72,8 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
                 <div className="space-y-2">
                   <Label htmlFor="project">Projeto Associado</Label>
                   <Select 
-                    value={newItem.target_project_id || 'none'} 
-                    onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? '' : value })}
+                    value={newItem?.target_project_id || 'none'} 
+                    onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? null : value })}
                   >
                     <SelectTrigger id="project">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
@@ -92,25 +92,25 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
                   <div className="space-y-2">
                     <Label htmlFor="priority">Prioridade</Label>
                     <Select 
-                      value={String(newItem.priority || 3)} 
+                      value={String(newItem?.priority || 3)} 
                       onValueChange={(value) => setNewItem({ ...newItem, priority: parseInt(value) })}
                     >
                       <SelectTrigger id="priority">
                         <SelectValue placeholder="Prioridade" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Muito Baixa</SelectItem>
-                        <SelectItem value="2">Baixa</SelectItem>
+                        <SelectItem value="1">Muito Alta</SelectItem>
+                        <SelectItem value="2">Alta</SelectItem>
                         <SelectItem value="3">Média</SelectItem>
-                        <SelectItem value="4">Alta</SelectItem>
-                        <SelectItem value="5">Muito Alta</SelectItem>
+                        <SelectItem value="4">Baixa</SelectItem>
+                        <SelectItem value="5">Muito Baixa</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
                     <Select 
-                      value={newItem.status || 'pending'} 
+                      value={newItem?.status || 'pending'} 
                       onValueChange={(value) => setNewItem({ ...newItem, status: value as any })}
                     >
                       <SelectTrigger id="status">
@@ -153,7 +153,7 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
               <Label htmlFor="title">Título *</Label>
               <Input 
                 id="title" 
-                value={newItem.title || ''}
+                value={newItem?.title || ''}
                 onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                 placeholder="Título do item"
                 required
@@ -163,7 +163,7 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
               <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
-                value={newItem.description || ''}
+                value={newItem?.description || ''}
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                 placeholder="Descreva o item em detalhes"
                 rows={4}
@@ -172,8 +172,8 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
             <div className="space-y-2">
               <Label htmlFor="project">Projeto Associado</Label>
               <Select 
-                value={newItem.target_project_id || 'none'} 
-                onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? '' : value })}
+                value={newItem?.target_project_id || 'none'} 
+                onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? null : value })}
               >
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Selecione um projeto (opcional)" />
@@ -192,25 +192,25 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
               <div className="space-y-2">
                 <Label htmlFor="priority">Prioridade</Label>
                 <Select 
-                  value={String(newItem.priority || 3)} 
+                  value={String(newItem?.priority || 3)} 
                   onValueChange={(value) => setNewItem({ ...newItem, priority: parseInt(value) })}
                 >
                   <SelectTrigger id="priority">
                     <SelectValue placeholder="Prioridade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Muito Baixa</SelectItem>
-                    <SelectItem value="2">Baixa</SelectItem>
+                    <SelectItem value="1">Muito Alta</SelectItem>
+                    <SelectItem value="2">Alta</SelectItem>
                     <SelectItem value="3">Média</SelectItem>
-                    <SelectItem value="4">Alta</SelectItem>
-                    <SelectItem value="5">Muito Alta</SelectItem>
+                    <SelectItem value="4">Baixa</SelectItem>
+                    <SelectItem value="5">Muito Baixa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select 
-                  value={newItem.status || 'pending'} 
+                  value={newItem?.status || 'pending'} 
                   onValueChange={(value) => setNewItem({ ...newItem, status: value as any })}
                 >
                   <SelectTrigger id="status">
