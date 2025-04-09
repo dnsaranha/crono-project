@@ -17,6 +17,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import UpdatePassword from "@/pages/UpdatePassword";
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { BacklogContent } from "@/components/workload/BacklogContent";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="timeline" element={<TimelineView />} />
             <Route path="wbs" element={<WBSView />} />
             <Route path="critical-path" element={<CriticalPathView />} />
+            <Route path="backlog" element={<BacklogContent />} />
             <Route path="team" element={<ProjectView />} />
           </Route>
           <Route path="*" element={

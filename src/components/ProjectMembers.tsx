@@ -22,12 +22,18 @@ interface Member {
   id: string;
   email: string;
   name: string;
-  role?: string;
+  role?: "admin" | "editor" | "viewer"; // Corrigindo o tipo aqui
 }
 
 interface ProjectMembersProps {
   projectId: string;
   isOwnerOrAdmin: boolean;
+}
+
+interface InviteFormProps {
+  projectId: string;
+  // Adicionando a prop onComplete para compatibilidade
+  onComplete?: () => void;
 }
 
 export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProps) {
@@ -77,7 +83,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
         id: member.user_id,
         email: member.profiles.email,
         name: member.profiles.full_name || member.profiles.email,
-        role: member.role
+        role: member.role as "admin" | "editor" | "viewer" // Casting para o tipo correto
       }));
       
       setMembers(formattedMembers);
@@ -93,7 +99,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
     }
   }
   
-  const updateMemberRole = async (memberId: string, newRole: string) => {
+  const updateMemberRole = async (memberId: string, newRole: "admin" | "editor" | "viewer") => {
     try {
       const { error } = await supabase
         .from('project_members')
@@ -212,7 +218,7 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
                       {isOwnerOrAdmin ? (
                         <Select
                           value={member.role}
-                          onValueChange={(value) => updateMemberRole(member.id, value)}
+                          onValueChange={(value: "admin" | "editor" | "viewer") => updateMemberRole(member.id, value)}
                           disabled={member.id === owner}
                         >
                           <SelectTrigger className="w-[180px]">

@@ -14,13 +14,21 @@ export function BacklogEditActions({
   disabled = false 
 }: BacklogEditActionsProps) {
   return (
-    <>
-      <Button variant="outline" onClick={onCancel}>
+    <div className="flex flex-wrap gap-2 w-full justify-end">
+      <Button 
+        variant="outline" 
+        onClick={onCancel}
+        className="w-full sm:w-auto mb-2 sm:mb-0"
+      >
         Cancelar
       </Button>
-      <Button onClick={onSave} disabled={disabled}>
+      <Button 
+        onClick={onSave} 
+        disabled={disabled}
+        className="w-full sm:w-auto"
+      >
         Salvar
       </Button>
-    </>
+    </div>
   );
 }

@@ -71,7 +71,7 @@ export function BacklogItemsTable({
 
   return (
     <div className="relative overflow-hidden rounded-md border">
-      <div className="overflow-auto max-h-[600px]">
+      <div className="overflow-auto max-h-[calc(100vh-300px)] sm:max-h-[600px]">
         <table className="w-full">
           <thead className="bg-muted/50 sticky top-0 z-10">
             <tr className="border-b">
@@ -87,6 +87,7 @@ export function BacklogItemsTable({
                   variant="ghost"
                   onClick={context.loadBacklogItems}
                   title="Atualizar lista"
+                  className="touch-manipulation"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -108,7 +109,7 @@ export function BacklogItemsTable({
                   title={item.title}
                   description={item.description}
                   priority={item.priority}
-                  status={item.status}
+                  status={item.status as "pending" | "in_progress" | "done" | "converted"}
                   created_at={item.created_at}
                   target_project_id={item.target_project_id}
                   creator_id={item.creator_id}

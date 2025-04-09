@@ -27,7 +27,7 @@ export function BacklogHeader({ isMobile, canCreate = true }: BacklogHeaderProps
           {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'itens'}
         </Badge>
         
-        <BacklogCreateDialog isMobile={isMobile} canCreate={canCreate} />
+        {canCreate && <BacklogCreateDialog isMobile={isMobile} />}
       </div>
     </>
   );

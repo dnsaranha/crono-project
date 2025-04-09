@@ -22,7 +22,7 @@ interface BacklogContextType {
   loadBacklogItems: () => Promise<void>;
   createBacklogItem: () => Promise<void>;
   updateBacklogItem: () => Promise<void>;
-  deleteBacklogItem: () => Promise<void>;
+  deleteBacklogItem: (id: string) => Promise<void>;
   promoteToTask: () => Promise<void>;
   filteredItems: BacklogItem[];
   isCreatingDialogOpen: boolean;
@@ -456,7 +456,7 @@ export function BacklogProvider({
     }
   };
 
-  const value = {
+  const value: BacklogContextType = {
     backlogItems,
     loading,
     filterStatus,
@@ -490,9 +490,8 @@ export function BacklogProvider({
     getStatusInfo,
     getPriorityInfo,
     formatDate,
-    setIsOpen,
-    setIsPromotingIsOpen,
-    // Adicionando as verificações de permissão
+    setIsOpen: setIsEditingDialogOpen,
+    setIsPromotingIsOpen: setIsPromotingDialogOpen,
     canUserEdit,
     canUserDelete,
     userRoleMap,

@@ -25,7 +25,7 @@ interface BacklogItemRowProps {
   title: string;
   description: string | null;
   priority: number;
-  status: string;
+  status: "pending" | "in_progress" | "done" | "converted";
   created_at: string;
   target_project_id?: string | null;
   creator_id: string;
@@ -65,8 +65,29 @@ export function BacklogItemRow({
   const { canUserEdit, canUserDelete } = useBacklog();
   
   // Verificar se o usuário tem permissão para editar e excluir este item específico
-  const hasEditPermission = canUserEdit({ id, title, description, priority, status, created_at, target_project_id, creator_id, creator_name });
-  const hasDeletePermission = canUserDelete({ id, title, description, priority, status, created_at, target_project_id, creator_id, creator_name });
+  const hasEditPermission = canUserEdit({ 
+    id, 
+    title, 
+    description, 
+    priority, 
+    status: status as "pending" | "in_progress" | "done" | "converted", 
+    created_at, 
+    target_project_id, 
+    creator_id, 
+    creator_name 
+  });
+  
+  const hasDeletePermission = canUserDelete({ 
+    id, 
+    title, 
+    description, 
+    priority, 
+    status: status as "pending" | "in_progress" | "done" | "converted", 
+    created_at, 
+    target_project_id, 
+    creator_id, 
+    creator_name 
+  });
   
   // Permissões efetivas (combinando permissões da página e específicas do item)
   const effectiveCanEdit = canEdit && hasEditPermission;
