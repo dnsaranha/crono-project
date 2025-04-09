@@ -100,4 +100,8 @@ export interface BacklogContextType {
   getStatusInfo: (status: string) => { color: string; label: string };
   getPriorityInfo: (priority: number) => { color: string; label: string };
   formatDate: (dateString: string) => string;
+  // Adicionar funções para verificar permissões
+  canUserEdit: (item: BacklogItem) => boolean;
+  canUserDelete: (item: BacklogItem) => boolean;
+  userRoleMap: Record<string, string>;
 }

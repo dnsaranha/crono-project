@@ -41,6 +41,9 @@ interface BacklogContextType {
   getStatusInfo: (status: string) => { color: string; label: string };
   getPriorityInfo: (priority: number) => { color: string; label: string };
   formatDate: (dateString: string) => string;
+  canUserEdit: (item: BacklogItem) => boolean;
+  canUserDelete: (item: BacklogItem) => boolean;
+  userRoleMap: Record<string, string>;
 }
 
 const BacklogContext = createContext<BacklogContextType | undefined>(undefined);
@@ -83,6 +86,7 @@ export function BacklogProvider({
   const [isCreatingDialogOpen, setIsCreatingDialogOpen] = useState(false);
   const [isEditingDialogOpen, setIsEditingDialogOpen] = useState(false);
   const [isPromotingDialogOpen, setIsPromotingDialogOpen] = useState(false);
+  const [userRoleMap, setUserRoleMap] = useState<Record<string, string>>({});
   
   // Add aliases for backward compatibility
   const setIsOpen = setIsEditingDialogOpen;
@@ -92,7 +96,63 @@ export function BacklogProvider({
   
   useEffect(() => {
     loadBacklogItems();
+    loadUserRoles();
   }, []);
+
+  // Carregar as funções de usuário para os projetos
+  const loadUserRoles = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: memberRoles, error } = await supabase
+        .from('project_members')
+        .select('project_id, role')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Criar um mapa de ID do projeto para função do usuário
+      const roleMap: Record<string, string> = {};
+      memberRoles?.forEach(item => {
+        roleMap[item.project_id] = item.role;
+      });
+
+      // Adicionar projetos de proprietário como 'owner'
+      projects.forEach(project => {
+        if (project.owner_id === user.id) {
+          roleMap[project.id] = 'owner';
+        }
+      });
+
+      setUserRoleMap(roleMap);
+    } catch (error: any) {
+      console.error("Erro ao carregar funções do usuário:", error.message);
+    }
+  };
+  
+  // Verificações de permissão baseadas no papel do usuário e criador do item
+  const canUserEdit = (item: BacklogItem) => {
+    // Criador sempre pode editar
+    if (item.creator_id === supabase.auth.getUser().then(({ data }) => data.user?.id)) {
+      return true;
+    }
+    
+    // Verificar se o usuário é admin ou editor do projeto associado
+    const role = item.target_project_id ? userRoleMap[item.target_project_id] : null;
+    return role === 'admin' || role === 'editor' || role === 'owner';
+  };
+  
+  const canUserDelete = (item: BacklogItem) => {
+    // Criador sempre pode excluir
+    if (item.creator_id === supabase.auth.getUser().then(({ data }) => data.user?.id)) {
+      return true;
+    }
+    
+    // Apenas admin ou proprietário pode excluir
+    const role = item.target_project_id ? userRoleMap[item.target_project_id] : null;
+    return role === 'admin' || role === 'owner';
+  };
   
   // Filter items based on current filter settings
   const filteredItems = backlogItems.filter(item => {
@@ -119,7 +179,7 @@ export function BacklogProvider({
     try {
       setLoading(true);
       
-      // Modified query to fetch creator info separately instead of using a join
+      // Carregar todos os itens de backlog (as políticas RLS cuidarão do acesso)
       const { data, error } = await supabase
         .from('backlog_items')
         .select('*')
@@ -203,7 +263,8 @@ export function BacklogProvider({
         description: newItem.description || null,
         priority: newItem.priority || 3,
         status: newItem.status || "pending",
-        creator_id: user.id
+        creator_id: user.id,
+        target_project_id: newItem.target_project_id || null
       };
       
       console.log("Creating item:", itemToCreate);
@@ -257,7 +318,8 @@ export function BacklogProvider({
           title: selectedItem.title,
           description: selectedItem.description,
           priority: selectedItem.priority,
-          status: selectedItem.status
+          status: selectedItem.status,
+          target_project_id: selectedItem.target_project_id
         })
         .eq('id', selectedItem.id);
         
@@ -429,6 +491,10 @@ export function BacklogProvider({
     formatDate,
     setIsOpen,
     setIsPromotingIsOpen,
+    // Adicionando as verificações de permissão
+    canUserEdit,
+    canUserDelete,
+    userRoleMap,
   };
 
   return (

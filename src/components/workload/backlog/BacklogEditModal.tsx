@@ -18,6 +18,7 @@ import {
 import { BacklogEditModalProps } from "./BacklogTypes";
 import { BacklogEditForm } from "./BacklogEditForm";
 import { BacklogEditActions } from "./BacklogEditActions";
+import { useBacklog } from './BacklogContext';
 
 export function BacklogEditModal({
   selectedItem,
@@ -28,6 +29,8 @@ export function BacklogEditModal({
   isMobile,
   onSave
 }: BacklogEditModalProps) {
+  const { projects } = useBacklog();
+  
   if (!selectedItem) return null;
   
   // Handler that works with both property patterns
@@ -73,6 +76,7 @@ export function BacklogEditModal({
               selectedItem={selectedItem}
               handleInputChange={handleInputChange}
               handleSelectChange={handleSelectChange}
+              projects={projects}
             />
           </div>
           <DrawerFooter className="pt-2">
@@ -101,6 +105,7 @@ export function BacklogEditModal({
           selectedItem={selectedItem}
           handleInputChange={handleInputChange}
           handleSelectChange={handleSelectChange}
+          projects={projects}
         />
         <div className="flex justify-end gap-2 mt-4">
           <BacklogEditActions 
