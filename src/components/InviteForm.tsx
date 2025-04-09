@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,10 @@ interface InviteFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
+  onComplete?: () => void; // Adicionando a prop opcional onComplete
 }
 
-export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
+export function InviteForm({ open, onOpenChange, projectId, onComplete }: InviteFormProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("viewer");
   const [loading, setLoading] = useState(false);
@@ -77,6 +77,9 @@ export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
         title: "Convite enviado",
         description: `O usuário ${email} foi adicionado ao projeto com a função de ${role === 'admin' ? 'Administrador' : role === 'editor' ? 'Editor' : 'Visualizador'}.`,
       });
+      
+      // Chamar onComplete após sucesso se existir
+      onComplete?.();
       
       // Reset form
       setEmail("");
