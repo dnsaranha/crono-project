@@ -1,138 +1,72 @@
 
-import * as React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+import React from "react";
+import { 
+  Dialog, DialogContent, DialogDescription, 
+  DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
+import { 
+  Drawer, DrawerContent, DrawerDescription, 
+  DrawerFooter, DrawerHeader, DrawerTitle, 
+  DrawerTrigger 
 } from "@/components/ui/drawer";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus } from "lucide-react";
+import { CreateItemForm } from "../CreateItemForm";
 import { useBacklog } from "./BacklogContext";
 
-export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
+interface BacklogCreateDialogProps {
+  isMobile: boolean;
+  canCreate: boolean;
+}
+
+export function BacklogCreateDialog({ isMobile, canCreate }: BacklogCreateDialogProps) {
   const { 
-    isCreatingDialogOpen, 
-    setIsCreatingDialogOpen, 
     newItem, 
-    setNewItem,
-    createBacklogItem,
-    projects
+    setNewItem, 
+    createBacklogItem, 
+    isCreatingDialogOpen, 
+    setIsCreatingDialogOpen 
   } = useBacklog();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createBacklogItem();
+  const handleCancel = () => {
+    setNewItem({
+      title: "",
+      description: "",
+      priority: 3,
+      status: "pending"
+    });
+    setIsCreatingDialogOpen(false);
   };
 
   if (isMobile) {
     return (
       <Drawer open={isCreatingDialogOpen} onOpenChange={setIsCreatingDialogOpen}>
+        <DrawerTrigger asChild>
+          <Button 
+            className="flex items-center gap-1" 
+            onClick={() => setIsCreatingDialogOpen(true)}
+            disabled={!canCreate}
+          >
+            <Plus className="h-4 w-4" />
+            Novo Item
+          </Button>
+        </DrawerTrigger>
         <DrawerContent>
-          <form onSubmit={handleSubmit}>
-            <DrawerHeader>
-              <DrawerTitle>Adicionar Item ao Backlog</DrawerTitle>
-              <DrawerDescription>
-                Adicione uma nova ideia, requisito ou tarefa ao backlog
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="p-4 pb-0">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título *</Label>
-                  <Input 
-                    id="title" 
-                    value={newItem?.title || ''}
-                    onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                    placeholder="Título do item"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={newItem?.description || ''}
-                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                    placeholder="Descreva o item em detalhes"
-                    rows={4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="project">Projeto Associado</Label>
-                  <Select 
-                    value={newItem?.target_project_id || 'none'} 
-                    onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? null : value })}
-                  >
-                    <SelectTrigger id="project">
-                      <SelectValue placeholder="Selecione um projeto (opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem projeto</SelectItem>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Prioridade</Label>
-                    <Select 
-                      value={String(newItem?.priority || 3)} 
-                      onValueChange={(value) => setNewItem({ ...newItem, priority: parseInt(value) })}
-                    >
-                      <SelectTrigger id="priority">
-                        <SelectValue placeholder="Prioridade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Muito Alta</SelectItem>
-                        <SelectItem value="2">Alta</SelectItem>
-                        <SelectItem value="3">Média</SelectItem>
-                        <SelectItem value="4">Baixa</SelectItem>
-                        <SelectItem value="5">Muito Baixa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select 
-                      value={newItem?.status || 'pending'} 
-                      onValueChange={(value) => setNewItem({ ...newItem, status: value as any })}
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="done">Concluído</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 mt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsCreatingDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">Adicionar</Button>
-            </div>
-          </form>
+          <DrawerHeader>
+            <DrawerTitle>Adicionar Novo Item</DrawerTitle>
+            <DrawerDescription>
+              Preencha os detalhes para adicionar um novo item ao backlog
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4">
+            <CreateItemForm 
+              newItem={newItem}
+              setNewItem={setNewItem}
+              onCancel={handleCancel}
+              onSubmit={createBacklogItem}
+            />
+          </div>
+          <DrawerFooter className="pt-0" />
         </DrawerContent>
       </Drawer>
     );
@@ -140,98 +74,29 @@ export function BacklogCreateDialog({ isMobile }: { isMobile: boolean }) {
 
   return (
     <Dialog open={isCreatingDialogOpen} onOpenChange={setIsCreatingDialogOpen}>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Adicionar Item ao Backlog</DialogTitle>
-            <DialogDescription>
-              Adicione uma nova ideia, requisito ou tarefa ao backlog
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título *</Label>
-              <Input 
-                id="title" 
-                value={newItem?.title || ''}
-                onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                placeholder="Título do item"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={newItem?.description || ''}
-                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                placeholder="Descreva o item em detalhes"
-                rows={4}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project">Projeto Associado</Label>
-              <Select 
-                value={newItem?.target_project_id || 'none'} 
-                onValueChange={(value) => setNewItem({ ...newItem, target_project_id: value === 'none' ? null : value })}
-              >
-                <SelectTrigger id="project">
-                  <SelectValue placeholder="Selecione um projeto (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem projeto</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="priority">Prioridade</Label>
-                <Select 
-                  value={String(newItem?.priority || 3)} 
-                  onValueChange={(value) => setNewItem({ ...newItem, priority: parseInt(value) })}
-                >
-                  <SelectTrigger id="priority">
-                    <SelectValue placeholder="Prioridade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Muito Alta</SelectItem>
-                    <SelectItem value="2">Alta</SelectItem>
-                    <SelectItem value="3">Média</SelectItem>
-                    <SelectItem value="4">Baixa</SelectItem>
-                    <SelectItem value="5">Muito Baixa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={newItem?.status || 'pending'} 
-                  onValueChange={(value) => setNewItem({ ...newItem, status: value as any })}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="in_progress">Em Progresso</SelectItem>
-                    <SelectItem value="done">Concluído</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsCreatingDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Adicionar</Button>
-          </div>
-        </form>
+      <DialogTrigger asChild>
+        <Button 
+          className="flex items-center gap-1" 
+          onClick={() => setIsCreatingDialogOpen(true)}
+          disabled={!canCreate}
+        >
+          <Plus className="h-4 w-4" />
+          Novo Item
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar Novo Item</DialogTitle>
+          <DialogDescription>
+            Preencha os detalhes para adicionar um novo item ao backlog
+          </DialogDescription>
+        </DialogHeader>
+        <CreateItemForm 
+          newItem={newItem}
+          setNewItem={setNewItem}
+          onCancel={handleCancel}
+          onSubmit={createBacklogItem}
+        />
       </DialogContent>
     </Dialog>
   );

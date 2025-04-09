@@ -5,144 +5,93 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { BacklogItem } from './BacklogTypes';
+import { BacklogItem } from "./BacklogTypes";
 
 interface BacklogEditFormProps {
   selectedItem: BacklogItem;
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleSelectChange: (name: string, value: string) => void;
-  projects: any[];
-  disabled?: boolean;
 }
 
 export function BacklogEditForm({
   selectedItem,
   handleInputChange,
-  handleSelectChange,
-  projects,
-  disabled = false
+  handleSelectChange
 }: BacklogEditFormProps) {
   return (
-    <div className="grid gap-4 py-4">
-      <div className="grid gap-2">
-        <Label htmlFor="title">Título</Label>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="title" className="text-sm font-medium">
+          Título
+        </label>
         <Input
           id="title"
           name="title"
           value={selectedItem.title}
           onChange={handleInputChange}
-          placeholder="Título do item"
-          disabled={disabled}
+          className="w-full"
         />
       </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="description">Descrição</Label>
+      
+      <div className="space-y-2">
+        <label htmlFor="description" className="text-sm font-medium">
+          Descrição
+        </label>
         <Textarea
           id="description"
           name="description"
           value={selectedItem.description || ''}
           onChange={handleInputChange}
-          placeholder="Descrição do item"
-          disabled={disabled}
+          className="w-full min-h-[120px]"
         />
       </div>
       
-      <div className="grid gap-2">
-        <Label htmlFor="priority">Prioridade</Label>
-        <Select
-          disabled={disabled}
-          value={String(selectedItem.priority)}
-          onValueChange={(value) => handleSelectChange('priority', value)}
-        >
-          <SelectTrigger id="priority">
-            <SelectValue placeholder="Selecione a prioridade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="1">1 - Alta</SelectItem>
-              <SelectItem value="2">2 - Média-Alta</SelectItem>
-              <SelectItem value="3">3 - Média</SelectItem>
-              <SelectItem value="4">4 - Média-Baixa</SelectItem>
-              <SelectItem value="5">5 - Baixa</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="grid gap-2">
-        <Label htmlFor="status">Status</Label>
-        <Select
-          disabled={disabled}
-          value={selectedItem.status}
-          onValueChange={(value) => handleSelectChange('status', value)}
-        >
-          <SelectTrigger id="status">
-            <SelectValue placeholder="Selecione o status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="priority" className="text-sm font-medium">
+            Prioridade
+          </label>
+          <Select
+            value={String(selectedItem.priority)}
+            onValueChange={(value) => handleSelectChange('priority', value)}
+          >
+            <SelectTrigger className="w-full h-12 px-4 text-base">
+              <SelectValue placeholder="Prioridade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Muito Baixa</SelectItem>
+              <SelectItem value="2">Baixa</SelectItem>
+              <SelectItem value="3">Média</SelectItem>
+              <SelectItem value="4">Alta</SelectItem>
+              <SelectItem value="5">Muito Alta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="status" className="text-sm font-medium">
+            Status
+          </label>
+          <Select
+            value={selectedItem.status}
+            onValueChange={(value) => handleSelectChange('status', value)}
+          >
+            <SelectTrigger className="w-full h-12 px-4 text-base">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="in_progress">Em Progresso</SelectItem>
-              <SelectItem value="done">Concluído</SelectItem>
-              <SelectItem value="converted">Convertido</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="grid gap-2">
-        <Label htmlFor="project">Projeto Associado</Label>
-        <Select
-          disabled={disabled}
-          value={selectedItem.target_project_id || 'none'}
-          onValueChange={(value) => handleSelectChange('target_project_id', value === 'none' ? '' : value)}
-        >
-          <SelectTrigger id="project">
-            <SelectValue placeholder="Selecione um projeto" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="none">Nenhum</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedItem.creator_name && (
-        <div className="grid gap-2">
-          <Label>Criado por</Label>
-          <Input
-            value={selectedItem.creator_name}
-            disabled
-            className="bg-muted"
-          />
+              <SelectItem value="approved">Aprovado</SelectItem>
+              <SelectItem value="rejected">Rejeitado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      )}
-
-      {selectedItem.target_project_id && (
-        <div className="mt-4 text-sm text-muted-foreground">
-          <p>
-            <strong>Sobre permissões do projeto:</strong>
-          </p>
-          <ul className="list-disc pl-5 space-y-1 mt-2">
-            <li>Administradores e proprietários podem editar e excluir itens</li>
-            <li>Editores podem visualizar e editar, mas não excluir</li>
-            <li>Visualizadores podem apenas ver os itens</li>
-          </ul>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

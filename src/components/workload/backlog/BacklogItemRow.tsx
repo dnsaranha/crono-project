@@ -1,151 +1,101 @@
 
-import React from "react";
+import React from 'react';
+import { TableCell, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MoreVertical, FileEdit, Star, Trash } from "lucide-react";
+import { MoreHorizontal, Edit, ArrowUpRight, Trash2 } from "lucide-react";
 import { BacklogItem } from "./BacklogTypes";
-import { useBacklog } from "./BacklogContext";
 
 interface BacklogItemRowProps {
   item: BacklogItem;
-  getPriorityInfo?: (priority: number) => { color: string; label: string };
-  getStatusInfo?: (status: string) => { color: string; label: string };
-  formatDate?: (dateString: string) => string;
-  getProjectName?: (projectId: string | null | undefined) => string;
-  canEdit?: boolean;
-  canDelete?: boolean;
+  getPriorityInfo: (priority: number) => { color: string; label: string };
+  getStatusInfo: (status: string) => { color: string; label: string };
+  getProjectName: (projectId: string) => string;
+  formatDate: (dateString: string) => string;
+  onEdit: (item: BacklogItem) => void;
+  onPromote: (item: BacklogItem) => void;
+  onDelete: (id: string) => Promise<void>;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export function BacklogItemRow({
   item,
   getPriorityInfo,
   getStatusInfo,
-  formatDate,
   getProjectName,
-  canEdit = true,
-  canDelete = true,
+  formatDate,
+  onEdit,
+  onPromote,
+  onDelete,
+  canEdit,
+  canDelete
 }: BacklogItemRowProps) {
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
-  
-  const {
-    setSelectedItem,
-    setIsEditingDialogOpen,
-    setIsPromotingDialogOpen,
-    deleteBacklogItem,
-    canUserEdit,
-    canUserDelete
-  } = useBacklog();
-
-  const handleEdit = () => {
-    setSelectedItem(item);
-    setIsEditingDialogOpen(true);
-  };
-
-  const handlePromote = () => {
-    setSelectedItem(item);
-    setIsPromotingDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    await deleteBacklogItem(item.id);
-    setIsDeleteAlertOpen(false);
-  };
-
-  const isEditable = canEdit && canUserEdit(item);
-  const isDeletable = canDelete && canUserDelete(item);
-
-  const priorityInfo = getPriorityInfo ? getPriorityInfo(item.priority) : { label: String(item.priority), color: "" };
-  const statusInfo = getStatusInfo ? getStatusInfo(item.status) : { label: item.status, color: "" };
-  const createdDate = formatDate ? formatDate(item.created_at) : new Date(item.created_at).toLocaleDateString();
-  const projectName = getProjectName ? getProjectName(item.target_project_id) : (item.target_project_id || "Nenhum");
-
   return (
-    <tr className="hover:bg-muted/50 transition-colors">
-      <td className="px-4 py-2 font-medium">{item.title}</td>
-      <td className="px-4 py-2 hidden md:table-cell">
-        <Badge variant="outline" className={priorityInfo.color}>
-          {priorityInfo.label}
+    <TableRow>
+      <TableCell className="font-medium">{item.title}</TableCell>
+      <TableCell>
+        <Badge variant="outline" className={`${getPriorityInfo(item.priority).color}`}>
+          {getPriorityInfo(item.priority).label}
         </Badge>
-      </td>
-      <td className="px-4 py-2 hidden lg:table-cell">
-        <Badge variant="outline" className={statusInfo.color}>
-          {statusInfo.label}
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className={`${getStatusInfo(item.status).color}`}>
+          {getStatusInfo(item.status).label}
         </Badge>
-      </td>
-      <td className="px-4 py-2 hidden xl:table-cell">{projectName}</td>
-      <td className="px-4 py-2 hidden lg:table-cell">{createdDate}</td>
-      <td className="px-4 py-2">
-        <div className="flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Opções</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isEditable && (
-                <DropdownMenuItem onClick={handleEdit}>
-                  <FileEdit className="h-4 w-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              {item.status !== "converted" && (
-                <DropdownMenuItem onClick={handlePromote}>
-                  <Star className="h-4 w-4 mr-2" />
-                  Promover para Tarefa
-                </DropdownMenuItem>
-              )}
-              {isDeletable && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setIsDeleteAlertOpen(true)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash className="h-4 w-4 mr-2" />
-                    Excluir
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir este item do backlog? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </td>
-    </tr>
+      </TableCell>
+      <TableCell>
+        {item.target_project_id ? getProjectName(item.target_project_id) : '-'}
+      </TableCell>
+      <TableCell>{item.creator_name || "Usuário"}</TableCell>
+      <TableCell>{formatDate(item.created_at)}</TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => onEdit(item)}
+              disabled={!canEdit || item.status === 'converted'}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => onPromote(item)}
+              disabled={item.status === 'converted'}
+            >
+              <ArrowUpRight className="mr-2 h-4 w-4" />
+              Converter para Tarefa
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive"
+              onClick={() => onDelete(item.id)}
+              disabled={!canDelete}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }

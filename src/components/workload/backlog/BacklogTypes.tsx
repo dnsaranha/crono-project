@@ -12,9 +12,8 @@ export interface BacklogItem {
 }
 
 export interface BacklogManagerProps {
-  projects?: any[];
-  projectId?: string;
-  onItemConverted?: () => Promise<void>;
+  projects: any[];
+  onItemConverted?: () => void;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -27,7 +26,7 @@ export interface BacklogItemsTableProps {
   getPriorityInfo?: (priority: number) => { color: string; label: string };
   getStatusInfo?: (status: string) => { color: string; label: string };
   formatDate?: (dateString: string) => string;
-  getProjectName: (projectId: string | null | undefined) => string;
+  getProjectName: (projectId: string) => string;
   setSelectedItem?: React.Dispatch<React.SetStateAction<BacklogItem | null>>;
   setIsEditingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   setIsPromotingDialogOpen?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -94,9 +93,10 @@ export interface BacklogContextType {
   setIsPromotingDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   projects: any[];
   onItemConverted?: () => void;
-  getProjectName: (projectId: string | null | undefined) => string;
-  canUserEdit: (item: BacklogItem) => boolean;
-  canUserDelete: (item: BacklogItem) => boolean;
+  getProjectName: (projectId: string) => string;
+  // Add the properties that were causing errors
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPromotingIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   getStatusInfo: (status: string) => { color: string; label: string };
   getPriorityInfo: (priority: number) => { color: string; label: string };
   formatDate: (dateString: string) => string;

@@ -7,10 +7,10 @@ import { useBacklog } from "./BacklogContext";
 
 interface BacklogHeaderProps {
   isMobile: boolean;
-  canCreate?: boolean;
+  canCreate: boolean;
 }
 
-export function BacklogHeader({ isMobile, canCreate = true }: BacklogHeaderProps) {
+export function BacklogHeader({ isMobile, canCreate }: BacklogHeaderProps) {
   const { filteredItems } = useBacklog();
 
   return (
@@ -27,7 +27,7 @@ export function BacklogHeader({ isMobile, canCreate = true }: BacklogHeaderProps
           {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'itens'}
         </Badge>
         
-        {canCreate && <BacklogCreateDialog isMobile={isMobile} />}
+        <BacklogCreateDialog isMobile={isMobile} canCreate={canCreate} />
       </div>
     </>
   );

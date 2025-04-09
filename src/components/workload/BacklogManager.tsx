@@ -33,6 +33,7 @@ function BacklogContent({ canEdit = true, canDelete = true }: { canEdit?: boolea
     updateBacklogItem,
     isEditingDialogOpen,
     isPromotingDialogOpen,
+    setIsCreatingDialogOpen,
     promoteToTask,
     projects
   } = useBacklog();

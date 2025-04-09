@@ -12,10 +12,9 @@ interface InviteFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  onComplete?: () => void; 
 }
 
-export function InviteForm({ open, onOpenChange, projectId, onComplete }: InviteFormProps) {
+export function InviteForm({ open, onOpenChange, projectId }: InviteFormProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("viewer");
   const [loading, setLoading] = useState(false);
@@ -52,7 +51,7 @@ export function InviteForm({ open, onOpenChange, projectId, onComplete }: Invite
         .select('id')
         .eq('project_id', projectId)
         .eq('user_id', profileData.id)
-        .maybeSingle();
+        .single();
       
       if (existingMember) {
         toast({
@@ -78,9 +77,6 @@ export function InviteForm({ open, onOpenChange, projectId, onComplete }: Invite
         title: "Convite enviado",
         description: `O usuário ${email} foi adicionado ao projeto com a função de ${role === 'admin' ? 'Administrador' : role === 'editor' ? 'Editor' : 'Visualizador'}.`,
       });
-      
-      // Chamar onComplete após sucesso se existir
-      onComplete?.();
       
       // Reset form
       setEmail("");
