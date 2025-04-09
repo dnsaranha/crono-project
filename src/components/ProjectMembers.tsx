@@ -1,5 +1,3 @@
-
-// Esta é uma versão simplificada, você pode modificá-la conforme necessário
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -28,12 +26,6 @@ interface Member {
 interface ProjectMembersProps {
   projectId: string;
   isOwnerOrAdmin: boolean;
-}
-
-interface InviteFormProps {
-  projectId: string;
-  // Adicionando a prop onComplete para compatibilidade
-  onComplete?: () => void;
 }
 
 export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProps) {
@@ -182,8 +174,9 @@ export function ProjectMembers({ projectId, isOwnerOrAdmin }: ProjectMembersProp
           <div className="mb-6">
             <InviteForm
               projectId={projectId}
+              open={showInviteForm}
+              onOpenChange={setShowInviteForm}
               onComplete={() => {
-                setShowInviteForm(false);
                 fetchMembers();
               }}
             />
