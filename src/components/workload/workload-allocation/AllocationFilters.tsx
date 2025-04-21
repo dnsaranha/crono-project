@@ -30,6 +30,12 @@ export function AllocationFilters({
   searchQuery,
   setSearchQuery
 }: AllocationFiltersProps) {
+  // Garantir que os membros estão devidamente formatados
+  const formattedMembers = members.map(member => ({
+    id: member.id || member.user_id,
+    name: member.name || "Sem nome"
+  }));
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -56,7 +62,7 @@ export function AllocationFilters({
               </SelectTrigger>
               <SelectContent className="touch-manipulation">
                 <SelectItem value="all" className="h-10 sm:h-8">Todos os Colaboradores</SelectItem>
-                {members.map(member => (
+                {formattedMembers.map(member => (
                   <SelectItem key={member.id} value={member.id} className="h-10 sm:h-8">
                     {member.name}
                   </SelectItem>
