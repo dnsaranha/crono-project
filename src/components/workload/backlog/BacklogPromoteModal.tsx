@@ -1,68 +1,98 @@
-"use client";
 
-import React from "react";
+import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { useBacklog } from "@/contexts/BacklogContext";
-import { Project } from "@/services/projectService";
-import { BacklogItem } from "@/services/backlogService";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { BacklogPromoteModalProps } from "./BacklogTypes";
 import { BacklogPromoteContent } from "./BacklogPromoteContent";
 import { BacklogPromoteActions } from "./BacklogPromoteActions";
 
-interface BacklogPromoteModalProps {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  projects: Project[];
-}
-
 export function BacklogPromoteModal({
-  open,
-  setOpen,
+  selectedItem,
+  setSelectedItem,
+  isOpen,
+  setIsOpen,
+  promoteToTask,
   projects,
+  getPriorityInfo,
+  isMobile,
+  onPromote
 }: BacklogPromoteModalProps) {
-  const { selectedItem, promoteBacklogItem, getPriorityInfo } = useBacklog();
+  if (!selectedItem) return null;
 
-  const handleCancel = () => {
-    setOpen(false);
-  };
-
+  // Função que suporta ambos os padrões de propriedades
   const handlePromote = async () => {
-    if (selectedItem) {
-      await promoteBacklogItem(selectedItem.id);
-      setOpen(false);
+    if (onPromote) {
+      await onPromote();
+    } else if (promoteToTask) {
+      await promoteToTask();
     }
   };
-
-  // Supondo existência destas funções de manipulação
-  const handleProjectChange = () => {}; // função dummy para cumprir tipagem
-  const isDisabled = false;              // valor dummy para cumprir tipagem
+  
+  // Versão para dispositivos móveis
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Converter para Tarefa</DrawerTitle>
+            <DrawerDescription>
+              Transforme este item de backlog em uma tarefa do projeto
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 pb-0">
+            <BacklogPromoteContent
+              selectedItem={selectedItem}
+              projects={projects}
+              getPriorityInfo={getPriorityInfo}
+            />
+          </div>
+          <DrawerFooter className="pt-2">
+            <div className="flex justify-end gap-2 w-full">
+              <BacklogPromoteActions 
+                onCancel={() => setIsOpen(false)} 
+                onPromote={handlePromote} 
+              />
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+  
+  // Versão para desktop
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Promover Item do Backlog</DialogTitle>
+          <DialogTitle>Converter para Tarefa</DialogTitle>
           <DialogDescription>
-            Selecione o projeto para o qual deseja promover este item.
+            Transforme este item de backlog em uma tarefa do projeto
           </DialogDescription>
         </DialogHeader>
-
         <BacklogPromoteContent
           selectedItem={selectedItem}
           projects={projects}
           getPriorityInfo={getPriorityInfo}
-          handleProjectChange={handleProjectChange} // ADICIONADA
         />
-
-        <BacklogPromoteActions
-          onCancel={handleCancel}
-          onPromote={handlePromote}
-          isDisabled={isDisabled}                  // ADICIONADA
-        />
+        <div className="flex justify-end gap-2 mt-4">
+          <BacklogPromoteActions 
+            onCancel={() => setIsOpen(false)} 
+            onPromote={handlePromote} 
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
