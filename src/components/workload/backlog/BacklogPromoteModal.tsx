@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,13 +31,29 @@ export function BacklogPromoteModal({
   onPromote
 }: BacklogPromoteModalProps) {
   if (!selectedItem) return null;
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Função para gerenciar a mudança de projeto selecionado
+  const handleProjectChange = (projectId: string) => {
+    setSelectedItem({
+      ...selectedItem,
+      target_project_id: projectId
+    });
+  };
 
   // Função que suporta ambos os padrões de propriedades
   const handlePromote = async () => {
-    if (onPromote) {
-      await onPromote();
-    } else if (promoteToTask) {
-      await promoteToTask();
+    setIsSubmitting(true);
+    
+    try {
+      if (onPromote) {
+        await onPromote();
+      } else if (promoteToTask) {
+        await promoteToTask();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -57,13 +73,15 @@ export function BacklogPromoteModal({
               selectedItem={selectedItem}
               projects={projects}
               getPriorityInfo={getPriorityInfo}
+              handleProjectChange={handleProjectChange}
             />
           </div>
           <DrawerFooter className="pt-2">
             <div className="flex justify-end gap-2 w-full">
               <BacklogPromoteActions 
                 onCancel={() => setIsOpen(false)} 
-                onPromote={handlePromote} 
+                onPromote={handlePromote}
+                isDisabled={isSubmitting || !selectedItem.target_project_id}
               />
             </div>
           </DrawerFooter>
@@ -86,11 +104,13 @@ export function BacklogPromoteModal({
           selectedItem={selectedItem}
           projects={projects}
           getPriorityInfo={getPriorityInfo}
+          handleProjectChange={handleProjectChange}
         />
         <div className="flex justify-end gap-2 mt-4">
           <BacklogPromoteActions 
             onCancel={() => setIsOpen(false)} 
-            onPromote={handlePromote} 
+            onPromote={handlePromote}
+            isDisabled={isSubmitting || !selectedItem.target_project_id}
           />
         </div>
       </DialogContent>

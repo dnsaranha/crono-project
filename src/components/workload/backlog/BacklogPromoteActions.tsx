@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 interface BacklogPromoteActionsProps {
   onCancel: () => void;
   onPromote: () => Promise<void>;
-  isDisabled: boolean;
+  isDisabled?: boolean;
 }
 
 export function BacklogPromoteActions({
   onCancel,
   onPromote,
-  isDisabled
+  isDisabled = false
 }: BacklogPromoteActionsProps) {
   return (
     <>

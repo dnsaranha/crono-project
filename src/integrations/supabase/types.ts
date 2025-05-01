@@ -501,6 +501,28 @@ export type Database = {
         Args: { project_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      create_project: {
+        Args: {
+          project_name: string
+          project_description: string
+          project_start_date: string
+          project_end_date: string
+          project_owner_id: string
+        }
+        Returns: string
+      }
+      create_task: {
+        Args: {
+          task_name: string
+          task_description: string
+          task_start_date: string
+          task_duration: number
+          task_project_id: string
+          task_parent_id?: string
+          task_assignees?: string[]
+        }
+        Returns: string
+      }
       get_project_member_role: {
         Args: { project_uuid: string; user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]

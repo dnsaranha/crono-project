@@ -43,13 +43,15 @@ export interface BacklogEditModalProps {
 export interface BacklogPromoteContentProps {
   selectedItem: BacklogItem;
   projects: any[];
-  getPriorityInfo: (priority: number) => { color: string; label: string };
+  getPriorityInfo?: (priority: number) => { color: string; label: string };
+  handleProjectChange: (projectId: string) => void;
 }
 
 // Props para ações de promoção
 export interface BacklogPromoteActionsProps {
   onCancel: () => void;
   onPromote: () => Promise<void>;
+  isDisabled?: boolean;
 }
 
 // Props para o modal de promoção
