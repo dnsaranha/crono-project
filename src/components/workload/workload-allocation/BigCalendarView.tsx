@@ -31,6 +31,7 @@ interface BigCalendarViewProps {
   projects: any[];
   members: any[];
   timeFrame: string;
+  selectedMember?: string;
 }
 
 // Estilos personalizados para os eventos no calendário
@@ -78,7 +79,8 @@ export const BigCalendarView: React.FC<BigCalendarViewProps> = ({
   tasks, 
   projects, 
   members, 
-  timeFrame 
+  timeFrame,
+  selectedMember = "all"
 }) => {
   const navigate = useNavigate();
 
@@ -111,6 +113,7 @@ export const BigCalendarView: React.FC<BigCalendarViewProps> = ({
         priority: task.priority || 3,
         resourceId: task.assignees && task.assignees.length > 0 ? task.assignees[0] : 'unassigned',
         project: projectName,
+        project_id: task.project_id,
         assignees: assigneeNames,
         allDay: true,
       };
@@ -119,6 +122,17 @@ export const BigCalendarView: React.FC<BigCalendarViewProps> = ({
 
   // Preparar recursos (membros da equipe) para visualização por recurso
   const resources = useMemo(() => {
+    if (selectedMember !== "all") {
+      // Se um membro específico foi selecionado
+      const member = members.find(m => m.id === selectedMember || m.user_id === selectedMember);
+      if (member) {
+        return [{ id: selectedMember, title: member.name }];
+      } else if (selectedMember === 'unassigned') {
+        return [{ id: 'unassigned', title: 'Não atribuído' }];
+      }
+    }
+
+    // Caso contrário, mostrar todos os membros
     const memberResources = members.map(member => ({
       id: member.id || member.user_id,
       title: member.name || 'Sem nome',
@@ -129,7 +143,7 @@ export const BigCalendarView: React.FC<BigCalendarViewProps> = ({
       ...memberResources,
       { id: 'unassigned', title: 'Não atribuído' }
     ];
-  }, [members]);
+  }, [members, selectedMember]);
 
   // Determinar a visualização padrão com base no timeFrame
   const getDefaultView = () => {
@@ -178,4 +192,4 @@ export const BigCalendarView: React.FC<BigCalendarViewProps> = ({
       />
     </div>
   );
-};
+}

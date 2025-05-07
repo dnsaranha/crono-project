@@ -60,7 +60,7 @@ export function AllocationFilters({
               <SelectTrigger className="h-12 sm:h-10 touch-manipulation">
                 <SelectValue placeholder="Selecione um colaborador" />
               </SelectTrigger>
-              <SelectContent className="touch-manipulation">
+              <SelectContent className="touch-manipulation max-h-[300px]">
                 <SelectItem value="all" className="h-10 sm:h-8">Todos os Colaboradores</SelectItem>
                 {formattedMembers.map(member => (
                   <SelectItem key={member.id} value={member.id} className="h-10 sm:h-8">

@@ -9,7 +9,6 @@ import { AllocationCalendar } from "./AllocationCalendar";
 import { WorkloadHeatmap } from "./WorkloadHeatmap";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface WorkloadAllocationViewProps {
   tasks: any[];
@@ -37,8 +36,11 @@ export function WorkloadAllocationView({
   const filteredTasks = React.useMemo(() => {
     return tasks.filter(task => {
       // Filtrar por membro
-      if (selectedMember !== "all" && (!task.assignees || !task.assignees.includes(selectedMember))) {
-        return false;
+      if (selectedMember !== "all" && task.assignees) {
+        const assignees = Array.isArray(task.assignees) ? task.assignees : [];
+        if (!assignees.includes(selectedMember)) {
+          return false;
+        }
       }
       
       // Filtrar por pesquisa
@@ -109,6 +111,7 @@ export function WorkloadAllocationView({
           tasks={filteredTasks}
           members={members}
           timeFrame={timeFrame}
+          selectedMember={selectedMember}
         />
       )}
     </div>

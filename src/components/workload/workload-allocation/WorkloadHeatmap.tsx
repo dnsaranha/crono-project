@@ -9,9 +9,15 @@ interface WorkloadHeatmapProps {
   tasks: Task[];
   members: any[];
   timeFrame: string;
+  selectedMember?: string;
 }
 
-export function WorkloadHeatmap({ tasks, members, timeFrame }: WorkloadHeatmapProps) {
+export function WorkloadHeatmap({ 
+  tasks, 
+  members, 
+  timeFrame,
+  selectedMember = "all"
+}: WorkloadHeatmapProps) {
   // Gerar as semanas para exibição
   const weeks = useMemo(() => {
     const result = [];
@@ -39,23 +45,46 @@ export function WorkloadHeatmap({ tasks, members, timeFrame }: WorkloadHeatmapPr
     return result;
   }, [timeFrame]);
 
-  // Preparar dados do membro não atribuído
-  const unassignedMember = {
-    id: 'unassigned',
-    name: 'Não atribuído',
-    avatar_url: null,
-    isUnassigned: true
-  };
-
-  // Combinar membros com a opção não atribuída
-  const allMembers = [...members, unassignedMember];
+  // Filtrar membros baseado na seleção
+  const filteredMembers = useMemo(() => {
+    if (selectedMember === "all") {
+      return [...members, {
+        id: 'unassigned',
+        name: 'Não atribuído',
+        avatar_url: null,
+        isUnassigned: true
+      }];
+    }
+    
+    // Se um membro específico foi selecionado
+    const selectedMemberObj = members.find(m => m.id === selectedMember || m.user_id === selectedMember);
+    
+    if (selectedMemberObj) {
+      return [selectedMemberObj];
+    } else if (selectedMember === 'unassigned') {
+      return [{
+        id: 'unassigned',
+        name: 'Não atribuído',
+        avatar_url: null,
+        isUnassigned: true
+      }];
+    }
+    
+    // Fallback caso não encontre o membro selecionado
+    return [...members, {
+      id: 'unassigned',
+      name: 'Não atribuído',
+      avatar_url: null,
+      isUnassigned: true
+    }];
+  }, [members, selectedMember]);
 
   // Calcular tarefas por membro e semana
   const memberWeeklyTasks = useMemo(() => {
     const result = {};
     
     // Inicializar estrutura para todos os membros
-    allMembers.forEach(member => {
+    filteredMembers.forEach(member => {
       const memberId = member.id || member.user_id || 'unassigned';
       result[memberId] = {};
       
@@ -99,7 +128,7 @@ export function WorkloadHeatmap({ tasks, members, timeFrame }: WorkloadHeatmapPr
     });
     
     return result;
-  }, [tasks, weeks, allMembers, members]);
+  }, [tasks, weeks, filteredMembers, members]);
 
   // Calcular tamanho do círculo com base na quantidade de tarefas
   const getCircleSize = (count) => {
@@ -145,7 +174,7 @@ export function WorkloadHeatmap({ tasks, members, timeFrame }: WorkloadHeatmapPr
         </div>
         
         {/* Linhas para cada membro */}
-        {allMembers.map((member, memberIndex) => (
+        {filteredMembers.map((member, memberIndex) => (
           <div
             key={member.id || member.user_id || 'unassigned'}
             className={`grid ${memberIndex % 2 === 0 ? 'bg-card' : 'bg-muted/20'}`}
