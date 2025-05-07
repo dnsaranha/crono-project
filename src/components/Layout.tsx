@@ -1,5 +1,5 @@
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu, Sun, Moon, MonitorSmartphone } from "lucide-react";
@@ -61,10 +61,10 @@ export function Layout({ children }: LayoutProps) {
   };
   
   // Apply saved theme on initial load
-  useState(() => {
+  useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' || 'system';
     setThemePreference(savedTheme);
-  });
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -74,7 +74,7 @@ export function Layout({ children }: LayoutProps) {
             <Button
               variant="ghost"
               className="p-0 mr-2"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
             >
               <CronoLogo size="md" />
             </Button>
@@ -82,22 +82,22 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
                     {theme === 'light' && <Sun className="h-5 w-5" />}
                     {theme === 'dark' && <Moon className="h-5 w-5" />}
                     {theme === 'system' && <MonitorSmartphone className="h-5 w-5" />}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setThemePreference('light')}>
+                <DropdownMenuContent align="end" className="touch-manipulation">
+                  <DropdownMenuItem onClick={() => setThemePreference('light')} className="touch-manipulation">
                     <Sun className="mr-2 h-4 w-4" />
                     <span>Modo Claro</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setThemePreference('dark')}>
+                  <DropdownMenuItem onClick={() => setThemePreference('dark')} className="touch-manipulation">
                     <Moon className="mr-2 h-4 w-4" />
                     <span>Modo Escuro</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setThemePreference('system')}>
+                  <DropdownMenuItem onClick={() => setThemePreference('system')} className="touch-manipulation">
                     <MonitorSmartphone className="mr-2 h-4 w-4" />
                     <span>Sistema</span>
                   </DropdownMenuItem>
@@ -109,6 +109,7 @@ export function Layout({ children }: LayoutProps) {
                   variant="ghost" 
                   size="icon"
                   onClick={handleSignOut}
+                  className="touch-manipulation"
                 >
                   <LogOut className="h-5 w-5" />
                 </Button>
@@ -117,7 +118,7 @@ export function Layout({ children }: LayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="sm:hidden"
+                className="sm:hidden touch-manipulation"
                 onClick={() => setMenuOpen(!menuOpen)}
               >
                 <Menu className="h-5 w-5" />
@@ -131,7 +132,7 @@ export function Layout({ children }: LayoutProps) {
                 <Button 
                   variant="ghost" 
                   onClick={handleSignOut}
-                  className="justify-start w-full"
+                  className="justify-start w-full touch-manipulation"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair

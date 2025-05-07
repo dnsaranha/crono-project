@@ -23,10 +23,11 @@ export default function App() {
     <ThemeProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/reset-password" element={<UpdatePassword />} />
-          <Route path="/" element={
+          <Route path="/dashboard" element={
             <Layout>
               <Dashboard />
             </Layout>

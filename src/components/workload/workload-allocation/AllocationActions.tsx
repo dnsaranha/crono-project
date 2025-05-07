@@ -19,7 +19,7 @@ export function getAllocationTableActions(task: Task, canEdit: boolean, canDelet
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="touch-manipulation">
         <DropdownMenuItem 
           className="cursor-pointer touch-manipulation"
           onClick={() => {
