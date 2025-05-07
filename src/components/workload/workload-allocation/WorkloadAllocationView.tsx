@@ -6,6 +6,8 @@ import { AllocationTable } from "./AllocationTable";
 import { AllocationHeader } from "./AllocationHeader";
 import { AllocationFilters } from "./AllocationFilters";
 import { AllocationCalendar } from "./AllocationCalendar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface WorkloadAllocationViewProps {
   tasks: any[];
@@ -26,6 +28,7 @@ export function WorkloadAllocationView({
   const [selectedMember, setSelectedMember] = React.useState<string>("all");
   const [timeFrame, setTimeFrame] = React.useState<string>("month");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
+  const [useBigCalendar, setUseBigCalendar] = React.useState<boolean>(true);
   const isMobile = useMediaQuery("(max-width: 768px)");
   
   // Filtragem de tarefas
@@ -72,13 +75,29 @@ export function WorkloadAllocationView({
           canDelete={canDelete}
         />
       ) : (
-        <AllocationCalendar 
-          tasks={filteredTasks}
-          projects={projects}
-          members={members}
-          timeFrame={timeFrame}
-          isMobile={isMobile}
-        />
+        <>
+          {/* Switcher para alternar entre calendários */}
+          <div className="flex items-center space-x-2 touch-manipulation">
+            <Switch 
+              id="calendar-toggle" 
+              checked={useBigCalendar} 
+              onCheckedChange={setUseBigCalendar}
+              className="touch-manipulation"
+            />
+            <Label htmlFor="calendar-toggle" className="cursor-pointer">
+              {useBigCalendar ? 'Calendário Detalhado' : 'Calendário Simples'}
+            </Label>
+          </div>
+          
+          <AllocationCalendar 
+            tasks={filteredTasks}
+            projects={projects}
+            members={members}
+            timeFrame={timeFrame}
+            isMobile={isMobile}
+            useBigCalendar={useBigCalendar}
+          />
+        </>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { Task } from "@/contexts/WorkloadDashboardContext";
 import { format, parseISO, addDays, addMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getAllocationTableActions } from "./AllocationActions";
+import { BigCalendarView } from "./BigCalendarView";
 
 interface AllocationCalendarProps {
   tasks: Task[];
@@ -12,6 +13,7 @@ interface AllocationCalendarProps {
   members: any[];
   timeFrame: string;
   isMobile: boolean;
+  useBigCalendar?: boolean;
 }
 
 export function AllocationCalendar({
@@ -19,8 +21,21 @@ export function AllocationCalendar({
   projects,
   members,
   timeFrame,
-  isMobile
+  isMobile,
+  useBigCalendar = false
 }: AllocationCalendarProps) {
+  // Se estiver usando o BigCalendar, renderiza ele diretamente
+  if (useBigCalendar) {
+    return (
+      <BigCalendarView 
+        tasks={tasks}
+        projects={projects}
+        members={members}
+        timeFrame={timeFrame}
+      />
+    );
+  }
+  
   const today = new Date();
   
   // Determinar período de visualização
