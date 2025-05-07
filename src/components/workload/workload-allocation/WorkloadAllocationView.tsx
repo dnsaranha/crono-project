@@ -6,8 +6,10 @@ import { AllocationTable } from "./AllocationTable";
 import { AllocationHeader } from "./AllocationHeader";
 import { AllocationFilters } from "./AllocationFilters";
 import { AllocationCalendar } from "./AllocationCalendar";
+import { WorkloadHeatmap } from "./WorkloadHeatmap";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface WorkloadAllocationViewProps {
   tasks: any[];
@@ -24,7 +26,7 @@ export function WorkloadAllocationView({
   canEdit = false,
   canDelete = false
 }: WorkloadAllocationViewProps) {
-  const [viewMode, setViewMode] = React.useState<"table" | "calendar">("calendar");
+  const [viewMode, setViewMode] = React.useState<"table" | "calendar" | "heatmap">("heatmap");
   const [selectedMember, setSelectedMember] = React.useState<string>("all");
   const [timeFrame, setTimeFrame] = React.useState<string>("month");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
@@ -66,7 +68,7 @@ export function WorkloadAllocationView({
         setSearchQuery={setSearchQuery}
       />
       
-      {viewMode === "table" ? (
+      {viewMode === "table" && (
         <AllocationTable 
           filteredTasks={filteredTasks}
           projects={projects}
@@ -74,7 +76,9 @@ export function WorkloadAllocationView({
           canEdit={canEdit}
           canDelete={canDelete}
         />
-      ) : (
+      )}
+      
+      {viewMode === "calendar" && (
         <>
           {/* Switcher para alternar entre calendários */}
           <div className="flex items-center space-x-2 touch-manipulation">
@@ -98,6 +102,14 @@ export function WorkloadAllocationView({
             useBigCalendar={useBigCalendar}
           />
         </>
+      )}
+      
+      {viewMode === "heatmap" && (
+        <WorkloadHeatmap
+          tasks={filteredTasks}
+          members={members}
+          timeFrame={timeFrame}
+        />
       )}
     </div>
   );
