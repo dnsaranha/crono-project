@@ -1,0 +1,204 @@
+/* Estilos para as visualizações de projeto */
+.gantt-container {
+  width: 100%;
+  height: 500px;
+  overflow: auto;
+  background-color: white;
+}
+
+.timeline-container {
+  width: 100%;
+  overflow: auto;
+  background-color: white;
+  padding: 1rem;
+}
+
+.timeline-event {
+  position: relative;
+  padding: 20px;
+  margin: 20px 0 20px 30px;
+  border-radius: 4px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid hsl(var(--primary));
+}
+
+.timeline-event::before {
+  content: "";
+  position: absolute;
+  width: 2px;
+  background: hsl(var(--primary));
+  top: -20px;
+  bottom: -20px;
+  left: -20px;
+}
+
+.timeline-event::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  left: -27px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.kanban-column {
+  background: hsl(var(--card));
+  border-radius: 4px;
+  min-width: 300px;
+  max-width: 300px;
+  height: fit-content;
+  border: 1px solid hsl(var(--border));
+}
+
+.kanban-column-header {
+  padding: 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 4px 4px 0 0;
+  font-weight: bold;
+}
+
+.kanban-column-content {
+  padding: 1rem;
+  min-height: 100px;
+}
+
+.kanban-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.kanban-card:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.kanban-card-title {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.kanban-card-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.progress-bar {
+  height: 4px;
+  background: hsl(var(--secondary));
+  border-radius: 2px;
+  margin-top: 0.5rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+}
+
+.task-progress {
+  width: 100%;
+  height: 6px;
+  background: hsl(var(--secondary));
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+.task-progress-fill {
+  height: 100%;
+  background: hsl(var(--primary));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.grid-table .parent-task {
+  font-weight: bold;
+  background-color: hsl(var(--muted));
+}
+
+.grid-table .child-task {
+  padding-left: 2rem;
+}
+
+/* Ajustar as cores do Gantt Chart para melhor visualização */
+.gantt_task_progress {
+  background-color: hsl(var(--primary) / 0.8);
+}
+
+.gantt_task_line {
+  background-color: hsl(var(--primary) / 0.3);
+  border-color: hsl(var(--primary));
+}
+
+.gantt_task_line.gantt_milestone {
+  background-color: hsl(var(--destructive) / 0.7);
+  border-color: hsl(var(--destructive));
+}
+
+.gantt_link_arrow {
+  border-color: hsl(var(--primary) / 0.8);
+}
+
+.gantt_task_link .gantt_line_wrapper div {
+  background-color: hsl(var(--primary) / 0.8);
+}
+
+.gantt_grid_head_cell {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-weight: bold;
+}
+
+.gantt_grid_data .gantt_cell {
+  border-right: 1px solid hsl(var(--border));
+}
+
+.gantt_task_row.odd {
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.gantt_task_row {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Melhorar o contraste das dependências */
+.gantt_task_link:hover .gantt_line_wrapper div {
+  background-color: hsl(var(--primary));
+  box-shadow: 0 0 5px hsl(var(--primary));
+}
+
+/* Destacar tarefas ao passar o mouse */
+.gantt_task_line:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Melhorar a visualização de marcos */
+.gantt_milestone {
+  transform: rotate(45deg);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.kanban-board {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.task-dragging {
+  opacity: 0.5;
+}
+
+.kanban-column-content.drag-over {
+  background-color: hsl(var(--muted) / 0.5);
+}

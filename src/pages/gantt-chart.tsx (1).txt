@@ -1,0 +1,284 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import type { Task } from "@/lib/task-service"
+import { updateTask } from "@/lib/task-service"
+import Script from "next/script"
+import { useTheme } from "next-themes"
+import { useToast } from "@/components/ui/use-toast"
+
+interface GanttChartProps {
+  tasks: Task[]
+  onEditTask?: (taskId: string) => void
+  onTasksUpdated?: () => void
+}
+
+export function GanttChart({ tasks, onEditTask, onTasksUpdated }: GanttChartProps) {
+  const ganttContainerRef = useRef<HTMLDivElement>(null)
+  const ganttInitialized = useRef(false)
+  const { theme } = useTheme()
+  const { toast } = useToast()
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    // Verificar se o gantt já está disponível
+    if (window.gantt && !ganttInitialized.current && ganttContainerRef.current) {
+      initGantt()
+    }
+  }, [tasks, theme])
+
+  // Função para inicializar o Gantt
+  const initGantt = () => {
+    if (!ganttContainerRef.current || !window.gantt) return
+
+    const gantt = window.gantt
+
+    // Configuração do Gantt
+    gantt.config.date_format = "%Y-%m-%d"
+    gantt.config.scale_height = 50
+    gantt.config.row_height = 30
+    gantt.config.task_height = 16
+    gantt.config.drag_links = true
+    gantt.config.drag_progress = true
+    gantt.config.drag_resize = true
+    gantt.config.drag_move = true
+
+    // Aplicar tema escuro se necessário
+    if (theme === "dark") {
+      gantt.config.scale_height = 50
+      gantt.templates.scale_cell_class = () => "gantt_scale_cell_dark"
+      gantt.templates.grid_cell_class = () => "gantt_grid_cell_dark"
+      gantt.templates.task_cell_class = () => "gantt_task_cell_dark"
+      gantt.templates.timeline_cell_class = () => "gantt_timeline_cell_dark"
+
+      // Adicionar estilos CSS para o tema escuro
+      const styleElement = document.createElement("style")
+      styleElement.textContent = `
+        .gantt_scale_cell_dark {
+          background-color: hsl(var(--background)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+        .gantt_grid_cell_dark {
+          background-color: hsl(var(--background)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+        .gantt_task_cell_dark {
+          background-color: hsl(var(--background)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+        .gantt_timeline_cell_dark {
+          background-color: hsl(var(--background)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+        .gantt_task_line {
+          background-color: hsl(var(--primary) / 0.7) !important;
+          border-color: hsl(var(--primary)) !important;
+        }
+        .gantt_task_progress {
+          background-color: hsl(var(--primary)) !important;
+        }
+        .gantt_task_content {
+          color: hsl(var(--primary-foreground)) !important;
+        }
+        .gantt_grid_head_cell {
+          background-color: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+        .gantt_grid_data {
+          background-color: hsl(var(--background)) !important;
+        }
+      `
+      document.head.appendChild(styleElement)
+    }
+
+    // Configuração da escala de tempo
+    gantt.config.scales = [
+      { unit: "month", step: 1, format: "%F, %Y" },
+      { unit: "week", step: 1, format: "Semana #%W" },
+    ]
+
+    // Formatar as tarefas para o formato esperado pelo Gantt
+    const formattedTasks = tasks.map((task) => {
+      const startDate = task.startDate ? new Date(task.startDate) : new Date()
+      const endDate = task.endDate ? new Date(task.endDate) : new Date()
+      const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+
+      return {
+        id: task.id,
+        text: task.name,
+        start_date: startDate.toISOString().split("T")[0],
+        duration: duration > 0 ? duration : 1,
+        progress: task.progress / 100,
+        parent: task.dependencies.length > 0 ? task.dependencies[0] : undefined,
+        open: true,
+        status: task.status, // Adicionar status para uso posterior
+      }
+    })
+
+    // Criar links entre tarefas dependentes
+    const links = []
+    let linkId = 1
+
+    tasks.forEach((task) => {
+      task.dependencies.forEach((depId) => {
+        links.push({
+          id: linkId++,
+          source: depId,
+          target: task.id,
+          type: "0", // Finish-to-Start
+        })
+      })
+    })
+
+    // Inicializar o Gantt
+    gantt.init(ganttContainerRef.current)
+    gantt.clearAll()
+    gantt.parse({
+      data: formattedTasks,
+      links: links,
+    })
+
+    // Evento de duplo clique na tarefa para editar
+    gantt.attachEvent("onTaskDblClick", (id) => {
+      // Verificar se já existe uma tarefa sendo editada
+      if (editingTaskId) {
+        return false // Impedir a abertura de múltiplas janelas
+      }
+
+      setEditingTaskId(id)
+      if (onEditTask) {
+        onEditTask(id.toString())
+      }
+      return true
+    })
+
+    // Evento após arrastar e soltar uma tarefa (mover)
+    gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
+      const task = gantt.getTask(id)
+
+      // Converter para o formato de data esperado
+      const startDate = new Date(task.start_date)
+      const endDate = new Date(startDate.getTime() + task.duration * 24 * 60 * 60 * 1000)
+
+      // Atualizar a tarefa no armazenamento
+      updateTask(id, {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      })
+
+      toast({
+        title: "Tarefa atualizada",
+        description: "As datas da tarefa foram atualizadas com sucesso.",
+      })
+
+      // Notificar que as tarefas foram atualizadas
+      if (onTasksUpdated) {
+        onTasksUpdated()
+      }
+    })
+
+    // Evento após atualizar o progresso da tarefa
+    gantt.attachEvent("onAfterTaskUpdate", (id, task) => {
+      // Atualizar o progresso da tarefa no armazenamento
+      updateTask(id, {
+        progress: Math.round(task.progress * 100),
+      })
+
+      // Notificar que as tarefas foram atualizadas
+      if (onTasksUpdated) {
+        onTasksUpdated()
+      }
+    })
+
+    // Evento após adicionar uma dependência (link)
+    gantt.attachEvent("onAfterLinkAdd", (id, link) => {
+      const targetTask = tasks.find((t) => t.id === link.target)
+
+      if (targetTask) {
+        const updatedDependencies = [...targetTask.dependencies, link.source]
+
+        // Atualizar as dependências da tarefa
+        updateTask(link.target, {
+          dependencies: updatedDependencies,
+        })
+
+        toast({
+          title: "Dependência adicionada",
+          description: "A dependência entre tarefas foi adicionada com sucesso.",
+        })
+
+        // Notificar que as tarefas foram atualizadas
+        if (onTasksUpdated) {
+          onTasksUpdated()
+        }
+      }
+    })
+
+    // Evento após remover uma dependência (link)
+    gantt.attachEvent("onAfterLinkDelete", (id, link) => {
+      const targetTask = tasks.find((t) => t.id === link.target)
+
+      if (targetTask) {
+        const updatedDependencies = targetTask.dependencies.filter((depId) => depId !== link.source)
+
+        // Atualizar as dependências da tarefa
+        updateTask(link.target, {
+          dependencies: updatedDependencies,
+        })
+
+        toast({
+          title: "Dependência removida",
+          description: "A dependência entre tarefas foi removida com sucesso.",
+        })
+
+        // Notificar que as tarefas foram atualizadas
+        if (onTasksUpdated) {
+          onTasksUpdated()
+        }
+      }
+    })
+
+    ganttInitialized.current = true
+  }
+
+  // Limpar o estado de edição quando a janela de edição for fechada
+  useEffect(() => {
+    const handleDialogClose = () => {
+      setEditingTaskId(null)
+    }
+
+    // Adicionar listener para detectar quando o diálogo é fechado
+    document.addEventListener("dialog-closed", handleDialogClose)
+
+    return () => {
+      document.removeEventListener("dialog-closed", handleDialogClose)
+    }
+  }, [])
+
+  return (
+    <>
+      <Script
+        src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"
+        onLoad={() => {
+          if (!ganttInitialized.current && ganttContainerRef.current) {
+            initGantt()
+          }
+        }}
+      />
+      <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" />
+      <div className="gantt-container" ref={ganttContainerRef}></div>
+    </>
+  )
+}
+
+// Adicionar a definição do gantt ao objeto window
+declare global {
+  interface Window {
+    gantt: any
+  }
+}
