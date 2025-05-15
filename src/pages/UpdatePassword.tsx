@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CronoLogo } from "@/components/CronoLogo";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function UpdatePassword() {
   const [password, setPassword] = useState("");
@@ -137,9 +137,19 @@ export default function UpdatePassword() {
       </header>
       
       <div className="flex flex-col items-center justify-center flex-1 px-4 py-8">
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Definir Nova Senha</CardTitle>
+        <Card className="w-full max-w-md mx-auto shadow-sm">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-0 mr-2 h-9 w-9 touch-manipulation" 
+                onClick={() => navigate("/reset-password")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <CardTitle>Definir Nova Senha</CardTitle>
+            </div>
             <CardDescription>
               Crie uma nova senha para sua conta.
             </CardDescription>
@@ -163,12 +173,13 @@ export default function UpdatePassword() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Nova senha"
-                      className="h-11 text-base sm:text-sm pr-10"
+                      className="h-12 text-base pr-10 touch-manipulation"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 touch-manipulation"
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -184,12 +195,13 @@ export default function UpdatePassword() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirme a nova senha"
-                      className="h-11 text-base sm:text-sm pr-10"
+                      className="h-12 text-base pr-10 touch-manipulation"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 touch-manipulation"
+                      aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
                     >
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -197,7 +209,7 @@ export default function UpdatePassword() {
                 </div>
                 
                 <Button
-                  className="w-full"
+                  className="w-full h-12 text-base mt-4 touch-manipulation"
                   onClick={handleUpdatePassword}
                   disabled={loading || !password || !confirmPassword}
                 >
@@ -206,7 +218,7 @@ export default function UpdatePassword() {
                 
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-12 text-base touch-manipulation"
                   onClick={() => navigate("/auth")}
                 >
                   Voltar para Login
