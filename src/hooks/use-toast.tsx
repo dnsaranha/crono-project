@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { CrossIcon } from "@radix-ui/react-toast"
+import { X } from "lucide-react"
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast"
 import { useToast as useToastOriginal } from "@/components/ui/use-toast"
 
