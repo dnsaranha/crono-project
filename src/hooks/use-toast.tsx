@@ -2,10 +2,10 @@
 import * as React from "react"
 import { X } from "lucide-react"
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast"
-import { useToast as useToastOriginal } from "@/components/ui/use-toast"
+import { useToast as useToastOriginalImport, toast as toastOriginal } from "@/components/ui/use-toast"
 
 export function Toaster() {
-  const { toasts } = useToastOriginal()
+  const { toasts } = useToastOriginalImport()
 
   return (
     <ToastProvider>
@@ -28,4 +28,6 @@ export function Toaster() {
   )
 }
 
-export const { toast, useToast } = useToastOriginal;
+// Reexportamos para usar em outros componentes
+export const useToast = useToastOriginalImport;
+export const toast = toastOriginal;
