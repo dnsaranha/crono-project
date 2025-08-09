@@ -7,8 +7,54 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
+      assessment_responses: {
+        Row: {
+          assessment_id: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          level_number: number
+          meets_requirement: boolean | null
+          question_id: number
+          updated_at: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          level_number: number
+          meets_requirement?: boolean | null
+          question_id: number
+          updated_at?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          level_number?: number
+          meets_requirement?: boolean | null
+          question_id?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_responses_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "maturity_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backlog_items: {
         Row: {
           created_at: string
@@ -145,6 +191,120 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          role: string
+          skills: Json | null
+          updated_at: string | null
+          weekly_hours: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          role: string
+          skills?: Json | null
+          updated_at?: string | null
+          weekly_hours?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          role?: string
+          skills?: Json | null
+          updated_at?: string | null
+          weekly_hours?: number
+        }
+        Relationships: []
+      }
+      m3u_sources: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          updated_at: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          updated_at?: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          updated_at?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      maturity_assessments: {
+        Row: {
+          company_size: string | null
+          created_at: string | null
+          has_project_experience: boolean | null
+          id: string
+          is_pharmaceutical: boolean | null
+          level_2_score: number | null
+          level_3_score: number | null
+          level_4_score: number | null
+          level_5_score: number | null
+          overall_maturity: number | null
+          pharmaceutical_type: string | null
+          respondent_id: string | null
+          session_id: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_size?: string | null
+          created_at?: string | null
+          has_project_experience?: boolean | null
+          id?: string
+          is_pharmaceutical?: boolean | null
+          level_2_score?: number | null
+          level_3_score?: number | null
+          level_4_score?: number | null
+          level_5_score?: number | null
+          overall_maturity?: number | null
+          pharmaceutical_type?: string | null
+          respondent_id?: string | null
+          session_id?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_size?: string | null
+          created_at?: string | null
+          has_project_experience?: boolean | null
+          id?: string
+          is_pharmaceutical?: boolean | null
+          level_2_score?: number | null
+          level_3_score?: number | null
+          level_4_score?: number | null
+          level_5_score?: number | null
+          overall_maturity?: number | null
+          pharmaceutical_type?: string | null
+          respondent_id?: string | null
+          session_id?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           content: string
@@ -182,6 +342,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          subscription_plan: string
           updated_at: string
         }
         Insert: {
@@ -190,6 +351,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          subscription_plan?: string
           updated_at?: string
         }
         Update: {
@@ -198,6 +360,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          subscription_plan?: string
           updated_at?: string
         }
         Relationships: []
@@ -246,6 +409,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          category: string | null
           created_at: string
           description: string | null
           end_date: string | null
@@ -256,6 +420,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -266,6 +431,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -409,6 +575,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          category: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -421,10 +588,12 @@ export type Database = {
           priority: number | null
           progress: number
           project_id: string
+          special_marker: string | null
           start_date: string
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -437,10 +606,12 @@ export type Database = {
           priority?: number | null
           progress?: number
           project_id: string
+          special_marker?: string | null
           start_date: string
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -453,6 +624,7 @@ export type Database = {
           priority?: number | null
           progress?: number
           project_id?: string
+          special_marker?: string | null
           start_date?: string
           updated_at?: string
         }
@@ -476,6 +648,120 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          remove_duplicates: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          remove_duplicates?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          remove_duplicates?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      workload_projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      workload_tasks: {
+        Row: {
+          assigned_employee_id: string | null
+          completion_date: string | null
+          created_at: string | null
+          description: string | null
+          end_date: string
+          estimated_time: number
+          id: string
+          name: string
+          project_id: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_employee_id?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date: string
+          estimated_time?: number
+          id?: string
+          name: string
+          project_id?: string | null
+          start_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_employee_id?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string
+          estimated_time?: number
+          id?: string
+          name?: string
+          project_id?: string | null
+          start_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workload_tasks_assigned_employee_id_fkey"
+            columns: ["assigned_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workload_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "workload_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -550,21 +836,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -582,14 +872,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -605,14 +897,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -628,14 +922,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -643,14 +939,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
