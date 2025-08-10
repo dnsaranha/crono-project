@@ -8,16 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WorkloadTask, WorkloadProject, WorkloadMember } from '@/types/workload';
 import { format } from 'date-fns';
 
-type WorkloadTaskFormData = {
-  name: string;
-  project_id: string;
-  assignee_id: string;
-  start_date: string;
-  end_date: string;
-  hours_per_day: number;
-  status: WorkloadTask['status'];
-};
-
 interface WorkloadTaskFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,14 +25,14 @@ export function WorkloadTaskForm({
   members, 
   onSubmit 
 }: WorkloadTaskFormProps) {
-  const [formData, setFormData] = useState<WorkloadTaskFormData>({
+  const [formData, setFormData] = useState({
     name: '',
     project_id: '',
     assignee_id: '',
     start_date: format(new Date(), 'yyyy-MM-dd'),
     end_date: format(new Date(), 'yyyy-MM-dd'),
     hours_per_day: 8,
-    status: 'pending',
+    status: 'pending' as const
   });
 
   useEffect(() => {
