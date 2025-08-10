@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, ListTodo, BarChart } from "lucide-react";
 import { WorkloadOverviewContent } from "./WorkloadOverviewContent";
 import { BacklogContent } from "./BacklogContent";
+import { WorkloadRoadmap } from "./WorkloadRoadmap";
 
 interface WorkloadTabsProps {
   selectedTab: string;
@@ -13,7 +14,7 @@ interface WorkloadTabsProps {
 export function WorkloadTabs({ selectedTab, onTabChange }: WorkloadTabsProps) {
   return (
     <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full max-w-md grid-cols-2 mb-6 touch-manipulation h-[50px]">
+      <TabsList className="grid w-full max-w-md grid-cols-3 mb-6 touch-manipulation h-[50px]">
         <TabsTrigger value="overview" className="h-full py-3 touch-manipulation">
           <BarChart className="h-4 w-4 mr-2" />
           <span className="hidden xs:inline">Carga de Trabalho</span>
@@ -23,10 +24,18 @@ export function WorkloadTabs({ selectedTab, onTabChange }: WorkloadTabsProps) {
           <ListTodo className="h-4 w-4 mr-2" />
           <span>Backlog</span>
         </TabsTrigger>
+        <TabsTrigger value="roadmap" className="h-full py-3 touch-manipulation">
+          <Calendar className="h-4 w-4 mr-2" />
+          <span>Roadmap</span>
+        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview" className="space-y-4">
         <WorkloadOverviewContent />
+      </TabsContent>
+      
+      <TabsContent value="roadmap" className="space-y-4">
+        <WorkloadRoadmap />
       </TabsContent>
       
       <TabsContent value="backlog" className="space-y-4">

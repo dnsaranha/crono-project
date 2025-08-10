@@ -17,6 +17,17 @@ interface WorkloadTaskFormProps {
   onSubmit: (task: Omit<WorkloadTask, 'id' | 'created_at' | 'updated_at'>) => void;
 }
 
+// Tipo explícito para os dados do formulário evitando "as const"
+type WorkloadTaskFormData = {
+  name: string;
+  project_id: string;
+  assignee_id: string;
+  start_date: string;
+  end_date: string;
+  hours_per_day: number;
+  status: WorkloadTask['status'];
+};
+
 export function WorkloadTaskForm({ 
   open, 
   onOpenChange, 
@@ -25,15 +36,15 @@ export function WorkloadTaskForm({
   members, 
   onSubmit 
 }: WorkloadTaskFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    project_id: '',
-    assignee_id: '',
-    start_date: format(new Date(), 'yyyy-MM-dd'),
-    end_date: format(new Date(), 'yyyy-MM-dd'),
-    hours_per_day: 8,
-    status: 'pending' as const
-  });
+const [formData, setFormData] = useState<WorkloadTaskFormData>({
+  name: '',
+  project_id: '',
+  assignee_id: '',
+  start_date: format(new Date(), 'yyyy-MM-dd'),
+  end_date: format(new Date(), 'yyyy-MM-dd'),
+  hours_per_day: 8,
+  status: 'pending'
+});
 
   useEffect(() => {
     if (task) {
