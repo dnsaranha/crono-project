@@ -410,6 +410,7 @@ export type Database = {
       projects: {
         Row: {
           category: string | null
+          color: string | null
           created_at: string
           description: string | null
           end_date: string | null
@@ -417,10 +418,12 @@ export type Database = {
           name: string
           owner_id: string
           start_date: string | null
+          status: string
           updated_at: string
         }
         Insert: {
           category?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -428,10 +431,12 @@ export type Database = {
           name: string
           owner_id: string
           start_date?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
           category?: string | null
+          color?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -439,6 +444,7 @@ export type Database = {
           name?: string
           owner_id?: string
           start_date?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -709,11 +715,14 @@ export type Database = {
       workload_tasks: {
         Row: {
           assigned_employee_id: string | null
+          assignee_id: string | null
+          category: string | null
           completion_date: string | null
           created_at: string | null
           description: string | null
           end_date: string
           estimated_time: number
+          hours_per_day: number
           id: string
           name: string
           project_id: string | null
@@ -723,11 +732,14 @@ export type Database = {
         }
         Insert: {
           assigned_employee_id?: string | null
+          assignee_id?: string | null
+          category?: string | null
           completion_date?: string | null
           created_at?: string | null
           description?: string | null
           end_date: string
           estimated_time?: number
+          hours_per_day?: number
           id?: string
           name: string
           project_id?: string | null
@@ -737,11 +749,14 @@ export type Database = {
         }
         Update: {
           assigned_employee_id?: string | null
+          assignee_id?: string | null
+          category?: string | null
           completion_date?: string | null
           created_at?: string | null
           description?: string | null
           end_date?: string
           estimated_time?: number
+          hours_per_day?: number
           id?: string
           name?: string
           project_id?: string | null

@@ -1,9 +1,10 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Download, Upload, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { supabase } from "@/integrations/supabase/client";
+import { getProjectMembersList } from "@/services/taskService";
 import { WorkloadTask, WorkloadProject, WorkloadMember, TimeScale } from "@/types/workload";
 import { WorkloadTaskForm } from "./WorkloadTaskForm";
 import { WorkloadTimeline } from "./WorkloadTimeline";
@@ -15,18 +16,10 @@ import { Label } from "@/components/ui/label";
 export function WorkloadOverviewContent() {
   const { toast } = useToast();
   
-  // Estados locais usando localStorage
-  const [tasks, setTasks] = useLocalStorage<WorkloadTask[]>('workload-tasks', []);
-  const [projects, setProjects] = useLocalStorage<WorkloadProject[]>('workload-projects', [
-    { id: '1', name: 'Projeto Alpha', color: '#3B82F6' },
-    { id: '2', name: 'Projeto Beta', color: '#10B981' },
-    { id: '3', name: 'Projeto Gamma', color: '#F59E0B' }
-  ]);
-  const [members, setMembers] = useLocalStorage<WorkloadMember[]>('workload-members', [
-    { id: '1', name: 'Ana Silva', email: 'ana@empresa.com' },
-    { id: '2', name: 'Carlos Santos', email: 'carlos@empresa.com' },
-    { id: '3', name: 'Mariana Costa', email: 'mariana@empresa.com' }
-  ]);
+  // Estados locais carregados do banco
+  const [tasks, setTasks] = useState<WorkloadTask[]>([]);
+  const [projects, setProjects] = useState<WorkloadProject[]>([]);
+  const [members, setMembers] = useState<WorkloadMember[]>([]);
   
   // Estados da UI
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
@@ -34,6 +27,73 @@ export function WorkloadOverviewContent() {
   const [timeScale, setTimeScale] = useState<TimeScale>('week');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [groupByProject, setGroupByProject] = useState(true);
+
+  const refreshData = useCallback(async () => {
+    try {
+      // 1) Projetos acessíveis (com cor e status)
+      const { data: projectsData, error: projErr } = await supabase
+        .from('projects')
+        .select('id, name, color, status');
+      if (projErr) throw projErr;
+
+      const mappedProjects: WorkloadProject[] = (projectsData ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        color: p.color || '#60A5FA',
+      }));
+      setProjects(mappedProjects);
+
+      // 2) Membros (agregados de todos os projetos)
+      const memberLists = await Promise.all(
+        mappedProjects.map((p) => getProjectMembersList(p.id).catch(() => []))
+      );
+      const membersMap = new Map<string, WorkloadMember>();
+      memberLists.flat().forEach((m: any) => {
+        if (m?.id) membersMap.set(m.id, m);
+      });
+      const membersArr = Array.from(membersMap.values());
+      setMembers(membersArr);
+
+      // 3) Tarefas do workload
+      const projectIds = mappedProjects.map((p) => p.id);
+      if (projectIds.length === 0) {
+        setTasks([]);
+        return;
+      }
+      const { data: tasksData, error: tasksErr } = await supabase
+        .from('workload_tasks')
+        .select('id, name, project_id, assignee_id, start_date, end_date, hours_per_day, status, created_at, updated_at, category')
+        .in('project_id', projectIds);
+      if (tasksErr) throw tasksErr;
+
+      const tasksMapped: WorkloadTask[] = (tasksData ?? []).map((t: any) => {
+        const proj = mappedProjects.find((p) => p.id === t.project_id);
+        const assignee = t.assignee_id ? membersArr.find((m) => m.id === t.assignee_id) : undefined;
+        return {
+          id: t.id,
+          name: t.name,
+          project_id: t.project_id,
+          project_name: proj?.name ?? 'Projeto',
+          assignee_id: t.assignee_id ?? '',
+          assignee_name: assignee?.name ?? '',
+          start_date: t.start_date,
+          end_date: t.end_date,
+          hours_per_day: t.hours_per_day ?? 8,
+          status: (t.status as any) ?? 'pending',
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+        };
+      });
+      setTasks(tasksMapped);
+    } catch (err: any) {
+      console.error('Erro ao carregar workload:', err);
+      toast({ title: 'Erro ao carregar dados', description: err.message, variant: 'destructive' });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   // Filtrar tarefas
   const filteredTasks = useMemo(() => {
@@ -70,65 +130,101 @@ export function WorkloadOverviewContent() {
     setIsTaskFormOpen(true);
   };
 
-  const handleSubmitTask = (taskData: Omit<WorkloadTask, 'id' | 'created_at' | 'updated_at'>) => {
-    const now = new Date().toISOString();
-    
-    if (selectedTask) {
-      // Editar tarefa existente
-      setTasks(prev => prev.map(task => 
-        task.id === selectedTask.id 
-          ? { ...taskData, id: selectedTask.id, created_at: selectedTask.created_at, updated_at: now }
-          : task
-      ));
-      
-      toast({
-        title: "Tarefa atualizada",
-        description: "A tarefa foi atualizada com sucesso."
-      });
-    } else {
-      // Criar nova tarefa
-      const newTask: WorkloadTask = {
-        ...taskData,
-        id: `task-${Date.now()}`,
-        created_at: now,
-        updated_at: now
-      };
-      
-      setTasks(prev => [...prev, newTask]);
-      
-      toast({
-        title: "Tarefa criada",
-        description: "A nova tarefa foi criada com sucesso."
-      });
+  const handleSubmitTask = async (taskData: Omit<WorkloadTask, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      if (selectedTask) {
+        const { error } = await supabase
+          .from('workload_tasks')
+          .update({
+            name: taskData.name,
+            project_id: taskData.project_id,
+            assignee_id: taskData.assignee_id || null,
+            start_date: taskData.start_date,
+            end_date: taskData.end_date,
+            hours_per_day: taskData.hours_per_day,
+            status: taskData.status,
+          })
+          .eq('id', selectedTask.id);
+        if (error) throw error;
+
+        toast({ title: 'Tarefa atualizada', description: 'A tarefa foi atualizada com sucesso.' });
+      } else {
+        const { data, error } = await supabase
+          .from('workload_tasks')
+          .insert([
+            {
+              name: taskData.name,
+              project_id: taskData.project_id,
+              assignee_id: taskData.assignee_id || null,
+              start_date: taskData.start_date,
+              end_date: taskData.end_date,
+              hours_per_day: taskData.hours_per_day,
+              status: taskData.status,
+            },
+          ])
+          .select()
+          .maybeSingle();
+        if (error) throw error;
+
+        toast({ title: 'Tarefa criada', description: 'A nova tarefa foi criada com sucesso.' });
+      }
+
+      await refreshData();
+      setIsTaskFormOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar tarefa:', err);
+      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
     }
   };
 
-  const handleTaskMove = (taskId: string, newStartDate: string) => {
-    setTasks(prev => prev.map(task => {
+  const handleTaskMove = async (taskId: string, newStartDate: string) => {
+    // Otimista: atualiza UI
+    let previous: WorkloadTask | null = null;
+    setTasks((prev) => prev.map((task) => {
       if (task.id === taskId) {
-        // Calcular nova data de fim mantendo a duração
+        previous = task;
         const oldStart = new Date(task.start_date);
         const oldEnd = new Date(task.end_date);
         const duration = Math.ceil((oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60 * 24));
-        
+
         const newStart = new Date(newStartDate);
         const newEnd = new Date(newStart);
         newEnd.setDate(newEnd.getDate() + duration);
-        
+
         return {
           ...task,
           start_date: newStartDate,
           end_date: newEnd.toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
       }
       return task;
     }));
-    
-    toast({
-      title: "Tarefa movida",
-      description: "A tarefa foi reposicionada na timeline."
-    });
+
+    try {
+      // Persistir no banco
+      const movingTask = previous;
+      if (!movingTask) return;
+      const oldStart = new Date(movingTask.start_date);
+      const oldEnd = new Date(movingTask.end_date);
+      const duration = Math.ceil((oldEnd.getTime() - oldStart.getTime()) / (1000 * 60 * 60 * 24));
+      const newStart = new Date(newStartDate);
+      const newEnd = new Date(newStart);
+      newEnd.setDate(newEnd.getDate() + duration);
+
+      const { error } = await supabase
+        .from('workload_tasks')
+        .update({ start_date: newStartDate, end_date: newEnd.toISOString().split('T')[0] })
+        .eq('id', taskId);
+      if (error) throw error;
+
+      toast({ title: 'Tarefa movida', description: 'A tarefa foi reposicionada na timeline.' });
+    } catch (err: any) {
+      console.error('Erro ao mover tarefa:', err);
+      toast({ title: 'Erro ao mover', description: err.message, variant: 'destructive' });
+      // Recarregar estado do banco para reverter
+      await refreshData();
+    }
   };
 
   const handleExportCSV = () => {
