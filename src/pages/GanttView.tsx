@@ -71,14 +71,6 @@ export default function GanttView() {
     return <LoadingState message="Carregando dados do projeto..." />;
   }
   
-  if (tasks.length === 0) {
-    return (
-      <div className="h-full">
-        <EmptyTaskState onAddTask={() => setShowTaskForm(true)} />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-3">
@@ -93,14 +85,20 @@ export default function GanttView() {
       </div>
       
       <div className="flex-grow border rounded-md bg-card overflow-hidden">
-        <GanttChart 
-          tasks={tasks}
-          onTaskClick={handleTaskSelect}
-          onTaskUpdate={handleTaskUpdate}
-          onCreateDependency={handleDependencyCreate}
-          sidebarVisible={showSidebar}
-          onToggleSidebar={handleToggleSidebar}
-        />
+        {tasks.length === 0 ? (
+          <div className="h-full">
+            <EmptyTaskState onAddTask={() => setShowTaskForm(true)} />
+          </div>
+        ) : (
+          <GanttChart 
+            tasks={tasks}
+            onTaskClick={handleTaskSelect}
+            onTaskUpdate={handleTaskUpdate}
+            onCreateDependency={handleDependencyCreate}
+            sidebarVisible={showSidebar}
+            onToggleSidebar={handleToggleSidebar}
+          />
+        )}
       </div>
       
       <Dialog open={showTaskForm} onOpenChange={setShowTaskForm}>
